@@ -50,6 +50,17 @@ describe("parseTableKramdown", () => {
     expect(result.tableLines).toEqual(["| A | B |", "|---|---|"]);
     expect(result.ialLine).toBeNull();
   });
+
+  it("解析时自动过滤数据行中仅为单个短横杠 - 的单元格", () => {
+    const kramdown = "| A | B |\n|---|---|\n| - | 2 |";
+    const result = parseTableKramdown(kramdown);
+
+    expect(result.tableLines).toEqual([
+      "| A | B |",
+      "|---|---|",
+      "|  | 2 |",
+    ]);
+  });
 });
 
 describe("serializeTableKramdown", () => {

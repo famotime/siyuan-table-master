@@ -2,7 +2,7 @@ import { getActiveEditor, showMessage } from "siyuan";
 import { isCursorInTable } from "./siyuan-text-editor";
 import { TABLE_COMMANDS, executeCommand, TableCommand } from "./commands";
 import type AdvancedTablesPlugin from "./index";
-import { rangeToCellCoord, CellCoord } from "./dom-utils";
+import { rangeToCellCoord, CellCoord, highlightActiveRowAndCol } from "./dom-utils";
 
 /** SVG 图标定义 - Lucide 专业线框风格，显式内联阻断 fill 覆写，无填充 */
 const SVG_ICONS: Record<string, string> = {
@@ -165,6 +165,8 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
               } else if (cmd.id === "move-column-right") {
                 coord.col = coord.col + 1;
               }
+              // 立即应用推演后的高亮，加速视觉跟随
+              highlightActiveRowAndCol(lastActiveCell.tableBlock, coord);
             }
             
             // 不需要再做强同步 updateStatus()，交给 selectionchange 去平滑刷新
@@ -205,6 +207,7 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
         const activeEditor = getActiveEditor();
         if (!activeEditor?.protyle) {
           lastActiveCell = null;
+          highlightActiveRowAndCol(null, null); // 失去编辑器焦点时清除高亮
           setUIState(false);
           return;
         }
@@ -222,6 +225,7 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
                 coord,
                 tableBlock,
               };
+              highlightActiveRowAndCol(tableBlock, coord); // 触发操作行列高亮
             }
           }
           const size = getTableSize(tableBlock);
@@ -247,6 +251,7 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
             // 如果明确发现了其他非当前缓存表格的 Block，说明用户确实把光标移走了，此时才真正置灰并清空缓存
             if (otherBlock && (!lastActiveCell || otherBlock !== lastActiveCell.tableBlock)) {
               lastActiveCell = null;
+              highlightActiveRowAndCol(null, null); // 确切跳出表格时清空高亮
               setUIState(false);
             }
           }
@@ -297,6 +302,7 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
         document.removeEventListener("selectionchange", selectionListener);
         selectionListener = null;
       }
+      highlightActiveRowAndCol(null, null); // 面板注销时彻底移除行列高亮类
     },
   });
 }

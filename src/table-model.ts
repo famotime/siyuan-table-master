@@ -59,8 +59,24 @@ export function parseTableKramdown(kramdown: string): ParsedTableKramdown {
 
   const tableLines = tableLineIndices.map(i => lines[i]);
 
+  // 净化数据行：将仅含占位横杠 "-" 的单元格清空，防止写入思源时保留真实的 "-" 脏数据
+  const sanitizedLines = tableLines.map((line, index) => {
+    if (index < 2) return line; // 排除表头(0)和分隔行(1)
+    
+    // 如果不是有效的表格行，保持原样
+    if (!line.trim().startsWith("|")) return line;
+    
+    const cells = splitTableRow(line);
+    const hasDashCell = cells.some(cell => cell === "-");
+    if (!hasDashCell) return line;
+    
+    // 自动将含有短横杠 "-" 且无其他字符的单元格净化为空
+    const newCells = cells.map(cell => cell === "-" ? "" : cell);
+    return `| ${newCells.join(" | ")} |`;
+  });
+
   return {
-    tableLines,
+    tableLines: sanitizedLines,
     ialLine: ialLineIndex !== null ? lines[ialLineIndex] : null,
     startLineIndex: tableLineIndices[0] ?? 0,
     ialLineIndex,

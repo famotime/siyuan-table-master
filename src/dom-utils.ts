@@ -183,3 +183,48 @@ export function getTableColCount(tableBlock: HTMLElement): number {
   if (!firstRow) return 0;
   return firstRow.querySelectorAll("td, th").length;
 }
+
+/**
+ * 高亮表格中的当前操作行与列
+ * 
+ * @param tableBlock - NodeTable 的块根元素，为 null 时清除所有高亮
+ * @param coord - 当前单元格坐标，为 null 时清除所有高亮
+ */
+export function highlightActiveRowAndCol(
+  tableBlock: HTMLElement | null,
+  coord: CellCoord | null,
+): void {
+  // 1. 全局清理已存在的高亮，防止切换块或者跳出表格时视觉残留
+  const activeCells = document.querySelectorAll(".at-active-cell");
+  const activeRows = document.querySelectorAll(".at-active-row");
+  const activeCols = document.querySelectorAll(".at-active-col");
+  
+  activeCells.forEach(el => el.classList.remove("at-active-cell"));
+  activeRows.forEach(el => el.classList.remove("at-active-row"));
+  activeCols.forEach(el => el.classList.remove("at-active-col"));
+
+  // 2. 如果缺少要素，直接完成清理并返回
+  if (!tableBlock || !coord) return;
+
+  const table = tableBlock.querySelector("table");
+  if (!table) return;
+
+  const rows = table.querySelectorAll("tr");
+  if (coord.row < 0 || coord.row >= rows.length) return;
+
+  // 3. 激活当前聚焦行高亮
+  const activeRow = rows[coord.row];
+  activeRow.classList.add("at-active-row");
+
+  // 4. 激活当前聚焦列及单元格高亮
+  rows.forEach(tr => {
+    const cells = tr.querySelectorAll("td, th");
+    if (coord.col >= 0 && coord.col < cells.length) {
+      const activeCell = cells[coord.col];
+      activeCell.classList.add("at-active-col");
+      if (tr === activeRow) {
+        activeCell.classList.add("at-active-cell");
+      }
+    }
+  });
+}
