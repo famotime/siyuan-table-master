@@ -26,6 +26,10 @@ interface TableClipboard {
 }
 let clipboard: TableClipboard | null = null;
 
+export function getTableClipboard(): TableClipboard | null {
+  return clipboard;
+}
+
 export class TableEditor {
   private mte: MTEEditor;
   private ctx: SiyuanTextEditor;

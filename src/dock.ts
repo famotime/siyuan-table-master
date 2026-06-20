@@ -5,7 +5,7 @@ import type AdvancedTablesPlugin from "./index";
 import { rangeToCellCoord, CellCoord, highlightActiveRowAndCol } from "./dom-utils";
 
 /** SVG 图标定义 - Lucide 专业线框风格，显式内联阻断 fill 覆写，无填充 */
-const SVG_ICONS: Record<string, string> = {
+export const SVG_ICONS: Record<string, string> = {
   "next-cell": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" style="fill:none!important"/><path d="m12 5 7 7-7 7" style="fill:none!important"/></svg>`,
   "previous-cell": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5" style="fill:none!important"/><path d="m12 19-7-7 7-7" style="fill:none!important"/></svg>`,
   "next-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 10-5 5 5 5" style="fill:none!important"/><path d="M20 4.5V15a2 2 0 0 1-2 2H4" style="fill:none!important"/></svg>`,

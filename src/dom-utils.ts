@@ -134,7 +134,7 @@ export function cellCoordToRange(
 /**
  * 获取选区所在的表格单元格（td 或 th）
  */
-function getCellFromRange(
+export function getCellFromRange(
   range: Range,
   tableBlock: HTMLElement,
 ): HTMLTableCellElement | null {

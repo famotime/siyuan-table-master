@@ -13,6 +13,7 @@ import { installKeybind, installKeybindAll } from "./keybind";
 import { loadSettings, saveSettings, defaultSettings, PluginSettings } from "./settings";
 import { getAllEditor } from "siyuan";
 import { registerDock } from "./dock";
+import { FloatingToolbar } from "./floating-toolbar";
 
 let PluginInfo = { version: "" };
 try {
@@ -25,6 +26,7 @@ const { version } = PluginInfo;
 export default class AdvancedTablesPlugin extends Plugin {
   public settings!: PluginSettings;
   private keybindUninstall: (() => void) | null = null;
+  private floatingToolbar: FloatingToolbar | null = null;
 
   async onload() {
     console.log(`[siyuan-advanced-tables] v${version} loading...`);
@@ -60,6 +62,10 @@ export default class AdvancedTablesPlugin extends Plugin {
     this.eventBus.on("loaded-protyle-static", this.onLoadedProtyle);
     this.eventBus.on("loaded-protyle-dynamic", this.onLoadedProtyle);
 
+    // 初始化浮动工具栏
+    this.floatingToolbar = new FloatingToolbar(this);
+    this.floatingToolbar.init();
+
     console.log(`[siyuan-advanced-tables] v${version} loaded`);
   }
 
@@ -76,6 +82,12 @@ export default class AdvancedTablesPlugin extends Plugin {
     this.eventBus.off("switch-protyle", this.onSwitchProtyle);
     this.eventBus.off("loaded-protyle-static", this.onLoadedProtyle);
     this.eventBus.off("loaded-protyle-dynamic", this.onLoadedProtyle);
+
+    // 销毁浮动工具栏
+    if (this.floatingToolbar) {
+      this.floatingToolbar.destroy();
+      this.floatingToolbar = null;
+    }
 
     console.log("[siyuan-advanced-tables] unloaded");
   }
