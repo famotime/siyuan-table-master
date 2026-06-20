@@ -1,4 +1,4 @@
-# 高级表格 (Advanced Tables)
+# 表哥 (Table Mater)
 
 思源笔记表格增强插件，基于 [@tgrosinger/md-advanced-tables](https://github.com/tgrosinger/md-advanced-tables) 核心库，为思源原生 NodeTable 块提供增强编辑能力。
 
@@ -31,11 +31,11 @@
 ## 安装
 
 ### 从集市安装（上架后）
-在思源笔记「设置 → 集市 → 插件」中搜索 **Advanced Tables** 即可安装。
+在思源笔记「设置 → 集市 → 插件」中搜索 **表哥** 或 **Table Mater** 即可安装。
 
 ### 手动安装
-1. 从 [Releases](https://github.com/siyuan-note/siyuan-advanced-tables/releases) 下载最新 `package.zip`
-2. 解压到 `{工作空间}/data/plugins/siyuan-advanced-tables/`
+1. 从 [Releases](https://github.com/siyuan-note/siyuan-table-mater/releases) 下载最新 `package.zip`
+2. 解压到 `{工作空间}/data/plugins/siyuan-table-mater/`
 3. 在「设置 → 插件」中启用
 
 ## 使用方式
@@ -85,12 +85,6 @@ Command/Key → commands.ts → SiyuanTextEditor → TableEditor → md-advanced
 - `table-model.ts` — kramdown ↔ 行数组纯函数
 - `text-to-table-utils.ts` — 文本转表格纯函数
 - 详情见 `docs/project-structure.md`
-
-## 致谢
-
-- [@tgrosinger/md-advanced-tables](https://github.com/tgrosinger/md-advanced-tables) — 核心表格操作库，MIT 许可
-- [advanced-tables-obsidian](https://github.com/tgrosinger/advanced-tables-obsidian) — 参考实现
-- [plugin-sample-vite-vue](https://github.com/siyuan-note/plugin-sample-vite-vue) — 思源插件开发模板
 
 ## 许可证
 

@@ -1,7 +1,7 @@
 import { getActiveEditor, showMessage } from "siyuan";
 import { isCursorInTable } from "./siyuan-text-editor";
 import { TABLE_COMMANDS, executeCommand, TableCommand } from "./commands";
-import type AdvancedTablesPlugin from "./index";
+import type TableMaterPlugin from "./index";
 import { rangeToCellCoord, CellCoord, highlightActiveRowAndCol, findTableBlock } from "./dom-utils";
 
 /** SVG 图标定义 - Lucide 专业线框风格，显式内联阻断 fill 覆写，无填充 */
@@ -71,7 +71,7 @@ function getTableSize(tableBlock: HTMLElement): { rows: number; cols: number } {
     }
     return { rows, cols };
   } catch (e) {
-    console.warn("[siyuan-advanced-tables] getTableSize failed:", e);
+    console.warn("[siyuan-table-mater] getTableSize failed:", e);
     return { rows: 0, cols: 0 };
   }
 }
@@ -207,7 +207,7 @@ function updateDockStatus(
 // 注册入口
 // ═══════════════════════════════════════════════════
 
-export function registerDock(plugin: AdvancedTablesPlugin) {
+export function registerDock(plugin: TableMaterPlugin) {
   let selectionListener: (() => void) | null = null;
 
   // DOM 引用
@@ -223,7 +223,7 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
   let dockOperationActive = false;
   let dockOperationTimeoutId: any = null;
 
-  const dockType = "advanced-tables-toolbox";
+  const dockType = "table-mater-toolbox";
   const dockIcon = "iconAdvancedTables";
 
   plugin.addDock({
@@ -231,7 +231,7 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
       position: "RightFirst",
       size: { width: 240, height: 0 },
       icon: dockIcon,
-      title: "高级表格工具箱",
+      title: "表哥工具箱",
     },
     data: {},
     type: dockType,

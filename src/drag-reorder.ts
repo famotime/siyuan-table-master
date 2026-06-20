@@ -2,10 +2,10 @@ import { getActiveEditor } from "siyuan";
 import { findTableBlock, getCellFromRange, getCellCoordFromTable } from "./dom-utils";
 import { SiyuanTextEditor } from "./siyuan-text-editor";
 import { splitTableRow } from "./table-model";
-import type AdvancedTablesPlugin from "./index";
+import type TableMaterPlugin from "./index";
 
 export class DragReorder {
-  private plugin: AdvancedTablesPlugin;
+  private plugin: TableMaterPlugin;
   private rowHandle: HTMLElement | null = null;
   private colHandle: HTMLElement | null = null;
   private indicator: HTMLElement | null = null;
@@ -27,7 +27,7 @@ export class DragReorder {
   private mouseMoveListener = this.onMouseMove.bind(this);
   private mouseUpListener = this.onMouseUp.bind(this);
 
-  constructor(plugin: AdvancedTablesPlugin) {
+  constructor(plugin: TableMaterPlugin) {
     this.plugin = plugin;
   }
 
@@ -459,7 +459,7 @@ export class DragReorder {
         await editorCtx.flush();
       }
     } catch (err) {
-      console.error("[siyuan-advanced-tables] row drag-reorder failed:", err);
+      console.error("[siyuan-table-mater] row drag-reorder failed:", err);
     }
   }
 
@@ -500,7 +500,7 @@ export class DragReorder {
       editorCtx.markDirty();
       await editorCtx.flush();
     } catch (err) {
-      console.error("[siyuan-advanced-tables] col drag-reorder failed:", err);
+      console.error("[siyuan-table-mater] col drag-reorder failed:", err);
     }
   }
 }

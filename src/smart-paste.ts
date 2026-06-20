@@ -1,14 +1,14 @@
 import { getActiveEditor, fetchSyncPost, showMessage } from "siyuan";
 import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
 import { rangeToCellCoord, highlightActiveRowAndCol } from "./dom-utils";
-import type AdvancedTablesPlugin from "./index";
+import type TableMaterPlugin from "./index";
 import { splitTableRow } from "./table-model";
 
 export class SmartPaste {
-  private plugin: AdvancedTablesPlugin;
+  private plugin: TableMaterPlugin;
   private pasteHandler: ((e: ClipboardEvent) => void) | null = null;
 
-  constructor(plugin: AdvancedTablesPlugin) {
+  constructor(plugin: TableMaterPlugin) {
     this.plugin = plugin;
   }
 
@@ -77,7 +77,7 @@ export class SmartPaste {
         await editorCtx.flush();
         showMessage(`已智能粘贴并填充 ${grid.length} 行 ${grid[0].length} 列`, 2000);
       } catch (err) {
-        console.error("[siyuan-advanced-tables] smart paste into table failed:", err);
+        console.error("[siyuan-table-mater] smart paste into table failed:", err);
         showMessage("智能粘贴填充失败", 3000, "error");
       }
     } else {
@@ -96,7 +96,7 @@ export class SmartPaste {
           });
           showMessage(`已智能导入为 ${grid.length} 行表格`, 2000);
         } catch (err) {
-          console.error("[siyuan-advanced-tables] smart paste text-to-table failed:", err);
+          console.error("[siyuan-table-mater] smart paste text-to-table failed:", err);
           showMessage("转换为表格失败", 3000, "error");
         }
       }

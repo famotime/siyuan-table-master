@@ -1,16 +1,16 @@
 {
-  "name": "siyuan-advanced-tables",
-  "author": "siyuan-advanced-tables-contributors",
-  "url": "https://github.com/siyuan-note/siyuan-advanced-tables",
+  "name": "siyuan-table-mater",
+  "author": "siyuan-table-mater-contributors",
+  "url": "https://github.com/siyuan-note/siyuan-table-mater",
   "version": "0.1.0",
   "minAppVersion": "3.5.7",
   "disabledInPublish": false,
   "backends": ["all"],
   "frontends": ["all"],
   "displayName": {
-    "default": "Advanced Tables",
-    "en_US": "Advanced Tables",
-    "zh_CN": "高级表格"
+    "default": "Table Mater",
+    "en_US": "Table Mater",
+    "zh_CN": "表哥"
   },
   "description": {
     "default": "Improved table navigation, formatting, and manipulation for SiYuan Note",

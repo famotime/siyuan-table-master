@@ -1,5 +1,5 @@
 /**
- * siyuan-advanced-tables - 思源笔记高级表格插件
+ * siyuan-table-mater - 思源笔记“表哥”表格插件
  *
  * 基于 @tgrosinger/md-advanced-tables 核心库，
  * 为思源笔记 NodeTable 块提供增强编辑能力。
@@ -55,11 +55,11 @@ let PluginInfo = { version: "" };
 try {
   PluginInfo = PluginInfoString as any;
 } catch (_err) {
-  console.log("[siyuan-advanced-tables] plugin info parse error");
+  console.log("[siyuan-table-mater] plugin info parse error");
 }
 const { version } = PluginInfo;
 
-export default class AdvancedTablesPlugin extends Plugin {
+export default class TableMaterPlugin extends Plugin {
   public settings!: PluginSettings;
   private keybindUninstall: (() => void) | null = null;
   private floatingToolbar: FloatingToolbar | null = null;
@@ -68,7 +68,7 @@ export default class AdvancedTablesPlugin extends Plugin {
   private dragReorder: DragReorder | null = null;
 
   async onload() {
-    console.log(`[siyuan-advanced-tables] v${version} loading...`);
+    console.log(`[siyuan-table-mater] v${version} loading...`);
 
     // 注册自定义图标，使侧栏和顶栏图标一致
     this.addIcons(`<symbol id="iconAdvancedTables" viewBox="0 0 24 24">
@@ -93,7 +93,7 @@ export default class AdvancedTablesPlugin extends Plugin {
     if (this.settings.showTopBarIcon) {
       this.addTopBar({
         icon: "iconAdvancedTables",
-        title: this.i18n.settingsTitle || "高级表格设置",
+        title: this.i18n.settingsTitle || "表哥设置",
         position: "right",
         callback: () => {
           this.openSetting();
@@ -128,11 +128,11 @@ export default class AdvancedTablesPlugin extends Plugin {
     this.dragReorder = new DragReorder(this);
     this.dragReorder.init();
 
-    console.log(`[siyuan-advanced-tables] v${version} loaded`);
+    console.log(`[siyuan-table-mater] v${version} loaded`);
   }
 
   onunload() {
-    console.log("[siyuan-advanced-tables] unloading...");
+    console.log("[siyuan-table-mater] unloading...");
 
     // 移除键盘拦截
     if (this.keybindUninstall) {
@@ -173,7 +173,7 @@ export default class AdvancedTablesPlugin extends Plugin {
     // 移除粘性表头类
     document.body.classList.remove("at-enable-sticky-header");
 
-    console.log("[siyuan-advanced-tables] unloaded");
+    console.log("[siyuan-table-mater] unloaded");
   }
 
   updateStickyHeaderClass() {
@@ -239,7 +239,7 @@ export default class AdvancedTablesPlugin extends Plugin {
       createToggleSetting(setting, this.settings, this.i18n, item);
     }
 
-    setting.open(this.i18n.settingsTitle || "高级表格设置");
+    setting.open(this.i18n.settingsTitle || "表哥设置");
   }
 
   // ── 私有方法 ──
@@ -258,7 +258,7 @@ export default class AdvancedTablesPlugin extends Plugin {
         this.settings,
       );
     } catch (err) {
-      console.warn("[siyuan-advanced-tables] installKeybindAll failed:", err);
+      console.warn("[siyuan-table-mater] installKeybindAll failed:", err);
     }
   }
 

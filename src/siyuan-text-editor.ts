@@ -101,7 +101,7 @@ export class SiyuanTextEditor implements ITextEditor {
       // 终极防线：无论是什么非法类型（undefined、null、object 等），强行转换为 string 兜底，并打印详细 warn
       if (typeof kramdown !== "string") {
         console.warn(
-          "[siyuan-advanced-tables] Non-string kramdown detected in reload, type:",
+          "[siyuan-table-mater] Non-string kramdown detected in reload, type:",
           typeof kramdown,
           "val:",
           kramdown,
@@ -120,7 +120,7 @@ export class SiyuanTextEditor implements ITextEditor {
       // 从 DOM 读取当前光标位置并映射到行模型坐标
       this._syncCursorFromDOM();
     } catch (err) {
-      console.error("[siyuan-advanced-tables] reload failed:", err);
+      console.error("[siyuan-table-mater] reload failed:", err);
     }
   }
 
@@ -155,7 +155,7 @@ export class SiyuanTextEditor implements ITextEditor {
       // 恢复光标位置
       this._restoreCursor();
     } catch (err) {
-      console.error("[siyuan-advanced-tables] flush failed:", err);
+      console.error("[siyuan-table-mater] flush failed:", err);
     }
   }
 
@@ -272,7 +272,7 @@ export class SiyuanTextEditor implements ITextEditor {
           }
         } catch (err) {
           // 光标恢复失败不应该是致命错误
-          console.warn("[siyuan-advanced-tables] cursor restore failed:", err);
+          console.warn("[siyuan-table-mater] cursor restore failed:", err);
         }
       });
     }, 80);

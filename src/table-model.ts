@@ -35,7 +35,7 @@ export interface ParsedTableKramdown {
 export function parseTableKramdown(kramdown: string): ParsedTableKramdown {
   if (typeof kramdown !== "string") {
     console.warn(
-      "[siyuan-advanced-tables] parseTableKramdown received non-string value, forcing string cast. Type:",
+      "[siyuan-table-mater] parseTableKramdown received non-string value, forcing string cast. Type:",
       typeof kramdown,
       "Value:",
       kramdown

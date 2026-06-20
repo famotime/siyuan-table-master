@@ -2,7 +2,7 @@
   "addTopBarIcon": "PluginSampleViteVue",
   "showFloatingToolbar": "当光标在表格内时显示浮动工具栏",
   "showFloatingToolbarDesc": "开启后，光标进入表格时将在光标附近显示浮动的快速操作工具栏，用于快速进行排序、对齐、移动行列等操作",
-  "settingsTitle": "高级表格设置",
+  "settingsTitle": "表哥设置",
   "bindTab": "绑定 Tab 键导航",
   "bindTabDesc": "在表格内按 Tab 键可快速跳转到下一个单元格，按 Shift+Tab 可跳转至上一个单元格",
   "bindEnter": "绑定 Enter 键换行",

@@ -3,7 +3,7 @@
 ## 1. 项目快照
 
 - 生成日期：2026-06-20
-- 范围：siyuan-advanced-tables 全仓库（`src/` + `__tests__/`）
+- 范围：siyuan-table-mater 全仓库（`src/` + `__tests__/`）
 - 目标：消除重复代码、拆分过大模块、提取共享工具函数、清理模板残留文件，在不改变行为的前提下提升可维护性和可测试性
 - 文档刷新目标：`docs/project-structure.md`、`README.md`
 

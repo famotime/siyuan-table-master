@@ -1,9 +1,9 @@
 import { getActiveEditor } from "siyuan";
 import { findTableBlock, getCellCoordFromTable } from "./dom-utils";
-import type AdvancedTablesPlugin from "./index";
+import type TableMaterPlugin from "./index";
 
 export class QuickCalc {
-  private plugin: AdvancedTablesPlugin;
+  private plugin: TableMaterPlugin;
   private isSelecting = false;
   private startCoord: { row: number; col: number } | null = null;
   private tableBlock: HTMLElement | null = null;
@@ -16,7 +16,7 @@ export class QuickCalc {
   private onKeyDownRef = this.onKeyDown.bind(this);
   private onDocClickRef = this.onDocClick.bind(this);
 
-  constructor(plugin: AdvancedTablesPlugin) {
+  constructor(plugin: TableMaterPlugin) {
     this.plugin = plugin;
   }
 

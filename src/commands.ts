@@ -149,7 +149,7 @@ export async function executeCommand(
 
     await cmd.action(te);
   } catch (err) {
-    console.error(`[siyuan-advanced-tables] command ${cmd.id} failed:`, err);
+    console.error(`[siyuan-table-mater] command ${cmd.id} failed:`, err);
     showMessage(`操作失败: ${cmd.nameZh}`, 3000, "error");
   }
 }

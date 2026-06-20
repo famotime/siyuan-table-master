@@ -4,11 +4,11 @@ import { rangeToCellCoord, getCellFromRange, CellCoord, getTableColCount, getTab
 import { TABLE_COMMANDS, executeCommand } from "./commands";
 import { SVG_ICONS } from "./dock";
 import { getTableClipboard } from "./table-editor";
-import type AdvancedTablesPlugin from "./index";
+import type TableMaterPlugin from "./index";
 import { saveSettings } from "./settings";
 
 export class FloatingToolbar {
-  private plugin: AdvancedTablesPlugin;
+  private plugin: TableMaterPlugin;
   private container: HTMLElement | null = null;
   private activeCell: { blockId: string; coord: CellCoord; tableBlock: HTMLElement } | null = null;
   private selectionListener: (() => void) | null = null;
@@ -16,7 +16,7 @@ export class FloatingToolbar {
   private isExecuting = false;
   private executeTimeoutId: any = null;
 
-  constructor(plugin: AdvancedTablesPlugin) {
+  constructor(plugin: TableMaterPlugin) {
     this.plugin = plugin;
   }
 

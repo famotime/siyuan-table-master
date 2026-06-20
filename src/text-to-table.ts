@@ -70,7 +70,7 @@ export async function executeTextToTable(): Promise<void> {
 
     showTextToTableDialog(blockId, rawLines);
   } catch (err) {
-    console.error("[siyuan-advanced-tables] executeTextToTable failed:", err);
+    console.error("[siyuan-table-mater] executeTextToTable failed:", err);
   }
 }
 
@@ -212,7 +212,7 @@ function showTextToTableDialog(blockId: string, rawLines: string[]): void {
       });
       showMessage("转换表格成功", 2000);
     } catch (err) {
-      console.error("[siyuan-advanced-tables] convert to table failed:", err);
+      console.error("[siyuan-table-mater] convert to table failed:", err);
       showMessage("转换表格失败", 3000, "error");
     }
   });

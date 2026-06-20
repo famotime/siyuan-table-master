@@ -69,8 +69,8 @@ export function installKeybind(
         await te.nextRow();
       }
     } catch (err) {
-      console.error("[siyuan-advanced-tables] keybind error:", err);
-      showMessage("高级表格操作失败", 3000, "error");
+      console.error("[siyuan-table-mater] keybind error:", err);
+      showMessage("操作失败", 3000, "error");
     } finally {
       operationLock = false;
     }

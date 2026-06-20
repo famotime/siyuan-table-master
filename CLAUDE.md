@@ -34,7 +34,7 @@ GET /api/block/getBlockKramdown            POST /api/block/updateBlock(markdown)
 
 | File | Role |
 |---|---|
-| `src/index.ts` | Plugin entry — `AdvancedTablesPlugin extends Plugin`, loads settings, registers commands, keybinds, sub-modules |
+| `src/index.ts` | Plugin entry — `TableMaterPlugin extends Plugin`, loads settings, registers commands, keybinds, sub-modules |
 | `src/commands.ts` | 20+ table command definitions + `registerCommands` / `executeCommand` dispatcher |
 | `src/text-to-table.ts` | Text-to-table UI logic — `executeTextToTable` + `showTextToTableDialog` (depends on siyuan runtime) |
 | `src/text-to-table-utils.ts` | Text-to-table pure functions — `parseLines`, `isBoxDrawingTable`, `gridToMarkdown` (unit-testable) |

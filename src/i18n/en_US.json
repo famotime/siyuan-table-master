@@ -2,7 +2,7 @@
   "addTopBarIcon": "PluginSampleViteVue",
   "showFloatingToolbar": "Show floating toolbar when cursor is inside a table",
   "showFloatingToolbarDesc": "When enabled, a floating toolbar will appear near the cursor when editing a table, providing quick access to alignment, sorting, moving rows/columns, etc.",
-  "settingsTitle": "Advanced Tables Settings",
+  "settingsTitle": "Table Mater Settings",
   "bindTab": "Bind Tab key navigation",
   "bindTabDesc": "Press Tab in a table cell to jump to the next cell, and Shift+Tab to jump to the previous cell",
   "bindEnter": "Bind Enter key navigation",
