@@ -6,26 +6,26 @@ import { rangeToCellCoord, CellCoord, highlightActiveRowAndCol } from "./dom-uti
 
 /** SVG 图标定义 - Lucide 专业线框风格，显式内联阻断 fill 覆写，无填充 */
 const SVG_ICONS: Record<string, string> = {
-  "next-cell": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" style="fill:none!important"/><path d="m12 5 7 7-7 7" style="fill:none!important"/></svg>`,
-  "previous-cell": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5" style="fill:none!important"/><path d="m12 19-7-7 7-7" style="fill:none!important"/></svg>`,
-  "next-row": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 10-5 5 5 5" style="fill:none!important"/><path d="M20 4.5V15a2 2 0 0 1-2 2H4" style="fill:none!important"/></svg>`,
-  "format-table": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" style="fill:none!important"/><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5 5 3Z" style="fill:none!important"/><path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z" style="fill:none!important"/></svg>`,
-  "insert-column": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M10 3v18" style="fill:none!important"/><path d="M16 12h4" style="fill:none!important"/><path d="M18 10v4" style="fill:none!important"/></svg>`,
-  "insert-row": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 10h18" style="fill:none!important"/><path d="M12 16h4" style="fill:none!important"/><path d="M14 14v4" style="fill:none!important"/></svg>`,
-  "delete-column": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M10 3v18" style="fill:none!important"/><path d="M14 12h4" style="fill:none!important"/></svg>`,
-  "delete-row": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 10h18" style="fill:none!important"/><path d="M12 16h4" style="fill:none!important"/></svg>`,
-  "move-column-left": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M14 3v18" style="fill:none!important"/><path d="m10 14-2-2 2-2" style="fill:none!important"/></svg>`,
-  "move-column-right": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M10 3v18" style="fill:none!important"/><path d="m14 10 2 2-2 2" style="fill:none!important"/></svg>`,
-  "move-row-up": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 14h18" style="fill:none!important"/><path d="m10 10 2-2 2 2" style="fill:none!important"/></svg>`,
-  "move-row-down": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 10h18" style="fill:none!important"/><path d="m14 14-2 2-2-2" style="fill:none!important"/></svg>`,
-  "left-align-column": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="3" y1="6" y2="6" style="fill:none!important"/><line x1="15" x2="3" y1="12" y2="12" style="fill:none!important"/><line x1="17" x2="3" y1="18" y2="18" style="fill:none!important"/></svg>`,
-  "center-align-column": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="3" y1="6" y2="6" style="fill:none!important"/><line x1="17" x2="7" y1="12" y2="12" style="fill:none!important"/><line x1="19" x2="5" y1="18" y2="18" style="fill:none!important"/></svg>`,
-  "right-align-column": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="3" y1="6" y2="6" style="fill:none!important"/><line x1="21" x2="9" y1="12" y2="12" style="fill:none!important"/><line x1="21" x2="7" y1="18" y2="18" style="fill:none!important"/></svg>`,
-  "sort-rows-asc": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4" style="fill:none!important"/><path d="M7 20V4" style="fill:none!important"/><path d="M11 4h4" style="fill:none!important"/><path d="M11 8h7" style="fill:none!important"/><path d="M11 12h10" style="fill:none!important"/></svg>`,
-  "sort-rows-desc": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4" style="fill:none!important"/><path d="M7 20V4" style="fill:none!important"/><path d="M11 12h10" style="fill:none!important"/><path d="M11 8h7" style="fill:none!important"/><path d="M11 4h4" style="fill:none!important"/></svg>`,
-  "transpose": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" style="fill:none!important"/><path d="M3 3v5h5" style="fill:none!important"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" style="fill:none!important"/><path d="M16 16h5v5" style="fill:none!important"/></svg>`,
-  "evaluate-formulas": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" style="fill:none!important"/><line x1="8" x2="16" y1="6" y2="6" style="fill:none!important"/><line x1="16" x2="16" y1="14" y2="18" style="fill:none!important"/><path d="M16 10h.01" style="fill:none!important"/><path d="M12 10h.01" style="fill:none!important"/><path d="M8 10h.01" style="fill:none!important"/><path d="M12 14h.01" style="fill:none!important"/><path d="M8 14h.01" style="fill:none!important"/><path d="M12 18h.01" style="fill:none!important"/><path d="M8 18h.01" style="fill:none!important"/></svg>`,
-  "escape-table": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" style="fill:none!important"/><polyline points="16 17 21 12 16 7" style="fill:none!important"/><line x1="21" y1="12" x2="9" y2="12" style="fill:none!important"/></svg>`
+  "next-cell": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" style="fill:none!important"/><path d="m12 5 7 7-7 7" style="fill:none!important"/></svg>`,
+  "previous-cell": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5" style="fill:none!important"/><path d="m12 19-7-7 7-7" style="fill:none!important"/></svg>`,
+  "next-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 10-5 5 5 5" style="fill:none!important"/><path d="M20 4.5V15a2 2 0 0 1-2 2H4" style="fill:none!important"/></svg>`,
+  "format-table": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" style="fill:none!important"/><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5 5 3Z" style="fill:none!important"/><path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z" style="fill:none!important"/></svg>`,
+  "insert-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M10 3v18" style="fill:none!important"/><path d="M16 12h4" style="fill:none!important"/><path d="M18 10v4" style="fill:none!important"/></svg>`,
+  "insert-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 10h18" style="fill:none!important"/><path d="M12 16h4" style="fill:none!important"/><path d="M14 14v4" style="fill:none!important"/></svg>`,
+  "delete-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M10 3v18" style="fill:none!important"/><path d="M14 12h4" style="fill:none!important"/></svg>`,
+  "delete-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 10h18" style="fill:none!important"/><path d="M12 16h4" style="fill:none!important"/></svg>`,
+  "move-column-left": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M14 3v18" style="fill:none!important"/><path d="m10 14-2-2 2-2" style="fill:none!important"/></svg>`,
+  "move-column-right": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M10 3v18" style="fill:none!important"/><path d="m14 10 2 2-2 2" style="fill:none!important"/></svg>`,
+  "move-row-up": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 14h18" style="fill:none!important"/><path d="m10 10 2-2 2 2" style="fill:none!important"/></svg>`,
+  "move-row-down": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 10h18" style="fill:none!important"/><path d="m14 14-2 2-2-2" style="fill:none!important"/></svg>`,
+  "left-align-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="3" y1="6" y2="6" style="fill:none!important"/><line x1="15" x2="3" y1="12" y2="12" style="fill:none!important"/><line x1="17" x2="3" y1="18" y2="18" style="fill:none!important"/></svg>`,
+  "center-align-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="3" y1="6" y2="6" style="fill:none!important"/><line x1="17" x2="7" y1="12" y2="12" style="fill:none!important"/><line x1="19" x2="5" y1="18" y2="18" style="fill:none!important"/></svg>`,
+  "right-align-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="3" y1="6" y2="6" style="fill:none!important"/><line x1="21" x2="9" y1="12" y2="12" style="fill:none!important"/><line x1="21" x2="7" y1="18" y2="18" style="fill:none!important"/></svg>`,
+  "sort-rows-asc": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4" style="fill:none!important"/><path d="M7 20V4" style="fill:none!important"/><path d="M11 4h4" style="fill:none!important"/><path d="M11 8h7" style="fill:none!important"/><path d="M11 12h10" style="fill:none!important"/></svg>`,
+  "sort-rows-desc": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4" style="fill:none!important"/><path d="M7 20V4" style="fill:none!important"/><path d="M11 12h10" style="fill:none!important"/><path d="M11 8h7" style="fill:none!important"/><path d="M11 4h4" style="fill:none!important"/></svg>`,
+  "transpose": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" style="fill:none!important"/><path d="M3 3v5h5" style="fill:none!important"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" style="fill:none!important"/><path d="M16 16h5v5" style="fill:none!important"/></svg>`,
+  "evaluate-formulas": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" style="fill:none!important"/><line x1="8" x2="16" y1="6" y2="6" style="fill:none!important"/><line x1="16" x2="16" y1="14" y2="18" style="fill:none!important"/><path d="M16 10h.01" style="fill:none!important"/><path d="M12 10h.01" style="fill:none!important"/><path d="M8 10h.01" style="fill:none!important"/><path d="M12 14h.01" style="fill:none!important"/><path d="M8 14h.01" style="fill:none!important"/><path d="M12 18h.01" style="fill:none!important"/><path d="M8 18h.01" style="fill:none!important"/></svg>`,
+  "escape-table": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" style="fill:none!important"/><polyline points="16 17 21 12 16 7" style="fill:none!important"/><line x1="21" y1="12" x2="9" y2="12" style="fill:none!important"/></svg>`
 };
 
 /** 命令功能分组描述 */
@@ -108,7 +108,6 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
                         class="at-btn ariaLabel" 
                         data-cmd-id="${cmdId}" 
                         aria-label="${cmd.nameZh}"
-                        title="${cmd.nameZh}"
                       >
                         <span class="at-btn-icon">${iconSvg}</span>
                       </button>
@@ -140,6 +139,42 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
         const cmd = TABLE_COMMANDS.find(c => c.id === cmdId);
         
         if (cmd) {
+          // ── mousedown：焦点尚未转移，此时 selection 仍指向编辑器 ──
+          // 提前抢救当前的表格上下文，确保 click 时 lastActiveCell 一定有值
+          btn.addEventListener("mousedown", () => {
+            const activeEditor = getActiveEditor();
+            if (!activeEditor?.protyle) return;
+
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+
+            const range = sel.getRangeAt(0);
+            // 找到当前 selection 所在的表格块
+            let node: Node | null = range.startContainer;
+            let capturedTableBlock: HTMLElement | null = null;
+            while (node && node !== document.body) {
+              if (node instanceof HTMLElement &&
+                  node.dataset.type === "NodeTable" &&
+                  node.dataset.nodeId) {
+                capturedTableBlock = node;
+                break;
+              }
+              node = node.parentNode;
+            }
+            if (!capturedTableBlock) return;
+
+            // 获取当前单元格坐标（直接使用顶部已导入的 rangeToCellCoord）
+            const coord = rangeToCellCoord(range, capturedTableBlock);
+            if (!coord) return;
+
+            // 更新 lastActiveCell 缓存（在焦点离开前）
+            lastActiveCell = {
+              blockId: capturedTableBlock.dataset.nodeId || "",
+              coord,
+              tableBlock: capturedTableBlock,
+            };
+          });
+
           btn.addEventListener("click", async (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -166,7 +201,6 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
             // 操作后本地坐标动态演进推演（用于支持高频连续移动操作）
             if (lastActiveCell) {
               const coord = lastActiveCell.coord;
-              const oldRow = coord.row;
               if (cmd.id === "move-row-up") {
                 coord.row = Math.max(0, coord.row - 1);
               } else if (cmd.id === "move-row-down") {

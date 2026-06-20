@@ -287,10 +287,18 @@ export function fixCJKSeparatorWidth(tableLines: string[]): string[] {
     const line = tableLines[rowIdx];
 
     if (isSeparatorLine(line)) {
-      // 重建分隔行：破折号数量 = 列显示宽度
-      const sepCells = colDisplayWidths.map(w => {
-        const dashes = "-".repeat(w);
-        return ` ${dashes} `;
+      // 重建分隔行时，必须读取原始分隔单元格的对齐标记（冒号 :）并保留
+      // 否则 alignColumn 写入的 :---:/:--- /---: 会在此被抹除，导致对齐失效
+      const originalSepCells = splitTableRow(line);
+      const sepCells = colDisplayWidths.map((w, col) => {
+        const orig = (originalSepCells[col] || "---").trim();
+        const hasLeftColon = orig.startsWith(":");
+        const hasRightColon = orig.endsWith(":");
+        // 破折号数量 = 目标显示宽度 - 已被冒号占用的宽度
+        const dashCount = Math.max(1, w - (hasLeftColon ? 1 : 0) - (hasRightColon ? 1 : 0));
+        const dashes = "-".repeat(dashCount);
+        const cell = (hasLeftColon ? ":" : "") + dashes + (hasRightColon ? ":" : "");
+        return ` ${cell} `;
       });
       result.push(`|${sepCells.join("|")}|`);
     } else {

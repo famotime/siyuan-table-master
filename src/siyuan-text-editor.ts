@@ -313,7 +313,9 @@ export class SiyuanTextEditor implements ITextEditor {
       }
     }
 
-    const domCol = Math.max(0, pipeCount - 2); // 减去首尾两个 |
+    // 已经过管道符的数量 - 1 = 当前单元格索引（0-indexed）
+    // 例：游标在 "| A | B |" 的 B 处时，经过了 2 个 |，pipeCount-1=1 即第 1 列
+    const domCol = Math.max(0, pipeCount - 1);
     const colCount = getTableColCount(activeTableBlock);
     return { row: domRow, col: Math.min(domCol, colCount - 1) };
   }
@@ -322,27 +324,51 @@ export class SiyuanTextEditor implements ITextEditor {
 /**
  * 辅助函数：检查当前 Protyle 光标是否在表格块内
  * 用于命令前置判断
+ *
+ * 策略：
+ * 1. 优先使用 window.getSelection() 精确定位（正常编辑场景）
+ * 2. 当 selection 为空（点击 Dock/顶栏按钮后焦点离开编辑器）时，
+ *    回退到在 protyle.wysiwyg.element 中搜索聚焦的 NodeTable 块
  */
 export function isCursorInTable(protyle: Protyle): {
   inTable: boolean;
   tableBlock: HTMLElement | null;
   blockId: string | null;
 } {
+  // —— 策略 1：通过 selection 精确定位 ——
   const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) {
-    return { inTable: false, tableBlock: null, blockId: null };
+  if (sel && sel.rangeCount > 0) {
+    const range = sel.getRangeAt(0);
+    const tableBlock = findTableBlock(range.startContainer);
+    if (tableBlock) {
+      return {
+        inTable: true,
+        tableBlock,
+        blockId: tableBlock.dataset.nodeId || null,
+      };
+    }
   }
 
-  const range = sel.getRangeAt(0);
-  const tableBlock = findTableBlock(range.startContainer);
-
-  if (!tableBlock) {
-    return { inTable: false, tableBlock: null, blockId: null };
+  // —— 策略 2：selection 丢失时（如点击 Dock 按钮），扫描 wysiwyg DOM 兜底 ——
+  // 尝试通过 protyle.wysiwyg.element 找到编辑器的 DOM 根
+  try {
+    const wysiwygEl = (protyle as any)?.wysiwyg?.element as HTMLElement | undefined;
+    if (wysiwygEl) {
+      // 先找含 .protyle-wysiwyg--select 类的表格块（思源聚焦块的标记）
+      const focusedTable = wysiwygEl.querySelector(
+        '[data-type="NodeTable"].protyle-wysiwyg--select, [data-type="NodeTable"][select="true"]'
+      ) as HTMLElement | null;
+      if (focusedTable) {
+        return {
+          inTable: true,
+          tableBlock: focusedTable,
+          blockId: focusedTable.dataset.nodeId || null,
+        };
+      }
+    }
+  } catch (_e) {
+    // 兜底失败不影响主流程
   }
 
-  return {
-    inTable: true,
-    tableBlock,
-    blockId: tableBlock.dataset.nodeId || null,
-  };
+  return { inTable: false, tableBlock: null, blockId: null };
 }

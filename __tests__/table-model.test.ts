@@ -218,6 +218,49 @@ describe("fixCJKSeparatorWidth", () => {
     expect(result[1]).toContain("---");
   });
 
+  it("保留分隔行的居中对齐标记 :---:", () => {
+    const tableLines = [
+      "| Name | Score |",
+      "|:----:|:-----:|",
+      "| Alice| 100   |",
+    ];
+    const result = fixCJKSeparatorWidth(tableLines);
+    const sepCells = splitTableRow(result[1]);
+    // 每个分隔单元格都应以 : 开头并以 : 结尾
+    for (const cell of sepCells) {
+      expect(cell.trim().startsWith(":")).toBe(true);
+      expect(cell.trim().endsWith(":")).toBe(true);
+    }
+  });
+
+  it("保留分隔行的右对齐标记 ---:", () => {
+    const tableLines = [
+      "| Value |",
+      "| ----: |",
+      "| 12345 |",
+    ];
+    const result = fixCJKSeparatorWidth(tableLines);
+    const sepCell = splitTableRow(result[1])[0].trim();
+    expect(sepCell.startsWith(":")).toBe(false);
+    expect(sepCell.endsWith(":")).toBe(true);
+  });
+
+  it("CJK 内容下保留对齐标记，同时修正宽度", () => {
+    const tableLines = [
+      "| 名称 | 分数 |",
+      "|:---:|---:|",
+      "| 爱丽丝 | 100 |",
+    ];
+    const result = fixCJKSeparatorWidth(tableLines);
+    const sepCells = splitTableRow(result[1]);
+    // 第 0 列：居中对齐，两侧都有冒号
+    expect(sepCells[0].trim().startsWith(":")).toBe(true);
+    expect(sepCells[0].trim().endsWith(":")).toBe(true);
+    // 第 1 列：右对齐，仅右侧有冒号
+    expect(sepCells[1].trim().startsWith(":")).toBe(false);
+    expect(sepCells[1].trim().endsWith(":")).toBe(true);
+  });
+
   it("非分隔行表格不处理", () => {
     const tableLines = ["| A | B |", "| 1 | 2 |"]; // 无分隔行
     const result = fixCJKSeparatorWidth(tableLines);
