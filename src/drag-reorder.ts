@@ -60,7 +60,8 @@ export class DragReorder {
   private createHandles() {
     // 1. 行拖拽手柄
     this.rowHandle = document.createElement("div");
-    this.rowHandle.className = "at-drag-handle at-drag-handle-row fn__hidden";
+    this.rowHandle.className = "at-drag-handle at-drag-handle-row fn__hidden ariaLabel";
+    this.rowHandle.setAttribute("aria-label", this.plugin.i18n.dragRowTip || "按住拖拽行以重新排序");
     // 类似于六点拖拽手柄图标 ⋮⋮
     this.rowHandle.innerHTML = `
       <svg viewBox="0 0 16 16" fill="currentColor">
@@ -71,7 +72,8 @@ export class DragReorder {
 
     // 2. 列拖拽手柄
     this.colHandle = document.createElement("div");
-    this.colHandle.className = "at-drag-handle at-drag-handle-col fn__hidden";
+    this.colHandle.className = "at-drag-handle at-drag-handle-col fn__hidden ariaLabel";
+    this.colHandle.setAttribute("aria-label", this.plugin.i18n.dragColTip || "按住拖拽列以重新排序");
     // 类似于六点水平拖拽手柄图标
     this.colHandle.innerHTML = `
       <svg viewBox="0 0 16 16" fill="currentColor" style="transform: rotate(90deg);">

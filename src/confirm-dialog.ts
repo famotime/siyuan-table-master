@@ -22,6 +22,7 @@ export function showPasteConfirmDialog(
   title: string,
   currentInfo: string,
   pasteInfo: string,
+  i18n: any,
   onConfirm: () => Promise<void>,
   onCancel: () => void,
   onDestroy?: () => void,
@@ -29,27 +30,21 @@ export function showPasteConfirmDialog(
   const dialog = new Dialog({
     title,
     content: `
-      <div class="b3-dialog__content" style="padding:16px 24px 8px;">
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div style="display:flex;align-items:flex-start;gap:8px;">
-            <span style="flex-shrink:0;font-size:12px;font-weight:600;
-                         color:var(--b3-theme-on-surface);opacity:0.55;
-                         padding-top:1px;min-width:60px;">现有内容</span>
-            <span style="font-size:13px;color:var(--b3-theme-on-surface);
-                         word-break:break-all;line-height:1.5;">${escapeHtml(currentInfo)}</span>
+      <div class="b3-dialog__content at-dialog-content">
+        <div class="at-dialog-list">
+          <div class="at-dialog-row">
+            <span class="at-dialog-label">${escapeHtml(i18n.pasteConfirmCurrent || "现有内容")}</span>
+            <span class="at-dialog-value">${escapeHtml(currentInfo)}</span>
           </div>
-          <div style="display:flex;align-items:flex-start;gap:8px;">
-            <span style="flex-shrink:0;font-size:12px;font-weight:600;
-                         color:var(--b3-theme-primary);
-                         padding-top:1px;min-width:60px;">粘贴内容</span>
-            <span style="font-size:13px;color:var(--b3-theme-primary);
-                         word-break:break-all;line-height:1.5;">${escapeHtml(pasteInfo)}</span>
+          <div class="at-dialog-row">
+            <span class="at-dialog-label at-primary">${escapeHtml(i18n.pasteConfirmNew || "粘贴内容")}</span>
+            <span class="at-dialog-value at-primary">${escapeHtml(pasteInfo)}</span>
           </div>
         </div>
       </div>
       <div class="b3-dialog__action">
-        <button class="b3-button b3-button--cancel" id="at-paste-cancel">取消</button>
-        <button class="b3-button b3-button--text" id="at-paste-confirm">确认覆盖</button>
+        <button class="b3-button b3-button--cancel" id="at-paste-cancel">${escapeHtml(i18n.cancel || "取消")}</button>
+        <button class="b3-button b3-button--text" id="at-paste-confirm">${escapeHtml(i18n.confirmOverride || "确认覆盖")}</button>
       </div>`,
     width: "480px",
     destroyCallback: onDestroy, // 挂载对话框意外关闭时的兜底释放回调

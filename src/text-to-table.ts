@@ -11,16 +11,16 @@ import { parseLines, isBoxDrawingTable, escapeHtml, gridToMarkdown } from "./tex
 /**
  * 执行文本转换为表格：获取当前选区 → 读取 kramdown → 弹出配置对话框
  */
-export async function executeTextToTable(): Promise<void> {
+export async function executeTextToTable(i18n: any = {}): Promise<void> {
   const activeEditor = getActiveEditor();
   if (!activeEditor?.protyle) {
-    showMessage("请先聚焦编辑器", 2000, "error");
+    showMessage(i18n.errFocusEditor || "请先聚焦编辑器", 2000, "error");
     return;
   }
 
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) {
-    showMessage("未找到有效选区", 2000, "error");
+    showMessage(i18n.errNoSelection || "未找到有效选区", 2000, "error");
     return;
   }
 
@@ -39,12 +39,12 @@ export async function executeTextToTable(): Promise<void> {
   }
 
   if (!blockId || !blockEl) {
-    showMessage("请点击需要转换的文本块", 3000, "info");
+    showMessage(i18n.errSelectTextBlock || "请点击需要转换的文本块", 3000, "info");
     return;
   }
 
   if (blockEl.dataset.type === "NodeTable") {
-    showMessage("当前块已经是表格块", 2000, "info");
+    showMessage(i18n.errAlreadyTable || "当前块已经是表格块", 2000, "info");
     return;
   }
 
@@ -64,11 +64,11 @@ export async function executeTextToTable(): Promise<void> {
       .filter(line => line.length > 0 && !line.startsWith("{:") && !line.startsWith("```"));
 
     if (rawLines.length === 0) {
-      showMessage("当前段落块内容为空", 3000, "info");
+      showMessage(i18n.errEmptyBlock || "当前段落块内容为空", 3000, "info");
       return;
     }
 
-    showTextToTableDialog(blockId, rawLines);
+    showTextToTableDialog(blockId, rawLines, i18n);
   } catch (err) {
     console.error("[siyuan-table-mater] executeTextToTable failed:", err);
   }
@@ -77,7 +77,7 @@ export async function executeTextToTable(): Promise<void> {
 /**
  * 弹出文本转换为表格配置与预览 Dialog
  */
-function showTextToTableDialog(blockId: string, rawLines: string[]): void {
+function showTextToTableDialog(blockId: string, rawLines: string[], i18n: any): void {
   const isBoxDrawing = isBoxDrawingTable(rawLines);
   let separator = isBoxDrawing ? "box-drawing" : ",";
 
@@ -90,14 +90,14 @@ function showTextToTableDialog(blockId: string, rawLines: string[]): void {
     const previewLines = linesToParse.slice(0, 5);
     const grid = parseLines(sep, previewLines);
 
-    let html = `<table style="width:100%; border-collapse:collapse; font-size:12px;">`;
+    let html = `<table class="at-table-preview">`;
     grid.forEach((parts, rIdx) => {
       html += `<tr>`;
       parts.forEach(part => {
         if (rIdx === 0) {
-          html += `<th style="border:1px solid var(--b3-border-color); padding:4px 8px; background-color:var(--b3-theme-surface-light, rgba(0, 0, 0, 0.02)); font-weight:600; text-align:left;">${escapeHtml(part)}</th>`;
+          html += `<th>${escapeHtml(part)}</th>`;
         } else {
-          html += `<td style="border:1px solid var(--b3-border-color); padding:4px 8px;">${escapeHtml(part)}</td>`;
+          html += `<td>${escapeHtml(part)}</td>`;
         }
       });
       html += `</tr>`;
@@ -105,45 +105,46 @@ function showTextToTableDialog(blockId: string, rawLines: string[]): void {
     html += `</table>`;
 
     if (linesToParse.length > 5) {
-      html += `<div style="font-size:11px; opacity:0.5; margin-top:6px; text-align:center;">仅展示前 5 行预览（共 ${linesToParse.length} 行）</div>`;
+      const limitTip = i18n.previewLimitTip || "仅展示前 5 行预览（共 ${rows} 行）";
+      html += `<div class="at-preview-tip">${limitTip.replace("${rows}", String(linesToParse.length))}</div>`;
     }
     return html;
   };
 
   const dialog = new Dialog({
-    title: "选中文本转换为表格",
+    title: i18n.textToTableTitle || "选中文本转换为表格",
     content: `
-      <div class="b3-dialog__content" style="padding:16px 24px 8px; display:flex; flex-direction:column; gap:14px;">
-        <div style="font-size:13px; opacity:0.8; line-height:1.5;">请选择行内数据的分隔符：</div>
-        <div style="display:flex; gap:16px; align-items:center; font-size:13px; flex-wrap:wrap;">
-          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-            <input type="radio" name="at-sep" value="box-drawing" ${isBoxDrawing ? "checked" : ""} /> 终端表格 (制图字符)
+      <div class="b3-dialog__content at-dialog-content-flex">
+        <div class="at-dialog-tip-text">${i18n.textToTableSelectSep || "请选择行内数据的分隔符："}</div>
+        <div class="at-dialog-radio-group">
+          <label class="at-dialog-radio-label">
+            <input type="radio" name="at-sep" value="box-drawing" ${isBoxDrawing ? "checked" : ""} /> ${i18n.sepBoxDrawing || "终端表格 (制图字符)"}
           </label>
-          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-            <input type="radio" name="at-sep" value="," ${!isBoxDrawing ? "checked" : ""} /> 英文逗号 ( , )
+          <label class="at-dialog-radio-label">
+            <input type="radio" name="at-sep" value="," ${!isBoxDrawing ? "checked" : ""} /> ${i18n.sepComma || "英文逗号 ( , )"}
           </label>
-          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-            <input type="radio" name="at-sep" value="，" /> 中文逗号 ( ， )
+          <label class="at-dialog-radio-label">
+            <input type="radio" name="at-sep" value="，" /> ${i18n.sepZhComma || "中文逗号 ( ， )"}
           </label>
-          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-            <input type="radio" name="at-sep" value="\\t" /> Tab 键
+          <label class="at-dialog-radio-label">
+            <input type="radio" name="at-sep" value="\\t" /> ${i18n.sepTab || "Tab 键"}
           </label>
-          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-            <input type="radio" name="at-sep" value=" " /> 空格
+          <label class="at-dialog-radio-label">
+            <input type="radio" name="at-sep" value=" " /> ${i18n.sepSpace || "空格"}
           </label>
-          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-            <input type="radio" name="at-sep" value="custom" /> 自定义:
-            <input type="text" id="at-custom-sep" style="width:40px; padding:2px 4px; border:1px solid var(--b3-border-color); border-radius:4px; font-size:12px;" disabled />
+          <label class="at-dialog-radio-label">
+            <input type="radio" name="at-sep" value="custom" /> ${i18n.sepCustom || "自定义:"}
+            <input type="text" id="at-custom-sep" class="at-dialog-input-text" disabled />
           </label>
         </div>
-        <div style="font-size:13px; font-weight:600; margin-top:4px;">转换效果预览：</div>
-        <div id="at-table-preview-container" style="max-height:180px; overflow-y:auto; border:1px solid var(--b3-border-color); border-radius:6px; padding:10px; background-color:var(--b3-theme-surface);">
+        <div class="at-dialog-label at-primary">${i18n.previewTitle || "转换效果预览："}</div>
+        <div id="at-table-preview-container" class="at-table-preview-container">
           ${generatePreview(separator)}
         </div>
       </div>
       <div class="b3-dialog__action">
-        <button class="b3-button b3-button--cancel" id="at-conv-cancel">取消</button>
-        <button class="b3-button b3-button--text" id="at-conv-confirm">确认转换</button>
+        <button class="b3-button b3-button--cancel" id="at-conv-cancel">${i18n.cancel || "取消"}</button>
+        <button class="b3-button b3-button--text" id="at-conv-confirm">${i18n.convert || "开始转换"}</button>
       </div>
     `,
     width: "500px",
@@ -198,7 +199,7 @@ function showTextToTableDialog(blockId: string, rawLines: string[]): void {
     // 将行解析为二维数组
     const grid = parseLines(activeSep, rawLines);
     if (grid.length === 0) {
-      showMessage("解析后未发现有效数据行", 3000, "info");
+      showMessage(i18n.errChartNoDataRows || "解析后未发现有效数据行", 3000, "info");
       return;
     }
 
@@ -210,10 +211,13 @@ function showTextToTableDialog(blockId: string, rawLines: string[]): void {
         dataType: "markdown",
         data: markdownTable,
       });
-      showMessage("转换表格成功", 2000);
+      showMessage(
+        (i18n.pasteImportSuccess || "转换表格成功").replace("${rows}", String(grid.length)),
+        2000
+      );
     } catch (err) {
       console.error("[siyuan-table-mater] convert to table failed:", err);
-      showMessage("转换表格失败", 3000, "error");
+      showMessage(i18n.pasteImportFailed || "转换表格失败", 3000, "error");
     }
   });
 }

@@ -88,6 +88,7 @@ interface DockUIElements {
 
 /** 切换 Dock 面板的激活/非激活 UI 状态 */
 function setDockUIState(
+  plugin: TableMaterPlugin,
   elements: DockUIElements,
   dockElement: HTMLElement,
   active: boolean,
@@ -103,10 +104,18 @@ function setDockUIState(
       statusDotEl.style.backgroundColor = "var(--b3-theme-primary)";
       statusDotEl.classList.add("at-pulse");
     }
-    if (statusTextEl) statusTextEl.innerText = `表格编辑中 (${rows} 行 × ${cols} 列)`;
+    if (statusTextEl) {
+      const template = plugin.i18n.dockActive || "表格编辑中 (${rows} 行 × ${cols} 列)";
+      statusTextEl.innerText = template
+        .replace("${rows}", String(rows))
+        .replace("${cols}", String(cols));
+    }
     buttonGridContainer?.classList.remove("at-disabled");
-    if (tooltipBarEl && tooltipBarEl.innerText.startsWith("提示：")) {
-      tooltipBarEl.innerText = `当前表格：${rows} 行 × ${cols} 列`;
+    if (tooltipBarEl && (tooltipBarEl.innerText.startsWith("提示：") || tooltipBarEl.innerText.startsWith("Tip:"))) {
+      const template = plugin.i18n.dockActive || "表格编辑中 (${rows} 行 × ${cols} 列)";
+      tooltipBarEl.innerText = template
+        .replace("${rows}", String(rows))
+        .replace("${cols}", String(cols));
     }
     if (textToTableBtn) textToTableBtn.style.display = "none";
   } else {
@@ -115,10 +124,10 @@ function setDockUIState(
       statusDotEl.style.backgroundColor = "var(--b3-theme-error, #f44336)";
       statusDotEl.classList.remove("at-pulse");
     }
-    if (statusTextEl) statusTextEl.innerText = "未检测到聚焦表格";
+    if (statusTextEl) statusTextEl.innerText = plugin.i18n.noActiveTable || "未检测到聚焦表格";
     buttonGridContainer?.classList.add("at-disabled");
-    if (tooltipBarEl && !tooltipBarEl.innerText.startsWith("提示：")) {
-      tooltipBarEl.innerText = "提示：将光标移动至表格中开始编辑";
+    if (tooltipBarEl && !(tooltipBarEl.innerText.startsWith("提示：") || tooltipBarEl.innerText.startsWith("Tip:"))) {
+      tooltipBarEl.innerText = plugin.i18n.dockTipDefault || "提示：将光标移动至表格中开始编辑。按住 Alt + 鼠标拖选可多选计算。";
     }
     if (textToTableBtn) textToTableBtn.style.display = "flex";
   }
@@ -129,6 +138,7 @@ function setDockUIState(
  * 从 init() 闭包中提取为独立函数。
  */
 function updateDockStatus(
+  plugin: TableMaterPlugin,
   dockOperationActive: boolean,
   lastActiveCell: ActiveCellState | null,
   elements: DockUIElements,
@@ -138,7 +148,7 @@ function updateDockStatus(
   // 如果 Dock 连续操作中，仅更新 Dock UI，不再重复调用高亮渲染
   if (dockOperationActive && lastActiveCell) {
     const size = getTableSize(lastActiveCell.tableBlock);
-    setDockUIState(elements, dockElement, true, size.rows, size.cols);
+    setDockUIState(plugin, elements, dockElement, true, size.rows, size.cols);
     return;
   }
 
@@ -178,7 +188,7 @@ function updateDockStatus(
       }
     }
     const size = getTableSize(tableBlock);
-    setDockUIState(elements, dockElement, true, size.rows, size.cols);
+    setDockUIState(plugin, elements, dockElement, true, size.rows, size.cols);
   } else {
     // 惰性失焦检测
     if (sel && sel.rangeCount > 0) {
@@ -195,7 +205,7 @@ function updateDockStatus(
       const otherBlockId = otherBlock ? (otherBlock.dataset.nodeId || "") : "";
       if (otherBlock && (!lastActiveCell || otherBlockId !== lastActiveCell.blockId)) {
         updateLastActiveCell(null);
-        setDockUIState(elements, dockElement, false);
+        setDockUIState(plugin, elements, dockElement, false);
       }
     }
   }
@@ -229,7 +239,7 @@ export function registerDock(plugin: TableMaterPlugin) {
       position: "RightFirst",
       size: { width: 240, height: 0 },
       icon: dockIcon,
-      title: "表哥工具箱",
+      title: plugin.i18n.dockTitle || "表哥工具箱",
     },
     data: {},
     type: dockType,
@@ -238,18 +248,18 @@ export function registerDock(plugin: TableMaterPlugin) {
         <div class="at-dock-panel fn__flex-1 fn__flex-column">
           <div class="at-status-card">
             <div class="at-status-header">
-              <span class="at-status-title">高级表格状态</span>
+              <span class="at-status-title">${plugin.i18n.dockStatus || "高级表格状态"}</span>
               <span id="at-status-dot" class="at-status-dot"></span>
             </div>
-            <div id="at-status-text" class="at-status-text">未检测到聚焦表格</div>
-            <button id="at-dock-text-to-table-btn" class="b3-button b3-button--text fn__flex-center" style="width: 100%; margin-top: 10px; display: none; gap: 6px; justify-content: center; align-items: center; height: 32px; border: 1px solid var(--b3-theme-primary); color: var(--b3-theme-primary); background: transparent;">
-              <span style="display:flex; align-items:center;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;">
+            <div id="at-status-text" class="at-status-text">${plugin.i18n.noActiveTable || "未检测到聚焦表格"}</div>
+            <button id="at-dock-text-to-table-btn" class="at-dock-convert-btn">
+              <span class="fn__flex-center">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="18" height="18" x="3" y="3" rx="2"></rect>
                   <path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M12 3v18"></path>
                 </svg>
               </span>
-              将文本转换为表格
+              ${plugin.i18n.textToTableContextMenu || "将文本转换为表格"}
             </button>
           </div>
           <div id="at-button-container" class="at-button-container at-disabled">
@@ -261,14 +271,14 @@ export function registerDock(plugin: TableMaterPlugin) {
                     const cmd = TABLE_COMMANDS.find(c => c.id === cmdId);
                     if (!cmd) return "";
                     const iconSvg = SVG_ICONS[cmdId] || "";
-                    return `<button class="at-btn ariaLabel" data-cmd-id="${cmdId}" aria-label="${cmd.nameZh}"><span class="at-btn-icon">${iconSvg}</span></button>`;
+                    return `<button class="at-btn ariaLabel" data-cmd-id="${cmdId}" aria-label="${plugin.i18n[cmdId] || cmd.nameZh}"><span class="at-btn-icon">${iconSvg}</span></button>`;
                   }).join("")}
                 </div>
               </div>
             `).join("")}
           </div>
           <div class="at-footer-tooltip">
-            <div id="at-tooltip-bar" class="at-tooltip-bar">提示：将光标移动至表格中开始编辑</div>
+            <div id="at-tooltip-bar" class="at-tooltip-bar">${plugin.i18n.dockTipDefault || "提示：将光标移动至表格中开始编辑。按住 Alt + 鼠标拖选可多选计算。"}</div>
           </div>
         </div>
       `;
@@ -287,7 +297,7 @@ export function registerDock(plugin: TableMaterPlugin) {
           e.preventDefault();
           e.stopPropagation();
           const cmd = TABLE_COMMANDS.find(c => c.id === "text-to-table");
-          if (cmd) await executeCommand(cmd, plugin.settings);
+          if (cmd) await executeCommand(cmd, plugin.settings, null, plugin.i18n);
         });
       }
 
@@ -345,7 +355,7 @@ export function registerDock(plugin: TableMaterPlugin) {
           }
 
           try {
-            await executeCommand(cmd, plugin.settings, preset);
+            await executeCommand(cmd, plugin.settings, preset, plugin.i18n);
           } finally {
             if (plugin.floatingToolbar) {
               setTimeout(() => {
@@ -382,7 +392,8 @@ export function registerDock(plugin: TableMaterPlugin) {
 
         btn.addEventListener("mouseenter", () => {
           if (elements.tooltipBarEl) {
-            elements.tooltipBarEl.innerText = `${cmd.nameZh} (${cmd.nameEn})`;
+            const name = plugin.i18n[cmd.id] || cmd.nameZh;
+            elements.tooltipBarEl.innerText = `${name} (${cmd.nameEn})`;
           }
         });
 
@@ -393,16 +404,22 @@ export function registerDock(plugin: TableMaterPlugin) {
               const { inTable, tableBlock } = isCursorInTable(activeEditor);
               if (inTable && tableBlock) {
                 const size = getTableSize(tableBlock);
-                elements.tooltipBarEl.innerText = `当前表格：${size.rows} 行 × ${size.cols} 列`;
+                const activeTemplate = plugin.i18n.dockActive || "当前表格：${rows} 行 × ${cols} 列";
+                elements.tooltipBarEl.innerText = activeTemplate
+                  .replace("${rows}", String(size.rows))
+                  .replace("${cols}", String(size.cols));
                 return;
               }
             }
             if (lastActiveCell) {
               const size = getTableSize(lastActiveCell.tableBlock);
-              elements.tooltipBarEl.innerText = `当前表格：${size.rows} 行 × ${size.cols} 列`;
+              const activeTemplate = plugin.i18n.dockActive || "当前表格：${rows} 行 × ${cols} 列";
+              elements.tooltipBarEl.innerText = activeTemplate
+                .replace("${rows}", String(size.rows))
+                .replace("${cols}", String(size.cols));
               return;
             }
-            elements.tooltipBarEl.innerText = "提示：将光标移动至表格中开始编辑";
+            elements.tooltipBarEl.innerText = plugin.i18n.dockTipDefault || "提示：将光标移动至表格中开始编辑";
           }
         });
       });
@@ -411,6 +428,7 @@ export function registerDock(plugin: TableMaterPlugin) {
       const refreshStatus = () => {
         requestAnimationFrame(() => {
           updateDockStatus(
+            plugin,
             dockOperationActive,
             lastActiveCell,
             elements,

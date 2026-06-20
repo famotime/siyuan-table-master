@@ -213,12 +213,24 @@ export class QuickCalc {
       const rangeStr = minRow !== Infinity ? `R${minRow + 1}C${minCol + 1}:R${maxRow + 1}C${maxCol + 1}` : "-";
 
       dockStatusText.innerHTML = `
-        <div style="font-weight: 600; margin-bottom: 4px; color: var(--b3-theme-primary);">已选中多单元格</div>
-        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; opacity: 0.85;">
-          <div>选区范围: <span style="font-weight:600;">${rangeStr}</span> (${count}个)</div>
-          <div>数值个数: <span style="font-weight:600;">${numCount}</span></div>
-          <div>选区求和: <span style="font-weight:600; color:var(--b3-theme-primary);">${sumStr}</span></div>
-          <div>平均数值: <span style="font-weight:600; color:var(--b3-theme-primary);">${avgStr}</span></div>
+        <div class="at-dock-calc-title">${this.plugin.i18n.quickCalcSelected || "已选中多单元格"}</div>
+        <div class="at-dock-calc-container">
+          <div class="at-dock-calc-item">
+            <span class="at-dock-calc-label">${this.plugin.i18n.quickCalcRange || "选区范围"}:</span>
+            <span class="at-dock-calc-val">${rangeStr} (${count})</span>
+          </div>
+          <div class="at-dock-calc-item">
+            <span class="at-dock-calc-label">${this.plugin.i18n.quickCalcCount || "数值个数"}:</span>
+            <span class="at-dock-calc-val">${numCount}</span>
+          </div>
+          <div class="at-dock-calc-item">
+            <span class="at-dock-calc-label">${this.plugin.i18n.quickCalcSum || "选区求和"}:</span>
+            <span class="at-dock-calc-val">${sumStr}</span>
+          </div>
+          <div class="at-dock-calc-item">
+            <span class="at-dock-calc-label">${this.plugin.i18n.quickCalcAverage || "平均数值"}:</span>
+            <span class="at-dock-calc-val">${avgStr}</span>
+          </div>
         </div>
       `;
     }
@@ -238,22 +250,22 @@ export class QuickCalc {
 
     this.calcBar.innerHTML = `
       <div class="at-calc-item">
-        <span class="at-calc-label">已选:</span>
+        <span class="at-calc-label">${this.plugin.i18n.quickCalcSelectedBar || "已选"}:</span>
         <span class="at-calc-val">${count}</span>
       </div>
       <div class="at-calc-divider"></div>
       <div class="at-calc-item">
-        <span class="at-calc-label">数值个数:</span>
+        <span class="at-calc-label">${this.plugin.i18n.quickCalcCount || "数值个数"}:</span>
         <span class="at-calc-val">${numCount}</span>
       </div>
       <div class="at-calc-divider"></div>
       <div class="at-calc-item">
-        <span class="at-calc-label">求和:</span>
+        <span class="at-calc-label">${this.plugin.i18n.quickCalcSumBar || "求和"}:</span>
         <span class="at-calc-val">${sumStr}</span>
       </div>
       <div class="at-calc-divider"></div>
       <div class="at-calc-item">
-        <span class="at-calc-label">平均值:</span>
+        <span class="at-calc-label">${this.plugin.i18n.quickCalcAverageBar || "平均值"}:</span>
         <span class="at-calc-val">${avgStr}</span>
       </div>
     `;
@@ -265,8 +277,13 @@ export class QuickCalc {
   /** 隐藏并移除计算悬浮条 */
   private hideCalcBar() {
     if (this.calcBar) {
-      this.calcBar.remove();
-      this.calcBar = null;
+      const bar = this.calcBar;
+      this.calcBar = null; // 立即置空，以防在动画期间重复调用
+      bar.style.opacity = "0";
+      bar.style.transform = "translateX(-50%) translateY(8px)";
+      setTimeout(() => {
+        bar.remove();
+      }, 200);
     }
     // 隐藏/移除时，向系统分发 selectionchange 事件，迫使 Dock 状态面板自动更新以恢复常规的编辑信息
     document.dispatchEvent(new Event("selectionchange"));

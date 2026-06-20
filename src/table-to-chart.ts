@@ -13,14 +13,14 @@ export async function executeTableToChart(te: TableEditor): Promise<void> {
 
     const lineCount = te.ctx.getLineCount();
     if (lineCount <= 2) {
-      showMessage("表格数据行不足，无法生成图表", 3000, "info");
+      showMessage(te.i18n.errChartRowNotEnough || "表格数据行不足，无法生成图表", 3000, "info");
       return;
     }
 
     // 2. 提取 Headers 和真实数据行
     const rawHeaders = te.ctx.getRowCellsAt(0);
     // 处理空表头，进行默认填充
-    const headers = rawHeaders.map((h, i) => h.trim() || `列 ${i + 1}`);
+    const headers = rawHeaders.map((h, i) => h.trim() || `${te.i18n.column || "列"} ${i + 1}`);
 
     const dataRows: string[][] = [];
     for (let i = 2; i < lineCount; i++) {
@@ -31,15 +31,15 @@ export async function executeTableToChart(te: TableEditor): Promise<void> {
     }
 
     if (dataRows.length === 0) {
-      showMessage("表格中未找到有效的数据行", 3000, "info");
+      showMessage(te.i18n.errChartNoDataRows || "表格中未找到有效的数据行", 3000, "info");
       return;
     }
 
     // 3. 弹出配置 Dialog
-    showChartConfigDialog(te.ctx.blockId, headers, dataRows);
+    showChartConfigDialog(te.ctx.blockId, headers, dataRows, te.i18n);
   } catch (err) {
     console.error("[siyuan-table-mater] executeTableToChart failed:", err);
-    showMessage("读取表格数据失败", 3000, "error");
+    showMessage(te.i18n.errChartReadFailed || "读取表格数据失败", 3000, "error");
   }
 }
 
@@ -49,40 +49,44 @@ export async function executeTableToChart(te: TableEditor): Promise<void> {
 function showChartConfigDialog(
   tableBlockId: string,
   headers: string[],
-  dataRows: string[][]
+  dataRows: string[][],
+  i18n: any
 ): void {
+  const isEn = i18n.cancel === "Cancel";
+  const getMsg = (zh: string, en: string) => isEn ? en : zh;
+
   const dialog = new Dialog({
-    title: "一键数据图表化 (Table to Chart)",
+    title: i18n.chartTitle || "一键数据图表化 (Table to Chart)",
     content: `
-      <div class="b3-dialog__content" style="padding: 16px 24px; display: flex; flex-direction: column; gap: 14px;">
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <label style="font-size: 13px; font-weight: 600; color: var(--b3-theme-on-background);">图表标题</label>
-          <input type="text" id="at-chart-title" class="b3-text-field" placeholder="输入图表标题..." style="width: 100%; box-sizing: border-box;" />
+      <div class="b3-dialog__content at-dialog-content-flex">
+        <div class="at-dialog-form-group">
+          <label>${i18n.chartTitleLabel || "图表标题"}</label>
+          <input type="text" id="at-chart-title" class="b3-text-field" placeholder="${i18n.chartTitlePlaceholder || "输入图表标题..."}" style="width: 100%; box-sizing: border-box;" />
         </div>
 
-        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 6px;">
-            <label style="font-size: 13px; font-weight: 600; color: var(--b3-theme-on-background);">图表类型</label>
+        <div class="at-dialog-form-row">
+          <div class="at-form-field">
+            <label>${i18n.chartTypeLabel || "图表类型"}</label>
             <select id="at-chart-type" class="b3-select" style="width: 100%;">
-              <option value="bar">柱状图 (Bar Chart)</option>
-              <option value="line">折线图 (Line Chart)</option>
-              <option value="pie">饼图 (Pie Chart)</option>
+              <option value="bar">${i18n.chartTypeBar || "柱状图 (Bar Chart)"}</option>
+              <option value="line">${i18n.chartTypeLine || "折线图 (Line Chart)"}</option>
+              <option value="pie">${i18n.chartTypePie || "饼图 (Pie Chart)"}</option>
             </select>
           </div>
 
-          <div style="flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 6px;">
-            <label style="font-size: 13px; font-weight: 600; color: var(--b3-theme-on-background);">X 轴 (类目/时间)</label>
+          <div class="at-form-field">
+            <label>${i18n.chartXColLabel || "X 轴 (类目/时间)"}</label>
             <select id="at-chart-x-col" class="b3-select" style="width: 100%;">
               ${headers.map((h, idx) => `<option value="${idx}">${h}</option>`).join("")}
             </select>
           </div>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <label id="at-chart-y-label" style="font-size: 13px; font-weight: 600; color: var(--b3-theme-on-background);">Y 轴 (数值) - 支持多选</label>
-          <div id="at-chart-y-cols-container" style="display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; border: 1px solid var(--b3-border-color); border-radius: 4px; padding: 8px; background-color: var(--b3-theme-background-surface, rgba(0,0,0,0.02));">
+        <div class="at-dialog-form-group">
+          <label id="at-chart-y-label">${i18n.chartYColLabelMulti || "Y 轴 (数值) - 支持多选"}</label>
+          <div id="at-chart-y-cols-container" class="at-table-preview-container at-dialog-list">
             ${headers.map((h, idx) => `
-              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--b3-theme-on-surface);">
+              <label class="at-dialog-radio-label">
                 <input type="checkbox" class="b3-checkbox" name="at-chart-y-col" value="${idx}" />
                 <span>${h}</span>
               </label>
@@ -90,14 +94,14 @@ function showChartConfigDialog(
           </div>
         </div>
 
-        <details style="border: 1px solid var(--b3-border-color); border-radius: 6px; padding: 8px 12px; background-color: var(--b3-theme-background-surface, rgba(0,0,0,0.02));">
-          <summary style="font-size: 13px; font-weight: 600; cursor: pointer; color: var(--b3-theme-on-background); user-select: none; outline: none;">生成的 ECharts JSON 配置预览</summary>
-          <pre id="at-chart-json-preview" style="margin: 8px 0 0; padding: 10px; background-color: var(--b3-theme-surface); border: 1px solid var(--b3-border-color); border-radius: 6px; font-family: monospace; font-size: 11px; max-height: 120px; overflow-y: auto; color: var(--b3-theme-primary); white-space: pre-wrap; word-break: break-all;"></pre>
+        <details class="at-chart-preview-details">
+          <summary>${i18n.chartJsonPreview || "生成的 ECharts JSON 配置预览"}</summary>
+          <pre id="at-chart-json-preview" class="at-chart-preview-pre"></pre>
         </details>
       </div>
       <div class="b3-dialog__action">
-        <button class="b3-button b3-button--cancel" id="at-chart-cancel">取消</button>
-        <button class="b3-button b3-button--text" id="at-chart-confirm">确认生成</button>
+        <button class="b3-button b3-button--cancel" id="at-chart-cancel">${i18n.cancel || "取消"}</button>
+        <button class="b3-button b3-button--text" id="at-chart-confirm">${i18n.confirmGenerate || "确认生成"}</button>
       </div>
     `,
     width: "520px",
@@ -130,13 +134,13 @@ function showChartConfigDialog(
   };
 
   const updatePreview = () => {
-    const title = titleInput.value || "数据图表";
+    const title = titleInput.value || getMsg("数据图表", "Data Chart");
     const type = typeSelect.value as "bar" | "line" | "pie";
     const xIdx = parseInt(xColSelect.value);
     const yIdxs = getSelectedYIndexes();
 
     if (yIdxs.length === 0) {
-      previewPre.innerText = "{\n  // 请勾选至少一个 Y 轴数值列\n}";
+      previewPre.innerText = `{\n  // ${i18n.errChartSelectY || "请勾选至少一个 Y 轴数值列"}\n}`;
       return;
     }
 
@@ -159,7 +163,7 @@ function showChartConfigDialog(
   typeSelect.addEventListener("change", () => {
     const type = typeSelect.value;
     if (type === "pie") {
-      yLabel.innerText = "Y 轴 (数值) - 饼图仅支持单选";
+      yLabel.innerText = i18n.chartYColLabelSingle || "Y 轴 (数值) - 饼图模式只支持单选";
       // 饼图只留选中的第一个，其他取消
       const selected = getSelectedYIndexes();
       if (selected.length > 1) {
@@ -175,7 +179,7 @@ function showChartConfigDialog(
         });
       }
     } else {
-      yLabel.innerText = "Y 轴 (数值) - 支持多选";
+      yLabel.innerText = i18n.chartYColLabelMulti || "Y 轴 (数值) - 支持多选";
     }
     updatePreview();
   });
@@ -205,13 +209,13 @@ function showChartConfigDialog(
   });
 
   dialog.element.querySelector("#at-chart-confirm")?.addEventListener("click", async () => {
-    const title = titleInput.value || "数据图表";
+    const title = titleInput.value || getMsg("数据图表", "Data Chart");
     const type = typeSelect.value as "bar" | "line" | "pie";
     const xIdx = parseInt(xColSelect.value);
     const yIdxs = getSelectedYIndexes();
 
     if (yIdxs.length === 0) {
-      showMessage("请至少勾选一个 Y 轴数值列", 3000, "info");
+      showMessage(i18n.errChartSelectY || "请至少勾选一个 Y 轴数值列", 3000, "info");
       return;
     }
 
@@ -236,17 +240,18 @@ function showChartConfigDialog(
       });
 
       if (res && res.code === 0) {
-        showMessage("图表生成成功，已插入表格下方", 2000);
+        showMessage(getMsg("图表生成成功，已插入表格下方", "Chart generated successfully, inserted below table"), 2000);
       } else {
         console.error("[siyuan-table-mater] insertBlock error:", res);
-        showMessage("图表块插入失败", 3000, "error");
+        showMessage(getMsg("图表块插入失败", "Failed to insert chart block"), 3000, "error");
       }
     } catch (err) {
       console.error("[siyuan-table-mater] insertBlock failed:", err);
-      showMessage("生成图表失败", 3000, "error");
+      showMessage(i18n.errOperationFailed || "生成图表失败", 3000, "error");
     }
   });
 }
+
 
 /**
  * 构造 ECharts Option JSON 对象

@@ -74,10 +74,10 @@ export default class TableMaterPlugin extends Plugin {
 
     // 注册自定义图标，使侧栏和顶栏图标一致
     this.addIcons(`<symbol id="iconAdvancedTables" viewBox="0 0 24 24">
-      <path d="M12 3v18" style="fill:none!important;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"/>
-      <rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"/>
-      <path d="M3 9h18" style="fill:none!important;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"/>
-      <path d="M3 15h18" style="fill:none!important;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"/>
+      <path d="M12 3v18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect width="18" height="18" x="3" y="3" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M3 9h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M3 15h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>`);
 
     // 加载设置
@@ -98,7 +98,7 @@ export default class TableMaterPlugin extends Plugin {
     if (this.settings.showTopBarIcon) {
       this.addTopBar({
         icon: "iconAdvancedTables",
-        title: this.i18n.settingsTitle || "表哥设置",
+        title: this.i18n.settingsTitle || "Table Master Settings",
         position: "right",
         callback: () => {
           this.openSetting();
@@ -202,11 +202,11 @@ export default class TableMaterPlugin extends Plugin {
 
     event.detail.menu.addItem({
       icon: "iconAdvancedTables",
-      label: "将文本转换为表格",
+      label: this.i18n.textToTableContextMenu || "将文本转换为表格",
       click: () => {
         const cmd = TABLE_COMMANDS.find((c) => c.id === "text-to-table");
         if (cmd) {
-          executeCommand(cmd, this.settings);
+          executeCommand(cmd, this.settings, null, this.i18n);
         }
       },
     });
@@ -247,7 +247,7 @@ export default class TableMaterPlugin extends Plugin {
       createToggleSetting(setting, this.settings, this.i18n, item);
     }
 
-    setting.open(this.i18n.settingsTitle || "表哥设置");
+    setting.open(this.i18n.settingsTitle || "Table Master Settings");
   }
 
   // ── 私有方法 ──

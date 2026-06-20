@@ -85,7 +85,7 @@ export function registerCommands(
       langMenu: cmd.nameZh,
       hotkey: "",
       callback: async () => {
-        await executeCommand(cmd, settings);
+        await executeCommand(cmd, settings, null, (plugin as any).i18n);
       },
     });
   }
@@ -102,17 +102,18 @@ export async function executeCommand(
     blockId: string;
     coord: CellCoord;
   } | null,
+  i18n: any = {},
 ): Promise<void> {
   try {
     const protyle = getActiveEditor?.();
     if (!protyle?.protyle) {
-      showMessage("请先聚焦编辑器", 2000, "error");
+      showMessage(i18n.errFocusEditor || "请先聚焦编辑器", 2000, "error");
       return;
     }
 
     // 特判：文本转为表格命令不受"光标必须在表格内"的限制
     if (cmd.id === "text-to-table") {
-      await executeTextToTable();
+      await executeTextToTable(i18n);
       return;
     }
 
@@ -133,7 +134,7 @@ export async function executeCommand(
       // 动态从当前 DOM range 抓取选区
       const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
       if (!inTable || !tb || !bid) {
-        showMessage("光标不在表格内", 2000, "error");
+        showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
         return;
       }
       tableBlock = tb;
@@ -147,11 +148,11 @@ export async function executeCommand(
       fixCJKWidth: settings.fixCJKWidth,
       presetCellCoord,
     });
-    const te = new TableEditor(ctx, settings);
+    const te = new TableEditor(ctx, settings, i18n);
 
     await cmd.action(te);
   } catch (err) {
     console.error(`[siyuan-table-mater] command ${cmd.id} failed:`, err);
-    showMessage(`操作失败: ${cmd.nameZh}`, 3000, "error");
+    showMessage(`${i18n.errOperationFailed || "操作失败"}: ${i18n[cmd.id] || cmd.nameZh}`, 3000, "error");
   }
 }

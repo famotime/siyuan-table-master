@@ -10,6 +10,9 @@ import { saveSettings } from "./settings";
 export class FloatingToolbar {
   private plugin: TableMaterPlugin;
   private container: HTMLElement | null = null;
+  private contextTag: HTMLElement | null = null;
+  private buttonsWrapper: HTMLElement | null = null;
+  private lastRowIdx: number | null = null;
   private activeCell: { blockId: string; coord: CellCoord; tableBlock: HTMLElement } | null = null;
   private selectionListener: (() => void) | null = null;
   private scrollListener: (() => void) | null = null;
@@ -76,6 +79,18 @@ export class FloatingToolbar {
   private createContainer() {
     this.container = document.createElement("div");
     this.container.className = "at-floating-toolbar at-floating-hidden";
+    this.container.setAttribute("role", "toolbar");
+    this.container.setAttribute("aria-label", "Table Master Floating Toolbar");
+
+    this.contextTag = document.createElement("div");
+    this.contextTag.className = "at-floating-context";
+    this.container.appendChild(this.contextTag);
+
+    this.buttonsWrapper = document.createElement("div");
+    this.buttonsWrapper.className = "at-floating-buttons";
+    this.buttonsWrapper.setAttribute("role", "group");
+    this.container.appendChild(this.buttonsWrapper);
+
     document.body.appendChild(this.container);
   }
 
@@ -125,9 +140,31 @@ export class FloatingToolbar {
       tableBlock,
     };
 
-    this.renderButtons(coord.row);
-    this.show();
-    this.reposition();
+    const isContextChanged = this.lastRowIdx !== coord.row;
+    this.lastRowIdx = coord.row;
+
+    if (isContextChanged && !this.container.classList.contains("at-floating-hidden") && this.buttonsWrapper && this.contextTag) {
+      // 触发切换过渡动画 (方案 B)
+      this.contextTag.style.opacity = "0";
+      this.buttonsWrapper.style.opacity = "0";
+      this.buttonsWrapper.style.transform = "scale(0.98)";
+      setTimeout(() => {
+        if (!this.activeCell) return;
+        this.renderContext(coord.row, coord.col);
+        this.renderButtons(coord.row);
+        this.reposition();
+        if (this.contextTag && this.buttonsWrapper) {
+          this.contextTag.style.opacity = "1";
+          this.buttonsWrapper.style.opacity = "1";
+          this.buttonsWrapper.style.transform = "scale(1)";
+        }
+      }, 120);
+    } else {
+      this.renderContext(coord.row, coord.col);
+      this.renderButtons(coord.row);
+      this.show();
+      this.reposition();
+    }
   }
 
   private reposition() {
@@ -174,6 +211,18 @@ export class FloatingToolbar {
 
     this.container.style.left = `${left}px`;
     this.container.style.top = `${top}px`;
+  }
+
+  private renderContext(row: number, col: number) {
+    if (!this.contextTag) return;
+    if (row === 0) {
+      this.contextTag.innerText = this.plugin.i18n.toolbarHeader || "Header";
+    } else {
+      const template = this.plugin.i18n.toolbarRow || "Row ${row} Col ${col}";
+      this.contextTag.innerText = template
+        .replace("${row}", String(row))
+        .replace("${col}", String(col + 1));
+    }
   }
 
   private renderButtons(rowIdx: number) {
@@ -229,14 +278,16 @@ export class FloatingToolbar {
       }
     }
 
-    this.container.innerHTML = "";
+    if (this.buttonsWrapper) {
+      this.buttonsWrapper.innerHTML = "";
+    }
 
     cmdIds.forEach((cmdId) => {
       if (cmdId === "toggle-sticky-header") {
         const btn = document.createElement("button");
         const isSticky = this.plugin.settings.enableStickyHeader;
         btn.className = "at-floating-btn ariaLabel" + (isSticky ? " at-active-toggle" : "");
-        btn.setAttribute("aria-label", isSticky ? "关闭粘性表头" : "开启粘性表头");
+        btn.setAttribute("aria-label", isSticky ? (this.plugin.i18n.closeStickyHeader || "Disable Sticky Header") : (this.plugin.i18n.openStickyHeader || "Enable Sticky Header"));
         btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91a8 8 0 0 1-1.23-4.13V5a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v2.96a8 8 0 0 1-1.23 4.13l-2.33 2.91a2 2 0 0 0-.44 1.24V17Z"></path></svg>`;
 
         btn.addEventListener("mousedown", (e) => {
@@ -253,7 +304,7 @@ export class FloatingToolbar {
           this.renderButtons(0);
         });
 
-        this.container!.appendChild(btn);
+        this.buttonsWrapper?.appendChild(btn);
         return;
       }
 
@@ -262,7 +313,7 @@ export class FloatingToolbar {
 
       const btn = document.createElement("button");
       btn.className = "at-floating-btn ariaLabel";
-      btn.setAttribute("aria-label", cmd.nameZh);
+      btn.setAttribute("aria-label", this.plugin.i18n[cmd.id] || cmd.nameZh);
       btn.innerHTML = SVG_ICONS[cmdId] || "";
 
       // mousedown 时阻止默认行为，防止编辑器失去焦点
@@ -299,7 +350,7 @@ export class FloatingToolbar {
         }
 
         try {
-          await executeCommand(cmd, this.plugin.settings, preset);
+          await executeCommand(cmd, this.plugin.settings, preset, this.plugin.i18n);
 
           // 手动推演操作坐标，支持高频连续行/列移动时视觉高亮/定位的即时跟随
           if (this.activeCell) {
@@ -323,7 +374,7 @@ export class FloatingToolbar {
         }
       });
 
-      this.container!.appendChild(btn);
+      this.buttonsWrapper?.appendChild(btn);
     });
   }
 

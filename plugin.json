@@ -8,8 +8,8 @@
   "backends": ["all"],
   "frontends": ["all"],
   "displayName": {
-    "default": "Table Mater",
-    "en_US": "Table Mater",
+    "default": "Table Master",
+    "en_US": "Table Master",
     "zh_CN": "表哥"
   },
   "description": {

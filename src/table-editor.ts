@@ -34,9 +34,18 @@ export class TableEditor {
   private mte: MTEEditor;
   public readonly ctx: SiyuanTextEditor;
 
-  constructor(ctx: SiyuanTextEditor, private settings: PluginSettings) {
+  constructor(
+    ctx: SiyuanTextEditor,
+    private settings: PluginSettings = {} as any,
+    private i18n: any = {},
+  ) {
     this.ctx = ctx;
     this.mte = new MTEEditor(ctx);
+  }
+
+  private getMsg(zh: string, en: string): string {
+    const isEn = this.i18n.cancel === "Cancel";
+    return isEn ? en : zh;
   }
 
   /** 获取选项（合并设置） */
@@ -205,29 +214,44 @@ export class TableEditor {
   async copyRow(): Promise<string | null> {
     await this.ctx.reload();
     const coord = this.ctx.getCursorDomCoord();
-    if (!coord) return "无法获取光标位置";
+    if (!coord) return this.getMsg("无法获取光标位置", "Cannot get cursor position");
 
     const lineIdx = coord.row === 0 ? 0 : coord.row + 1;
     const cells = this.ctx.getRowCellsAt(lineIdx);
     clipboard = { type: "row", cells: [...cells] };
-    showMessage(`已复制第 ${coord.row + 1} 行（${cells.length} 列）`, 2000);
+    showMessage(
+      this.getMsg(
+        `已复制第 ${coord.row + 1} 行（${cells.length} 列）`,
+        `Copied row ${coord.row + 1} (${cells.length} columns)`
+      ),
+      2000
+    );
     return null;
   }
 
   async copyColumn(): Promise<string | null> {
     await this.ctx.reload();
     const coord = this.ctx.getCursorDomCoord();
-    if (!coord) return "无法获取光标位置";
+    if (!coord) return this.getMsg("无法获取光标位置", "Cannot get cursor position");
 
     const cells = this.ctx.getColCells(coord.col);
     clipboard = { type: "column", cells: [...cells] };
-    showMessage(`已复制第 ${coord.col + 1} 列（${cells.length} 行）`, 2000);
+    showMessage(
+      this.getMsg(
+        `已复制第 ${coord.col + 1} 列（${cells.length} 行）`,
+        `Copied column ${coord.col + 1} (${cells.length} rows)`
+      ),
+      2000
+    );
     return null;
   }
 
   async pasteRow(): Promise<string | null> {
     if (!clipboard || clipboard.type !== "row") {
-      return "剪贴板中没有行数据，请先使用「复制行」";
+      return this.getMsg(
+        "剪贴板中没有行数据，请先使用「复制行」",
+        "No row data in clipboard, please 'Copy Row' first"
+      );
     }
     return this.pasteWithConfirm(
       "行",
@@ -237,13 +261,16 @@ export class TableEditor {
         return { current: this.ctx.getRowCellsAt(lineIdx), target: lineIdx };
       },
       (target, cells) => { this.ctx.setRowCellsAt(target as number, cells); },
-      (arr) => arr.map(getPureCellText).filter(c => c).join(" | ") || "(空)",
+      (arr) => arr.map(getPureCellText).filter(c => c).join(" | ") || this.getMsg("(空)", "(Empty)"),
     );
   }
 
   async pasteColumn(): Promise<string | null> {
     if (!clipboard || clipboard.type !== "column") {
-      return "剪贴板中没有列数据，请先使用「复制列」";
+      return this.getMsg(
+        "剪贴板中没有列数据，请先使用「复制列」",
+        "No column data in clipboard, please 'Copy Column' first"
+      );
     }
     return this.pasteWithConfirm(
       "列",
@@ -254,7 +281,7 @@ export class TableEditor {
       (target, cells) => { this.ctx.setColCells(target as number, cells); },
       (arr) => {
         const rows = arr.map(getPureCellText).filter(c => c);
-        if (rows.length === 0) return "(空)";
+        if (rows.length === 0) return this.getMsg("(空)", "(Empty)");
         return rows.slice(0, 3).join(" / ") + (rows.length > 3 ? " …" : "");
       },
     );
@@ -275,7 +302,14 @@ export class TableEditor {
     await this.ctx.flush();
 
     if (skipped.length > 0) {
-      showMessage(`存在非数字内容，已跳过：${skipped.join(", ")}`, 4000, "info");
+      showMessage(
+        this.getMsg(
+          `存在非数字内容，已跳过：${skipped.join(", ")}`,
+          `Non-numeric content skipped: ${skipped.join(", ")}`
+        ),
+        4000,
+        "info"
+      );
     }
   }
 
@@ -291,7 +325,14 @@ export class TableEditor {
     await this.ctx.flush();
 
     if (skipped.length > 0) {
-      showMessage(`存在非数字内容，已跳过：${skipped.join(", ")}`, 4000, "info");
+      showMessage(
+        this.getMsg(
+          `存在非数字内容，已跳过：${skipped.join(", ")}`,
+          `Non-numeric content skipped: ${skipped.join(", ")}`
+        ),
+        4000,
+        "info"
+      );
     }
   }
 
@@ -310,15 +351,27 @@ export class TableEditor {
   ): Promise<string | null> {
     await this.ctx.reload();
     const coord = this.ctx.getCursorDomCoord();
-    if (!coord) return "无法获取光标位置";
+    if (!coord) return this.getMsg("无法获取光标位置", "Cannot get cursor position");
 
     const { current: currentCells, target } = getTarget(coord);
     const hasContent = currentCells.some(c => getPureCellText(c) !== "");
 
+    const labelI18n = label === "行"
+      ? (this.i18n.row || "行")
+      : label === "列"
+        ? (this.i18n.column || "列")
+        : label;
+
     const executePaste = async () => {
       writeTarget(target, clipCells);
       await this.ctx.flush();
-      showMessage(`已粘贴到第 ${coord.row + 1} ${label}`, 1500);
+      showMessage(
+        this.getMsg(
+          `已粘贴到第 ${coord.row + 1} ${labelI18n}`,
+          `Pasted to ${labelI18n} ${coord.row + 1}`
+        ),
+        1500
+      );
     };
 
     if (!hasContent) {
@@ -328,12 +381,18 @@ export class TableEditor {
 
     return new Promise<string | null>((resolve) => {
       let resolved = false;
+      const titleTemplate = this.i18n.pasteConfirmTitle || "当前第 ${num} ${label}已有内容，是否覆盖？";
+      const title = titleTemplate
+        .replace("${num}", String(label === "行" ? coord.row + 1 : coord.col + 1))
+        .replace("${label}", labelI18n);
+
       showPasteConfirmDialog(
-        `当前第 ${coord.row + 1} ${label}已有内容，是否覆盖？`,
+        title,
         formatPreview(currentCells),
         formatPreview(clipCells),
+        this.i18n,
         async () => { resolved = true; await executePaste(); resolve(null); },
-        () => { resolved = true; showMessage("已取消粘贴", 1500); resolve(null); },
+        () => { resolved = true; showMessage(this.i18n.pasteCancelled || "已取消粘贴", 1500); resolve(null); },
         () => { if (!resolved) resolve(null); },
       );
     });
