@@ -355,6 +355,79 @@ export class TableEditor {
       );
     });
   }
+
+  /**
+   * 行求和：计算光标所在行左侧所有单元格的数字之和，填入光标单元格。
+   * 如果存在非数字且非空的单元格内容，则跳过并弹窗提示。
+   */
+  async rowSum(): Promise<void> {
+    await this.ctx.reload();
+    const coord = this.ctx.getCursorDomCoord();
+    if (!coord) return;
+
+    // DOM 行号 -> _lines 索引 (跳过分隔行)
+    const lineIdx = coord.row === 0 ? 0 : coord.row + 1;
+    const cells = this.ctx.getRowCellsAt(lineIdx);
+
+    let sum = 0;
+    const skipped: string[] = [];
+
+    for (let i = 0; i < coord.col; i++) {
+      const pureText = getPureCellText(cells[i]);
+      if (pureText === "") continue;
+
+      const val = Number(pureText);
+      if (isNaN(val)) {
+        skipped.push(pureText);
+      } else {
+        sum += val;
+      }
+    }
+
+    cells[coord.col] = String(sum);
+    this.ctx.setRowCellsAt(lineIdx, cells);
+    await this.ctx.flush();
+
+    if (skipped.length > 0) {
+      showMessage(`存在非数字内容，已跳过：${skipped.join(", ")}`, 4000, "info");
+    }
+  }
+
+  /**
+   * 列求和：计算光标所在列上方所有单元格（从 DOM 行 1 开始，避开表头）的数字之和，填入光标单元格。
+   * 如果存在非数字且非空的单元格内容，则跳过并弹窗提示。
+   */
+  async columnSum(): Promise<void> {
+    await this.ctx.reload();
+    const coord = this.ctx.getCursorDomCoord();
+    if (!coord) return;
+
+    const colCells = this.ctx.getColCells(coord.col);
+
+    let sum = 0;
+    const skipped: string[] = [];
+
+    // 从 DOM 行 1 开始（即数据行），遍历到当前行上方
+    for (let i = 1; i < coord.row; i++) {
+      const pureText = getPureCellText(colCells[i]);
+      if (pureText === "") continue;
+
+      const val = Number(pureText);
+      if (isNaN(val)) {
+        skipped.push(pureText);
+      } else {
+        sum += val;
+      }
+    }
+
+    colCells[coord.row] = String(sum);
+    this.ctx.setColCells(coord.col, colCells);
+    await this.ctx.flush();
+
+    if (skipped.length > 0) {
+      showMessage(`存在非数字内容，已跳过：${skipped.join(", ")}`, 4000, "info");
+    }
+  }
 }
 
 /**

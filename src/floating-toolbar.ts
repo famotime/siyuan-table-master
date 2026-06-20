@@ -1,6 +1,6 @@
 import { getActiveEditor } from "siyuan";
 import { isCursorInTable } from "./siyuan-text-editor";
-import { rangeToCellCoord, getCellFromRange, CellCoord } from "./dom-utils";
+import { rangeToCellCoord, getCellFromRange, CellCoord, getTableColCount, getTableRowCount } from "./dom-utils";
 import { TABLE_COMMANDS, executeCommand } from "./commands";
 import { SVG_ICONS } from "./dock";
 import { getTableClipboard } from "./table-editor";
@@ -182,6 +182,22 @@ export class FloatingToolbar {
           cmdIds.push("paste-row");
         } else if (clipboard.type === "column") {
           cmdIds.push("paste-column");
+        }
+      }
+
+      // 额外的求和判断
+      if (this.activeCell) {
+        const colCount = getTableColCount(this.activeCell.tableBlock);
+        const rowCount = getTableRowCount(this.activeCell.tableBlock);
+        const { col, row } = this.activeCell.coord;
+
+        // 光标在非表头行且在最右侧列时，浮动工具栏增加“行求和”按钮
+        if (col === colCount - 1) {
+          cmdIds.push("row-sum");
+        }
+        // 光标在非表头行且在最下一行时，浮动工具栏增加“列求和”按钮
+        if (row === rowCount - 1) {
+          cmdIds.push("column-sum");
         }
       }
     }

@@ -62,6 +62,9 @@ export const TABLE_COMMANDS: TableCommand[] = [
     const err = await te.pasteColumn();
     if (err) showMessage(err, 3000, "error");
   }},
+  // ── 求和计算 ──
+  { id: "row-sum", nameZh: "行求和", nameEn: "Row sum", action: te => te.rowSum() },
+  { id: "column-sum", nameZh: "列求和", nameEn: "Column sum", action: te => te.columnSum() },
 ];
 
 /**
