@@ -261,6 +261,71 @@ function buildEchartsOption(config: {
 }): any {
   const xData = config.rows.map(row => row[config.xColumnIndex]?.trim() || "");
 
+  // 检查某列是否主要由百分比数据组成
+  const isPercentCol = (colIdx: number): boolean => {
+    const nonMockRows = config.rows.filter(row => row[colIdx] && row[colIdx].trim() !== "");
+    if (nonMockRows.length === 0) return false;
+    let percentCount = 0;
+    for (const row of nonMockRows) {
+      if (row[colIdx].trim().endsWith("%")) {
+        percentCount++;
+      }
+    }
+    return percentCount / nonMockRows.length >= 0.5;
+  };
+
+  // 1. 收集各 Y 轴列的统计特征：最大值与是否为百分比
+  const colStats = config.yColumnIndexes.map(idx => {
+    const vals = config.rows.map(row => sanitizeValue(row[idx]));
+    const maxVal = Math.max(...vals, 0);
+    const isPercent = isPercentCol(idx);
+    return {
+      index: idx,
+      maxVal,
+      isPercent
+    };
+  });
+
+  // 2. 自动判定是否启用双 Y 轴及映射关系
+  let useDualY = false;
+  const colYAxisIndexes = new Map<number, number>(); // colIndex -> yAxisIndex (0=左, 1=右)
+
+  const hasPercent = colStats.some(s => s.isPercent);
+  const hasNonPercent = colStats.some(s => !s.isPercent);
+
+  // 如果在非饼图场景下，包含折线图或柱状图
+  if (config.type !== "pie") {
+    if (hasPercent && hasNonPercent) {
+      // 混合量纲：常规数值走左轴，百分比走右轴
+      useDualY = true;
+      colStats.forEach(s => {
+        colYAxisIndexes.set(s.index, s.isPercent ? 1 : 0);
+      });
+    } else {
+      // 同一量纲下：根据最大值的倍数差判断是否需要双轴 (差异大等于 10 倍)
+      const validMaxVals = colStats.map(s => s.maxVal).filter(v => v > 0);
+      if (validMaxVals.length > 1) {
+        const globalMax = Math.max(...validMaxVals);
+        const globalMin = Math.min(...validMaxVals);
+        if (globalMax / globalMin >= 10) {
+          useDualY = true;
+          colStats.forEach(s => {
+            // 凡是最大值低于全局最大值 10% 的，分配到右轴 (1)；其余分到左轴 (0)
+            colYAxisIndexes.set(s.index, s.maxVal < globalMax * 0.1 ? 1 : 0);
+          });
+        }
+      }
+    }
+  }
+
+  // 兜底映射
+  if (!useDualY) {
+    config.yColumnIndexes.forEach(idx => colYAxisIndexes.set(idx, 0));
+  }
+
+  // 只有当所有勾选的 Y 轴数据列都是百分比时，才格式化 Y 轴刻度为百分比（单 Y 轴模式下使用）
+  const allYArePercent = config.yColumnIndexes.length > 0 && config.yColumnIndexes.every(idx => isPercentCol(idx));
+
   const option: any = {
     title: {
       text: config.title,
@@ -306,15 +371,43 @@ function buildEchartsOption(config: {
       type: "category",
       data: xData,
     };
-    option.yAxis = {
-      type: "value",
-    };
+
+    if (useDualY) {
+      const leftCols = colStats.filter(s => colYAxisIndexes.get(s.index) === 0);
+      const rightCols = colStats.filter(s => colYAxisIndexes.get(s.index) === 1);
+      const leftIsAllPercent = leftCols.length > 0 && leftCols.every(s => s.isPercent);
+      const rightIsAllPercent = rightCols.length > 0 && rightCols.every(s => s.isPercent);
+
+      option.yAxis = [
+        {
+          type: "value",
+          axisLabel: leftIsAllPercent ? { formatter: "{value}%" } : undefined
+        },
+        {
+          type: "value",
+          axisLabel: rightIsAllPercent ? { formatter: "{value}%" } : undefined,
+          splitLine: { show: false } // 隐藏右轴网格分割线以防视觉混乱
+        }
+      ];
+    } else {
+      option.yAxis = {
+        type: "value",
+      };
+      if (allYArePercent) {
+        option.yAxis.axisLabel = {
+          formatter: "{value}%"
+        };
+      }
+    }
+
     option.series = config.yColumnIndexes.map(yIdx => {
       const seriesName = config.headers[yIdx];
       const seriesData = config.rows.map(row => sanitizeValue(row[yIdx]));
+      const yAxisIdx = colYAxisIndexes.get(yIdx) ?? 0;
       return {
         name: seriesName,
         type: config.type,
+        yAxisIndex: yAxisIdx,
         data: seriesData,
         // 如果是折线图，可以添加平滑效果，使其更加美观
         smooth: config.type === "line",
