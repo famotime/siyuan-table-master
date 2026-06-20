@@ -2,7 +2,7 @@ import { getActiveEditor, showMessage } from "siyuan";
 import { isCursorInTable } from "./siyuan-text-editor";
 import { TABLE_COMMANDS, executeCommand, TableCommand } from "./commands";
 import type TableMaterPlugin from "./index";
-import { rangeToCellCoord, CellCoord, highlightActiveRowAndCol, findTableBlock } from "./dom-utils";
+import { rangeToCellCoord, CellCoord, findTableBlock } from "./dom-utils";
 
 /** SVG 图标定义 - Lucide 专业线框风格，显式内联阻断 fill 覆写，无填充 */
 export const SVG_ICONS: Record<string, string> = {
@@ -134,9 +134,8 @@ function updateDockStatus(
   dockElement: HTMLElement,
   updateLastActiveCell: (cell: ActiveCellState | null) => void,
 ): void {
-  // 如果 Dock 连续操作中，仅渲染推演高亮，防止被未归位选区的 selectionchange 覆盖
+  // 如果 Dock 连续操作中，仅更新 Dock UI，不再重复调用高亮渲染
   if (dockOperationActive && lastActiveCell) {
-    highlightActiveRowAndCol(lastActiveCell.tableBlock, lastActiveCell.coord);
     const size = getTableSize(lastActiveCell.tableBlock);
     setDockUIState(elements, dockElement, true, size.rows, size.cols);
     return;
@@ -175,7 +174,6 @@ function updateDockStatus(
           coord,
           tableBlock,
         });
-        highlightActiveRowAndCol(tableBlock, coord);
       }
     }
     const size = getTableSize(tableBlock);
@@ -196,7 +194,6 @@ function updateDockStatus(
       const otherBlockId = otherBlock ? (otherBlock.dataset.nodeId || "") : "";
       if (otherBlock && (!lastActiveCell || otherBlockId !== lastActiveCell.blockId)) {
         updateLastActiveCell(null);
-        highlightActiveRowAndCol(null, null);
         setDockUIState(elements, dockElement, false);
       }
     }
@@ -343,14 +340,12 @@ export function registerDock(plugin: TableMaterPlugin) {
 
             const latestEl = document.querySelector(`[data-node-id="${lastActiveCell.blockId}"]`) as HTMLElement;
             if (latestEl) lastActiveCell.tableBlock = latestEl;
-            highlightActiveRowAndCol(lastActiveCell.tableBlock, coord);
 
             setTimeout(() => {
               if (lastActiveCell) {
                 const finalLatestEl = document.querySelector(`[data-node-id="${lastActiveCell.blockId}"]`) as HTMLElement;
                 if (finalLatestEl) {
                   lastActiveCell.tableBlock = finalLatestEl;
-                  highlightActiveRowAndCol(finalLatestEl, coord);
                 }
               }
             }, 50);
@@ -408,7 +403,6 @@ export function registerDock(plugin: TableMaterPlugin) {
         document.removeEventListener("selectionchange", selectionListener);
         selectionListener = null;
       }
-      highlightActiveRowAndCol(null, null);
     },
   });
 }

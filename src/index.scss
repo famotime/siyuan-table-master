@@ -311,7 +311,7 @@
 .at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table thead {
   position: sticky !important;
   top: 0 !important;
-  z-index: 100 !important;
+  z-index: 2 !important; /* 降低层级，仅在表格内部盖住 td，避免遮挡思源全局设置弹窗或遮罩 */
   background-color: var(--b3-theme-background) !important;
 }
 
@@ -319,7 +319,7 @@
 .at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table thead th {
   position: sticky !important;
   top: 0 !important;
-  z-index: 100 !important;
+  z-index: 2 !important; /* 降低层级，仅在表格内部盖住 td，避免遮挡思源全局设置弹窗或遮罩 */
   background-color: var(--b3-theme-background) !important;
   box-shadow: inset 0 -1px 0 var(--b3-theme-border), 0 1px 0 var(--b3-theme-border) !important;
 }
@@ -329,7 +329,7 @@
 .at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table:not(:has(thead)) tr:first-child td {
   position: sticky !important;
   top: 0 !important;
-  z-index: 100 !important;
+  z-index: 2 !important; /* 降低层级，仅在表格内部盖住 td，避免遮挡思源全局设置弹窗或遮罩 */
   background-color: var(--b3-theme-background) !important;
   box-shadow: inset 0 -1px 0 var(--b3-theme-border), 0 1px 0 var(--b3-theme-border) !important;
 }

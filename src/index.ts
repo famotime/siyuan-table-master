@@ -5,7 +5,7 @@
  * 为思源笔记 NodeTable 块提供增强编辑能力。
  */
 
-import { Plugin, showMessage, Setting } from "siyuan";
+import { Plugin, showMessage, Setting, getActiveEditor } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from "@/../plugin.json";
 import { registerCommands, TABLE_COMMANDS, executeCommand } from "./commands";
@@ -18,6 +18,7 @@ import { SmartPaste } from "./smart-paste";
 import { QuickCalc } from "./quick-calc";
 import { DragReorder } from "./drag-reorder";
 import { isCursorInTable } from "./siyuan-text-editor";
+import { findTableBlock, rangeToCellCoord, highlightActiveRowAndCol } from "./dom-utils";
 
 // ── 设置面板工具 ——
 
@@ -66,6 +67,7 @@ export default class TableMaterPlugin extends Plugin {
   private smartPaste: SmartPaste | null = null;
   private quickCalc: QuickCalc | null = null;
   private dragReorder: DragReorder | null = null;
+  private globalSelectionListener: (() => void) | null = null;
 
   async onload() {
     console.log(`[siyuan-table-mater] v${version} loading...`);
@@ -88,6 +90,9 @@ export default class TableMaterPlugin extends Plugin {
 
     // 注册 Dock 栏工具箱
     registerDock(this);
+
+    // 全局高亮光标所在行列
+    this.initGlobalHighlight();
 
     // 顶栏按钮
     if (this.settings.showTopBarIcon) {
@@ -133,6 +138,9 @@ export default class TableMaterPlugin extends Plugin {
 
   onunload() {
     console.log("[siyuan-table-mater] unloading...");
+
+    // 注销全局高亮监听
+    this.destroyGlobalHighlight();
 
     // 移除键盘拦截
     if (this.keybindUninstall) {
@@ -271,4 +279,77 @@ export default class TableMaterPlugin extends Plugin {
   private onLoadedProtyle = () => {
     this.installKeybindToAllEditors();
   };
+
+  /** 初始化全局行列高亮监听，摆脱侧栏依赖 */
+  private initGlobalHighlight() {
+    this.globalSelectionListener = () => {
+      requestAnimationFrame(() => {
+        let inTable = false;
+        let tableBlock: HTMLElement | null = null;
+        let coord: any = null;
+
+        // 1. 优先通过 Selection API 检测光标是否在表格内
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          tableBlock = findTableBlock(range.startContainer);
+          if (tableBlock) {
+            inTable = true;
+            coord = rangeToCellCoord(range, tableBlock);
+          }
+        }
+
+        // 2. 兜底：通过编辑器 API 检测
+        if (!inTable) {
+          const activeEditor = getActiveEditor();
+          if (activeEditor?.protyle) {
+            const res = isCursorInTable(activeEditor);
+            if (res.inTable && res.tableBlock) {
+              inTable = true;
+              tableBlock = res.tableBlock;
+              if (sel && sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                coord = rangeToCellCoord(range, tableBlock);
+              }
+            }
+          }
+        }
+
+        if (inTable && tableBlock && coord) {
+          // 当前在表格内且获取到坐标，应用高亮
+          highlightActiveRowAndCol(tableBlock, coord);
+        } else {
+          // 惰性失焦检测：如果光标完全移出当前表格块，清除高亮样式
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            let node = range.startContainer as HTMLElement;
+            let currentBlock: HTMLElement | null = null;
+            while (node && node !== document.body) {
+              if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-node-id")) {
+                currentBlock = node;
+                break;
+              }
+              node = node.parentNode as HTMLElement;
+            }
+            if (!currentBlock || currentBlock.dataset.type !== "NodeTable") {
+              highlightActiveRowAndCol(null, null);
+            }
+          } else {
+            highlightActiveRowAndCol(null, null);
+          }
+        }
+      });
+    };
+
+    document.addEventListener("selectionchange", this.globalSelectionListener);
+  }
+
+  /** 注销全局行列高亮监听 */
+  private destroyGlobalHighlight() {
+    if (this.globalSelectionListener) {
+      document.removeEventListener("selectionchange", this.globalSelectionListener);
+      this.globalSelectionListener = null;
+    }
+    highlightActiveRowAndCol(null, null);
+  }
 }

@@ -254,8 +254,8 @@ export function highlightActiveRowAndCol(
   const cellSelector = getUniqueCssSelector(activeCell, tableBlock);
   const colIndex = coord.col + 1;
 
-  // 行高亮样式
-  const rowCss = `${rSelector} td, ${rSelector} th {
+  // 行高亮样式：增加 [data-node-id] 限定大幅提高 CSS 特异性，防止被默认样式覆盖
+  const rowCss = `[data-node-id="${blockId}"] ${rSelector} td, [data-node-id="${blockId}"] ${rSelector} th {
     background-color: color-mix(in srgb, var(--b3-theme-primary) 6%, transparent) !important;
   }`;
 
@@ -264,8 +264,8 @@ export function highlightActiveRowAndCol(
     background-color: color-mix(in srgb, var(--b3-theme-primary) 6%, transparent) !important;
   }`;
 
-  // 交叉活动单元格高亮样式
-  const cellCss = `${cellSelector} {
+  // 交叉活动单元格高亮样式：增加 [data-node-id] 限定大幅提高 CSS 特异性，防止被默认样式覆盖
+  const cellCss = `[data-node-id="${blockId}"] ${cellSelector} {
     background-color: color-mix(in srgb, var(--b3-theme-primary) 12%, transparent) !important;
     box-shadow: inset 0 0 0 1.5px var(--b3-theme-primary) !important;
   }`;
