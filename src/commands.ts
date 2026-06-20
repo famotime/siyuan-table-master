@@ -203,9 +203,10 @@ async function executeTextToTable(): Promise<void> {
       kramdown = typeof res.data === "string" ? res.data : (res.data as any).kramdown ?? "";
     }
 
+    // 过滤掉行内 IAL 属性并特殊过滤掉 ``` 开头的代码块语法标识线，支持直接转换代码块
     const rawLines = kramdown.split("\n")
       .map(line => line.trim())
-      .filter(line => line.length > 0 && !line.startsWith("{:"));
+      .filter(line => line.length > 0 && !line.startsWith("{:") && !line.startsWith("```"));
 
     if (rawLines.length === 0) {
       showMessage("当前段落块内容为空", 3000, "info");
@@ -218,15 +219,63 @@ async function executeTextToTable(): Promise<void> {
   }
 }
 
+/** 辅助函数：检测文本是否符合制图表格特征 */
+function isBoxDrawingTable(lines: string[]): boolean {
+  const boxDrawingRegex = /[\u2500-\u257F]/;
+  let count = 0;
+  for (const line of lines) {
+    if (boxDrawingRegex.test(line)) {
+      count++;
+    }
+  }
+  return count >= 2;
+}
+
 /** 弹出文本转换为表格配置与预览 Dialog */
 function showTextToTableDialog(blockId: string, rawLines: string[]): void {
-  let separator = ",";
+  const isBoxDrawing = isBoxDrawingTable(rawLines);
+  let separator = isBoxDrawing ? "box-drawing" : ",";
+
+  // 统一解析函数
+  const parseLines = (sep: string, lines: string[]): string[][] => {
+    if (sep === "box-drawing") {
+      // 过滤掉边框线，保留数据行
+      const borderLineRegex = /^[┌┐└┘├┤┬┴┼─│═║╔╗╚╝╠╣╦╩╬╪┼┠┨┯┷┿┝┥┰┸╂\s\-+*#=]+$/;
+      const dataLines = lines.filter(line => {
+        const trimmed = line.trim();
+        return !borderLineRegex.test(trimmed);
+      });
+
+      return dataLines.map(line => {
+        // 统一将制图竖线转换为普通管道符
+        const normalized = line.trim().replace(/[│┃║]/g, "|");
+        let parts = normalized.split("|");
+        // 剥除表格外边缘多余的空单元格
+        if (normalized.startsWith("|")) {
+          parts.shift();
+        }
+        if (normalized.endsWith("|")) {
+          parts.pop();
+        }
+        return parts.map(p => p.trim());
+      });
+    } else {
+      const activeSep = sep === "\\t" ? "\t" : sep;
+      return lines.map(line => line.split(activeSep).map(p => p.trim()));
+    }
+  };
 
   const generatePreview = (sep: string): string => {
-    const previewLines = rawLines.slice(0, 5);
+    const borderLineRegex = /^[┌┐└┘├┤┬┴┼─│═║╔╗╚╝╠╣╦╩╬╪┼┠┨┯┷┿┝┥┰┸╂\s\-+*#=]+$/;
+    const linesToParse = sep === "box-drawing"
+      ? rawLines.filter(line => !borderLineRegex.test(line.trim()))
+      : rawLines;
+
+    const previewLines = linesToParse.slice(0, 5);
+    const grid = parseLines(sep, previewLines);
+    
     let html = `<table style="width:100%; border-collapse:collapse; font-size:12px;">`;
-    previewLines.forEach((line, rIdx) => {
-      const parts = line.split(sep).map(p => p.trim());
+    grid.forEach((parts, rIdx) => {
       html += `<tr>`;
       parts.forEach(part => {
         if (rIdx === 0) {
@@ -239,8 +288,8 @@ function showTextToTableDialog(blockId: string, rawLines: string[]): void {
     });
     html += `</table>`;
     
-    if (rawLines.length > 5) {
-      html += `<div style="font-size:11px; opacity:0.5; margin-top:6px; text-align:center;">仅展示前 5 行预览（共 ${rawLines.length} 行）</div>`;
+    if (linesToParse.length > 5) {
+      html += `<div style="font-size:11px; opacity:0.5; margin-top:6px; text-align:center;">仅展示前 5 行预览（共 ${linesToParse.length} 行）</div>`;
     }
     return html;
   };
@@ -252,7 +301,10 @@ function showTextToTableDialog(blockId: string, rawLines: string[]): void {
         <div style="font-size:13px; opacity:0.8; line-height:1.5;">请选择行内数据的分隔符：</div>
         <div style="display:flex; gap:16px; align-items:center; font-size:13px; flex-wrap:wrap;">
           <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-            <input type="radio" name="at-sep" value="," checked /> 英文逗号 ( , )
+            <input type="radio" name="at-sep" value="box-drawing" ${isBoxDrawing ? "checked" : ""} /> 终端表格 (制图字符)
+          </label>
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+            <input type="radio" name="at-sep" value="," ${!isBoxDrawing ? "checked" : ""} /> 英文逗号 ( , )
           </label>
           <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
             <input type="radio" name="at-sep" value="，" /> 中文逗号 ( ， )
@@ -270,7 +322,7 @@ function showTextToTableDialog(blockId: string, rawLines: string[]): void {
         </div>
         <div style="font-size:13px; font-weight:600; margin-top:4px;">转换效果预览：</div>
         <div id="at-table-preview-container" style="max-height:180px; overflow-y:auto; border:1px solid var(--b3-border-color); border-radius:6px; padding:10px; background-color:var(--b3-theme-surface);">
-          ${generatePreview(",")}
+          ${generatePreview(separator)}
         </div>
       </div>
       <div class="b3-dialog__action">
@@ -288,9 +340,6 @@ function showTextToTableDialog(blockId: string, rawLines: string[]): void {
     let activeSep = separator;
     if (separator === "custom") {
       activeSep = customInput.value || ",";
-    }
-    if (separator === "\\t") {
-      activeSep = "\t";
     }
     if (previewContainer) {
       previewContainer.innerHTML = generatePreview(activeSep);
@@ -327,14 +376,16 @@ function showTextToTableDialog(blockId: string, rawLines: string[]): void {
     if (separator === "custom") {
       activeSep = customInput.value || ",";
     }
-    if (separator === "\\t") {
-      activeSep = "\t";
-    }
 
     dialog.destroy();
 
     // 将行解析为二维数组
-    const grid = rawLines.map(line => line.split(activeSep).map(c => c.trim()));
+    const grid = parseLines(activeSep, rawLines);
+    if (grid.length === 0) {
+      showMessage("解析后未发现有效数据行", 3000, "info");
+      return;
+    }
+
     const colCount = Math.max(...grid.map(r => r.length));
     const markdownLines: string[] = [];
 
