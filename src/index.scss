@@ -296,15 +296,30 @@
   overflow: visible !important;
 }
 
+/* 穿透表格外层包裹 div 的 overflow，使其不拦截 sticky 定位 */
+.at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] > div,
+.at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] > [contenteditable="false"] {
+  overflow: visible !important;
+}
+
 .at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table {
   overflow: visible !important;
+  border-collapse: separate !important; /* 彻底根治 border-collapse 为 collapse 时，sticky th 无法被 z-index 提层从而被之后 td 覆盖的渲染 Bug */
+  border-spacing: 0px !important;
+}
+
+.at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table thead {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background-color: var(--b3-theme-background) !important;
 }
 
 .at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table thead th,
 .at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table tr:first-child th,
 .at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table tr:first-child td {
   position: sticky !important;
-  top: 36px !important; /* 避开思源顶部悬浮面包屑栏 */
+  top: 0 !important; /* 紧贴思源滚动容器顶部，面包屑栏是在滚动容器外静态平铺的 */
   z-index: 100 !important;
   background-color: var(--b3-theme-background) !important;
   box-shadow: inset 0 -1px 0 var(--b3-theme-border), 0 1px 0 var(--b3-theme-border) !important;
