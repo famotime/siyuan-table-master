@@ -8,5 +8,13 @@
   "bindEnter": "绑定 Enter 键换行",
   "bindEnterDesc": "在表格内按 Enter 键可跳转到下一行的当前列，如果在最后一行则自动插入新行",
   "fixCJKWidth": "CJK 字符宽度校正",
-  "fixCJKWidthDesc": "对中文、日文、韩文等双字节字符进行宽度估算，以实现排版对齐效果"
+  "fixCJKWidthDesc": "对中文、日文、韩文等双字节字符进行宽度估算，以实现排版对齐效果",
+  "enableStickyHeader": "启用表格粘性表头 (Sticky Header)",
+  "enableStickyHeaderDesc": "开启后，长表格滚动时表头单元格将自动固定在编辑区顶部",
+  "enableSmartPaste": "启用剪贴板智能粘贴",
+  "enableSmartPasteDesc": "开启后，在表格内或空行上粘贴表格数据（来自 Excel、网页等）时，将自动进行格式转换或多单元格填充",
+  "enableQuickCalc": "启用框选单元格即时计算",
+  "enableQuickCalcDesc": "开启后，在表格中按住 Alt 键拖动框选数值单元格，将在底部显示求和、平均值、计数等即时统计信息",
+  "enableDragReorder": "启用拖拽行列重排",
+  "enableDragReorderDesc": "开启后，在表格内将显示行与列的拖拽手柄，可通过鼠标拖动直接调整行列顺序"
 }

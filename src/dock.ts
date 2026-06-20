@@ -106,6 +106,15 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
               <span id="at-status-dot" class="at-status-dot"></span>
             </div>
             <div id="at-status-text" class="at-status-text">未检测到聚焦表格</div>
+            <button id="at-dock-text-to-table-btn" class="b3-button b3-button--text fn__flex-center" style="width: 100%; margin-top: 10px; display: none; gap: 6px; justify-content: center; align-items: center; height: 32px; border: 1px solid var(--b3-theme-primary); color: var(--b3-theme-primary); background: transparent;">
+              <span style="display:flex; align-items:center;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;">
+                  <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                  <path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M12 3v18"></path>
+                </svg>
+              </span>
+              将文本转换为表格
+            </button>
           </div>
 
           <!-- 按钮分组容器 -->
@@ -139,13 +148,18 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
           </div>
         </div>
       `;
-
-      // 绑定元素引用
-      statusCardEl = this.element.querySelector(".at-status-card");
-      statusTextEl = this.element.querySelector("#at-status-text");
-      statusDotEl = this.element.querySelector("#at-status-dot");
-      buttonGridContainer = this.element.querySelector("#at-button-container");
-      tooltipBarEl = this.element.querySelector("#at-tooltip-bar");
+      // 绑定“将文本转换为表格”按钮事件
+      const textToTableBtn = this.element.querySelector("#at-dock-text-to-table-btn") as HTMLElement;
+      if (textToTableBtn) {
+        textToTableBtn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const cmd = TABLE_COMMANDS.find(c => c.id === "text-to-table");
+          if (cmd) {
+            await executeCommand(cmd, plugin.settings);
+          }
+        });
+      }
 
       // 绑定按钮点击事件
       const buttons = this.element.querySelectorAll(".at-btn");
@@ -331,7 +345,7 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
             let node = range.startContainer as HTMLElement;
             let otherBlock: HTMLElement | null = null;
             
-            // 向上寻找当前选区聚焦的块元素
+            // 向上寻找当前选区聚焦 of 块元素
             while (node && node !== document.body) {
               if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-node-id")) {
                 otherBlock = node;
@@ -353,6 +367,8 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
 
       // 改变 UI 状态
       const setUIState = (active: boolean, rows = 0, cols = 0) => {
+        const textToTableBtn = this.element.querySelector("#at-dock-text-to-table-btn") as HTMLElement;
+
         if (active) {
           if (statusCardEl) statusCardEl.classList.add("at-active");
           if (statusDotEl) {
@@ -364,6 +380,9 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
           if (tooltipBarEl && tooltipBarEl.innerText.startsWith("提示：")) {
             tooltipBarEl.innerText = `当前表格：${rows} 行 × ${cols} 列`;
           }
+          if (textToTableBtn) {
+            textToTableBtn.style.display = "none";
+          }
         } else {
           if (statusCardEl) statusCardEl.classList.remove("at-active");
           if (statusDotEl) {
@@ -374,6 +393,9 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
           if (buttonGridContainer) buttonGridContainer.classList.add("at-disabled");
           if (tooltipBarEl && !tooltipBarEl.innerText.startsWith("提示：")) {
             tooltipBarEl.innerText = "提示：将光标移动至表格中开始编辑";
+          }
+          if (textToTableBtn) {
+            textToTableBtn.style.display = "flex";
           }
         }
       };

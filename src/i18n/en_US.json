@@ -8,5 +8,13 @@
   "bindEnter": "Bind Enter key navigation",
   "bindEnterDesc": "Press Enter in a table cell to jump to the same column in the next row, automatically inserting a new row if at the last row",
   "fixCJKWidth": "CJK character width correction",
-  "fixCJKWidthDesc": "Estimate width for Chinese, Japanese, and Korean double-byte characters to achieve perfectly aligned Markdown table formatting"
+  "fixCJKWidthDesc": "Estimate width for Chinese, Japanese, and Korean double-byte characters to achieve perfectly aligned Markdown table formatting",
+  "enableStickyHeader": "Enable Sticky Table Header",
+  "enableStickyHeaderDesc": "When enabled, the table header will stay fixed at the top of the editor viewport when scrolling long tables",
+  "enableSmartPaste": "Enable Smart Clipboard Paste",
+  "enableSmartPasteDesc": "When enabled, pasting table data (from Excel, web page, etc.) inside a table or on an empty line will trigger smart conversion or cell region filling",
+  "enableQuickCalc": "Enable Region Selection & Quick Calculation",
+  "enableQuickCalcDesc": "When enabled, hold Alt and drag to select cells, and statistical summaries (Sum, Average, Count) will display at the bottom",
+  "enableDragReorder": "Enable Drag & Drop Row/Column Reordering",
+  "enableDragReorderDesc": "When enabled, Row/Column drag handles will appear near the active cell, allowing direct rearrangement by dragging"
 }

@@ -17,6 +17,14 @@ export interface PluginSettings {
   showTopBarIcon: boolean;
   /** 当光标在表格内时是否出现浮动工具栏 */
   showFloatingToolbar: boolean;
+  /** 是否启用粘性表头 */
+  enableStickyHeader: boolean;
+  /** 是否启用剪贴板智能粘贴 */
+  enableSmartPaste: boolean;
+  /** 是否启用单元格选区即时计算 */
+  enableQuickCalc: boolean;
+  /** 是否启用拖拽行列重排 */
+  enableDragReorder: boolean;
 }
 
 export const defaultSettings: PluginSettings = {
@@ -26,6 +34,10 @@ export const defaultSettings: PluginSettings = {
   fixCJKWidth: true,
   showTopBarIcon: true,
   showFloatingToolbar: true,
+  enableStickyHeader: true,
+  enableSmartPaste: true,
+  enableQuickCalc: true,
+  enableDragReorder: true,
 };
 
 const SETTINGS_KEY = "config";

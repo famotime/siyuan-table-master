@@ -247,7 +247,7 @@ export class SiyuanTextEditor implements ITextEditor {
           const currentBlockEl = (document.querySelector(`.protyle-wysiwyg [data-node-id="${this.blockId}"][data-type="NodeTable"]`) || 
                                   document.querySelector(`[data-node-id="${this.blockId}"][data-type="NodeTable"]`)) as HTMLElement || this.tableBlockEl;
           
-          const coord = this._rowModelToDomCoord(this._cursor.row, this._cursor.column, currentBlockEl);
+          const coord = this.presetCellCoord || this._rowModelToDomCoord(this._cursor.row, this._cursor.column, currentBlockEl);
           
           if (coord) {
             const range = cellCoordToRange(coord, currentBlockEl, true);

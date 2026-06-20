@@ -5,6 +5,7 @@ import { TABLE_COMMANDS, executeCommand } from "./commands";
 import { SVG_ICONS } from "./dock";
 import { getTableClipboard } from "./table-editor";
 import type AdvancedTablesPlugin from "./index";
+import { saveSettings } from "./settings";
 
 export class FloatingToolbar {
   private plugin: AdvancedTablesPlugin;
@@ -161,7 +162,7 @@ export class FloatingToolbar {
 
     let cmdIds: string[] = [];
     if (rowIdx === 0) {
-      // 光标在表头时，工具栏按钮：左对齐、居中、右对齐、升序、降序、转置
+      // 光标在表头时，工具栏按钮：左对齐、居中、右对齐、升序、降序、转置、粘性表头
       cmdIds = [
         "left-align-column",
         "center-align-column",
@@ -169,6 +170,7 @@ export class FloatingToolbar {
         "sort-rows-asc",
         "sort-rows-desc",
         "transpose",
+        "toggle-sticky-header",
       ];
     } else {
       // 光标在非表头行时，工具栏按钮：上移行、下移行，左移列、右移列、复制行、复制列
@@ -210,6 +212,31 @@ export class FloatingToolbar {
     this.container.innerHTML = "";
 
     cmdIds.forEach((cmdId) => {
+      if (cmdId === "toggle-sticky-header") {
+        const btn = document.createElement("button");
+        const isSticky = this.plugin.settings.enableStickyHeader;
+        btn.className = "at-floating-btn ariaLabel" + (isSticky ? " at-active-toggle" : "");
+        btn.setAttribute("aria-label", isSticky ? "关闭粘性表头" : "开启粘性表头");
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91a8 8 0 0 1-1.23-4.13V5a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v2.96a8 8 0 0 1-1.23 4.13l-2.33 2.91a2 2 0 0 0-.44 1.24V17Z"></path></svg>`;
+
+        btn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+
+        btn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.plugin.settings.enableStickyHeader = !this.plugin.settings.enableStickyHeader;
+          await saveSettings(this.plugin, this.plugin.settings);
+          this.plugin.updateStickyHeaderClass();
+          this.renderButtons(0);
+        });
+
+        this.container!.appendChild(btn);
+        return;
+      }
+
       const cmd = TABLE_COMMANDS.find((c) => c.id === cmdId);
       if (!cmd) return;
 

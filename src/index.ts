@@ -14,12 +14,16 @@ import { loadSettings, saveSettings, defaultSettings, PluginSettings } from "./s
 import { getAllEditor } from "siyuan";
 import { registerDock } from "./dock";
 import { FloatingToolbar } from "./floating-toolbar";
+import { SmartPaste } from "./smart-paste";
+import { QuickCalc } from "./quick-calc";
+import { DragReorder } from "./drag-reorder";
+import { isCursorInTable } from "./siyuan-text-editor";
 
 let PluginInfo = { version: "" };
 try {
   PluginInfo = PluginInfoString as any;
 } catch (_err) {
-  console.log("[siyuan-advanced-tables] Plugin info parse error");
+  console.log("[siyuan-advanced-tables] plugin info parse error");
 }
 const { version } = PluginInfo;
 
@@ -27,6 +31,9 @@ export default class AdvancedTablesPlugin extends Plugin {
   public settings!: PluginSettings;
   private keybindUninstall: (() => void) | null = null;
   private floatingToolbar: FloatingToolbar | null = null;
+  private smartPaste: SmartPaste | null = null;
+  private quickCalc: QuickCalc | null = null;
+  private dragReorder: DragReorder | null = null;
 
   async onload() {
     console.log(`[siyuan-advanced-tables] v${version} loading...`);
@@ -42,6 +49,7 @@ export default class AdvancedTablesPlugin extends Plugin {
     // 加载设置
     this.settings = await loadSettings(this);
     await saveSettings(this, this.settings);
+    this.updateStickyHeaderClass();
 
     // 注册命令
     registerCommands(this, this.settings);
@@ -69,9 +77,24 @@ export default class AdvancedTablesPlugin extends Plugin {
     this.eventBus.on("loaded-protyle-static", this.onLoadedProtyle);
     this.eventBus.on("loaded-protyle-dynamic", this.onLoadedProtyle);
 
+    // 监听编辑器右键菜单，添加“文本转表格”快捷入口
+    this.eventBus.on("click-edit-contextmenu", this.onClickContextMenu);
+
     // 初始化浮动工具栏
     this.floatingToolbar = new FloatingToolbar(this);
     this.floatingToolbar.init();
+
+    // 初始化智能粘贴
+    this.smartPaste = new SmartPaste(this);
+    this.smartPaste.init();
+
+    // 初始化即时计算
+    this.quickCalc = new QuickCalc(this);
+    this.quickCalc.init();
+
+    // 初始化拖拽行列重排
+    this.dragReorder = new DragReorder(this);
+    this.dragReorder.init();
 
     console.log(`[siyuan-advanced-tables] v${version} loaded`);
   }
@@ -89,6 +112,7 @@ export default class AdvancedTablesPlugin extends Plugin {
     this.eventBus.off("switch-protyle", this.onSwitchProtyle);
     this.eventBus.off("loaded-protyle-static", this.onLoadedProtyle);
     this.eventBus.off("loaded-protyle-dynamic", this.onLoadedProtyle);
+    this.eventBus.off("click-edit-contextmenu", this.onClickContextMenu);
 
     // 销毁浮动工具栏
     if (this.floatingToolbar) {
@@ -96,13 +120,71 @@ export default class AdvancedTablesPlugin extends Plugin {
       this.floatingToolbar = null;
     }
 
+    // 销毁智能粘贴
+    if (this.smartPaste) {
+      this.smartPaste.destroy();
+      this.smartPaste = null;
+    }
+
+    // 销毁即时计算
+    if (this.quickCalc) {
+      this.quickCalc.destroy();
+      this.quickCalc = null;
+    }
+
+    // 销毁拖拽重排
+    if (this.dragReorder) {
+      this.dragReorder.destroy();
+      this.dragReorder = null;
+    }
+
+    // 移除粘性表头类
+    document.body.classList.remove("at-enable-sticky-header");
+
     console.log("[siyuan-advanced-tables] unloaded");
   }
 
+  updateStickyHeaderClass() {
+    if (this.settings.enableStickyHeader) {
+      document.body.classList.add("at-enable-sticky-header");
+    } else {
+      document.body.classList.remove("at-enable-sticky-header");
+    }
+  }
+
+  private onClickContextMenu = (event: CustomEvent) => {
+    const activeEditor = getActiveEditor();
+    if (!activeEditor?.protyle) return;
+
+    // 如果光标在表格内，则不显示“将文本转换为表格”右键菜单
+    const { inTable } = isCursorInTable(activeEditor);
+    if (inTable) return;
+
+    event.detail.menu.addItem({
+      icon: "iconAdvancedTables",
+      label: "将文本转换为表格",
+      click: () => {
+        const cmd = TABLE_COMMANDS.find((c) => c.id === "text-to-table");
+        if (cmd) {
+          executeCommand(cmd, this.settings);
+        }
+      },
+    });
+  };
+
   openSetting() {
+    // 打开设置时，为了防遮挡，隐藏可能残留在界面上的工具栏与拖拽手柄
+    if (this.floatingToolbar) {
+      (this.floatingToolbar as any).hide();
+    }
+    if (this.dragReorder) {
+      this.dragReorder.hideHandles();
+    }
+
     const setting = new Setting({
       confirmCallback: async () => {
         await saveSettings(this, this.settings);
+        this.updateStickyHeaderClass();
         this.installKeybindToAllEditors();
         if (this.floatingToolbar) {
           this.floatingToolbar.update();
@@ -125,7 +207,67 @@ export default class AdvancedTablesPlugin extends Plugin {
       actionElement: showFloatingToolbarCheck,
     });
 
-    // 2. Tab 键导航配置
+    // 2. 粘性表头配置
+    const enableStickyHeaderCheck = document.createElement("input");
+    enableStickyHeaderCheck.type = "checkbox";
+    enableStickyHeaderCheck.className = "b3-switch fn__flex-center";
+    enableStickyHeaderCheck.checked = this.settings.enableStickyHeader;
+    enableStickyHeaderCheck.addEventListener("change", (e) => {
+      this.settings.enableStickyHeader = (e.target as HTMLInputElement).checked;
+    });
+
+    setting.addItem({
+      title: this.i18n.enableStickyHeader || "启用表格粘性表头 (Sticky Header)",
+      description: this.i18n.enableStickyHeaderDesc || "开启后，长表格滚动时表头单元格将自动固定在编辑区顶部",
+      actionElement: enableStickyHeaderCheck,
+    });
+
+    // 3. 智能粘贴配置
+    const enableSmartPasteCheck = document.createElement("input");
+    enableSmartPasteCheck.type = "checkbox";
+    enableSmartPasteCheck.className = "b3-switch fn__flex-center";
+    enableSmartPasteCheck.checked = this.settings.enableSmartPaste;
+    enableSmartPasteCheck.addEventListener("change", (e) => {
+      this.settings.enableSmartPaste = (e.target as HTMLInputElement).checked;
+    });
+
+    setting.addItem({
+      title: this.i18n.enableSmartPaste || "启用剪贴板智能粘贴",
+      description: this.i18n.enableSmartPasteDesc || "开启后，粘贴表格数据（来自 Excel、网页等）时，将自动转换或多单元格填充",
+      actionElement: enableSmartPasteCheck,
+    });
+
+    // 4. 即时计算配置
+    const enableQuickCalcCheck = document.createElement("input");
+    enableQuickCalcCheck.type = "checkbox";
+    enableQuickCalcCheck.className = "b3-switch fn__flex-center";
+    enableQuickCalcCheck.checked = this.settings.enableQuickCalc;
+    enableQuickCalcCheck.addEventListener("change", (e) => {
+      this.settings.enableQuickCalc = (e.target as HTMLInputElement).checked;
+    });
+
+    setting.addItem({
+      title: this.i18n.enableQuickCalc || "启用框选单元格即时计算",
+      description: this.i18n.enableQuickCalcDesc || "开启后，在表格中按住 Alt 键拖动框选数值单元格，将在底部显示求和、平均值、计数等即时统计信息",
+      actionElement: enableQuickCalcCheck,
+    });
+
+    // 5. 拖拽行列重排配置
+    const enableDragReorderCheck = document.createElement("input");
+    enableDragReorderCheck.type = "checkbox";
+    enableDragReorderCheck.className = "b3-switch fn__flex-center";
+    enableDragReorderCheck.checked = this.settings.enableDragReorder;
+    enableDragReorderCheck.addEventListener("change", (e) => {
+      this.settings.enableDragReorder = (e.target as HTMLInputElement).checked;
+    });
+
+    setting.addItem({
+      title: this.i18n.enableDragReorder || "启用拖拽行列重排",
+      description: this.i18n.enableDragReorderDesc || "开启后，在表格内将显示行与列的拖拽手柄，可通过鼠标拖动直接调整行列顺序",
+      actionElement: enableDragReorderCheck,
+    });
+
+    // 6. Tab 键导航配置
     const bindTabCheck = document.createElement("input");
     bindTabCheck.type = "checkbox";
     bindTabCheck.className = "b3-switch fn__flex-center";
@@ -140,7 +282,7 @@ export default class AdvancedTablesPlugin extends Plugin {
       actionElement: bindTabCheck,
     });
 
-    // 3. Enter 键换行配置
+    // 7. Enter 键换行配置
     const bindEnterCheck = document.createElement("input");
     bindEnterCheck.type = "checkbox";
     bindEnterCheck.className = "b3-switch fn__flex-center";
@@ -155,7 +297,7 @@ export default class AdvancedTablesPlugin extends Plugin {
       actionElement: bindEnterCheck,
     });
 
-    // 4. CJK 字符对齐校正配置
+    // 8. CJK 字符对齐校正配置
     const fixCJKWidthCheck = document.createElement("input");
     fixCJKWidthCheck.type = "checkbox";
     fixCJKWidthCheck.className = "b3-switch fn__flex-center";
