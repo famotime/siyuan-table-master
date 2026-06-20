@@ -40,6 +40,11 @@ import {
   isSeparatorLine,
 } from "./table-model";
 
+// 连续操作时的光标坐标全局缓存，用于平抑异步 updateBlock 带来的 DOM Selection 同步延迟
+let lastActiveTableId: string | null = null;
+let lastActiveCoord: CellCoord | null = null;
+let lastActiveTime: number = 0;
+
 /** 适配器构造选项 */
 export interface SiyuanTextEditorOptions {
   /** Protyle 编辑器实例 */
@@ -66,6 +71,7 @@ export class SiyuanTextEditor implements ITextEditor {
   private _ialLine: string | null = null;
   private _cursor: Point = new Point(0, 0);
   private _dirty = false;
+  private _cursorUpdatedByCore = false;
 
   // ── DOM 坐标缓存（用于光标恢复） ──
   private _initialCellCoord: CellCoord | null = null;
@@ -116,6 +122,7 @@ export class SiyuanTextEditor implements ITextEditor {
       this._lines = [...parsed.tableLines];
       this._ialLine = parsed.ialLine;
       this._dirty = false;
+      this._cursorUpdatedByCore = false;
 
       // 从 DOM 读取当前光标位置并映射到行模型坐标
       this._syncCursorFromDOM();
@@ -140,9 +147,49 @@ export class SiyuanTextEditor implements ITextEditor {
       // 重新组合为 kramdown
       const newKramdown = serializeTableKramdown(finalLines, this._ialLine);
 
-      // 通过 updateTransactionElement 更新块 DOM
-      const oldHTML = this.tableBlockEl.outerHTML;
-      // 使用内核 API 以 markdown 数据类型更新块
+      // 1. 获取当前的旧 DOM 块，并打上临时标记，以便 MutationObserver 识别 DOM 替换
+      const oldBlockEl = document.querySelector(`.protyle-wysiwyg [data-node-id="${this.blockId}"][data-type="NodeTable"]`) || 
+                          document.querySelector(`[data-node-id="${this.blockId}"][data-type="NodeTable"]`) as HTMLElement || this.tableBlockEl;
+      if (oldBlockEl) {
+        oldBlockEl.setAttribute("data-temp-old", "true");
+      }
+
+      // 2. 建立 MutationObserver 监听最新的表格 DOM 被挂载
+      const wysiwygEl = document.querySelector(".protyle-wysiwyg") || document.body;
+      let observer: MutationObserver | null = null;
+      let timeoutId: any = null;
+
+      const doRestore = () => {
+        if (observer) {
+          observer.disconnect();
+          observer = null;
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        this._restoreCursor();
+      };
+
+      observer = new MutationObserver(() => {
+        const latestBlockEl = document.querySelector(`[data-node-id="${this.blockId}"][data-type="NodeTable"]`) as HTMLElement;
+        // 只有当查询到最新的块，且它不带 data-temp-old 属性时，说明 DOM 已完成更新并被替换挂载
+        if (latestBlockEl && !latestBlockEl.hasAttribute("data-temp-old")) {
+          doRestore();
+        }
+      });
+
+      observer.observe(wysiwygEl, {
+        childList: true,
+        subtree: true,
+      });
+
+      // 兜底超时时间为 800ms，以防在特殊情况下没有触发 DOM 挂载导致光标恢复逻辑被卡死
+      timeoutId = setTimeout(() => {
+        doRestore();
+      }, 800);
+
+      // 3. 使用内核 API 以 markdown 数据类型更新块
       // 这比直接操作 DOM 更可靠，且支持 undo
       await fetchSyncPost("/api/block/updateBlock", {
         id: this.blockId,
@@ -151,9 +198,6 @@ export class SiyuanTextEditor implements ITextEditor {
       });
 
       this._dirty = false;
-
-      // 恢复光标位置
-      this._restoreCursor();
     } catch (err) {
       console.error("[siyuan-table-mater] flush failed:", err);
     }
@@ -167,10 +211,19 @@ export class SiyuanTextEditor implements ITextEditor {
 
   setCursorPosition(pos: Point): void {
     this._cursor = pos;
+    this._cursorUpdatedByCore = true;
+    // 同时也更新一下缓存
+    const coord = this._rowModelToDomCoord(pos.row, pos.column);
+    if (coord) {
+      lastActiveTableId = this.blockId;
+      lastActiveCoord = coord;
+      lastActiveTime = Date.now();
+    }
   }
 
   setSelectionRange(range: Range): void {
     this._cursor = range.end;
+    this._cursorUpdatedByCore = true;
   }
 
   getLastRow(): number {
@@ -214,13 +267,20 @@ export class SiyuanTextEditor implements ITextEditor {
    * 从 DOM 选区同步光标到行模型坐标
    */
   private _syncCursorFromDOM(): void {
-    // 优先使用预设坐标
-    const coord = this.presetCellCoord || (() => {
+    // 优先使用预设坐标，其次使用极短时间内的全局缓存坐标（处理连续操作时的 DOM 延迟）
+    let coord = this.presetCellCoord;
+    if (!coord && lastActiveTableId === this.blockId && (Date.now() - lastActiveTime) < 500) {
+      coord = lastActiveCoord;
+    }
+
+    // 如果都没有，则从 DOM 的当前 Selection 区域解析
+    if (!coord) {
       const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return null;
-      const range = sel.getRangeAt(0);
-      return rangeToCellCoord(range, this.tableBlockEl);
-    })();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        coord = rangeToCellCoord(range, this.tableBlockEl);
+      }
+    }
 
     if (coord) {
       this._initialCellCoord = coord;
@@ -237,45 +297,55 @@ export class SiyuanTextEditor implements ITextEditor {
    * 操作后将行模型坐标恢复为 DOM 选区
    */
   private _restoreCursor(): void {
-    // 需要等 DOM 更新后才能恢复光标
-    // 使用 setTimeout 延迟 80ms 确保思源内核 updateBlock 完成且 DOM 节点树被真正挂载替换
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        try {
-          // 动态获取文档中最新的表格 DOM 节点，以防 updateBlock 重绘后节点脱离文档树
-          // 使用更具体的选择器，限定在编辑器区域内并指定 [data-type="NodeTable"]，防止误匹配到面包屑等辅助 DOM 节点
-          const currentBlockEl = (document.querySelector(`.protyle-wysiwyg [data-node-id="${this.blockId}"][data-type="NodeTable"]`) || 
-                                  document.querySelector(`[data-node-id="${this.blockId}"][data-type="NodeTable"]`)) as HTMLElement || this.tableBlockEl;
-          
-          const coord = this.presetCellCoord || this._rowModelToDomCoord(this._cursor.row, this._cursor.column, currentBlockEl);
-          
-          if (coord) {
-            const range = cellCoordToRange(coord, currentBlockEl, true);
-            if (range) {
-              const sel = window.getSelection();
-              if (sel) {
-                sel.removeAllRanges();
-                sel.addRange(range);
+    // DOM 更新完成后利用 requestAnimationFrame 在下一帧浏览器重绘时恢复光标位置
+    requestAnimationFrame(() => {
+      try {
+        // 动态获取文档中最新的表格 DOM 节点，以防 updateBlock 重绘后节点脱离文档树
+        // 使用更具体的选择器，限定在编辑器区域内并指定 [data-type="NodeTable"]，防止误匹配到面包屑等辅助 DOM 节点
+        const currentBlockEl = (document.querySelector(`.protyle-wysiwyg [data-node-id="${this.blockId}"][data-type="NodeTable"]`) || 
+                                document.querySelector(`[data-node-id="${this.blockId}"][data-type="NodeTable"]`)) as HTMLElement || this.tableBlockEl;
+        
+        // 如果核心库主动更新了游标，则优先使用更新后的游标坐标来映射 DOM 位置；
+        // 否则（如拖拽排序等手动修改模型未更新游标的场景），使用预设坐标。
+        const coord = (this._cursorUpdatedByCore ? null : this.presetCellCoord) || 
+                      this._rowModelToDomCoord(this._cursor.row, this._cursor.column, currentBlockEl);
+        
+        if (coord) {
+          const range = cellCoordToRange(coord, currentBlockEl, true);
+          if (range) {
+            const sel = window.getSelection();
+            if (sel) {
+              sel.removeAllRanges();
+              sel.addRange(range);
 
-                // 强行把焦点还给编辑器，使光标能保持闪烁且支持连续点击操作
-                const focusEl = range.startContainer.nodeType === Node.ELEMENT_NODE
-                  ? (range.startContainer as HTMLElement)
-                  : range.startContainer.parentElement;
-                if (focusEl) {
-                  focusEl.focus();
-                }
-
-                // 重绘完成后立即对新 DOM 节点重新施加行列高亮，确保连续移动过程中高亮不丢失
-                highlightActiveRowAndCol(currentBlockEl, coord);
+              // 强行把焦点还给编辑器，使光标能保持闪烁且支持连续点击操作
+              const focusEl = range.startContainer.nodeType === Node.ELEMENT_NODE
+                ? (range.startContainer as HTMLElement)
+                : range.startContainer.parentElement;
+              if (focusEl) {
+                focusEl.focus();
               }
+
+              // 重绘完成后立即对新 DOM 节点重新施加行列高亮，确保连续移动过程中高亮不丢失
+              highlightActiveRowAndCol(currentBlockEl, coord);
+
+              // 更新活跃缓存
+              lastActiveTableId = this.blockId;
+              lastActiveCoord = coord;
+              lastActiveTime = Date.now();
+
+              // 派发自定义事件，通知相关组件（如拖拽手柄、浮动工具栏）重新定位
+              document.dispatchEvent(new CustomEvent("siyuan-table-mater-refresh-ui", {
+                detail: { tableBlock: currentBlockEl, coord }
+              }));
             }
           }
-        } catch (err) {
-          // 光标恢复失败不应该是致命错误
-          console.warn("[siyuan-table-mater] cursor restore failed:", err);
         }
-      });
-    }, 80);
+      } catch (err) {
+        // 光标恢复失败不应该是致命错误
+        console.warn("[siyuan-table-mater] cursor restore failed:", err);
+      }
+    });
   }
 
 

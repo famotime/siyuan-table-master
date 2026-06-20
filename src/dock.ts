@@ -316,7 +316,14 @@ export function registerDock(plugin: TableMaterPlugin) {
           if (!capturedTableBlock) return;
           const coord = rangeToCellCoord(range, capturedTableBlock);
           if (!coord) return;
-          lastActiveCell = { blockId: capturedTableBlock.dataset.nodeId || "", coord, tableBlock: capturedTableBlock };
+
+          // 连续点击按钮时，如果正在对同一个表格执行 Dock 连续操作，不要用当前未渲染完毕的 DOM 选区覆盖掉已经精确推演出的缓存状态
+          const blockId = capturedTableBlock.dataset.nodeId || "";
+          if (lastActiveCell && lastActiveCell.blockId === blockId && dockOperationActive) {
+            return;
+          }
+
+          lastActiveCell = { blockId, coord, tableBlock: capturedTableBlock };
         });
 
         btn.addEventListener("click", async (e) => {

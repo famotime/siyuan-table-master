@@ -26,6 +26,7 @@ export class DragReorder {
   private scrollListener = this.onScroll.bind(this);
   private mouseMoveListener = this.onMouseMove.bind(this);
   private mouseUpListener = this.onMouseUp.bind(this);
+  private refreshListener = this.onRefreshUI.bind(this);
 
   constructor(plugin: TableMaterPlugin) {
     this.plugin = plugin;
@@ -38,6 +39,7 @@ export class DragReorder {
     document.addEventListener("selectionchange", this.selectionListener);
     document.addEventListener("scroll", this.scrollListener, true);
     window.addEventListener("resize", this.scrollListener);
+    document.addEventListener("siyuan-table-mater-refresh-ui", this.refreshListener);
 
     // 全局拖动事件监听
     document.addEventListener("mousemove", this.mouseMoveListener);
@@ -48,6 +50,7 @@ export class DragReorder {
     document.removeEventListener("selectionchange", this.selectionListener);
     document.removeEventListener("scroll", this.scrollListener, true);
     window.removeEventListener("resize", this.scrollListener);
+    document.removeEventListener("siyuan-table-mater-refresh-ui", this.refreshListener);
     document.removeEventListener("mousemove", this.mouseMoveListener);
     document.removeEventListener("mouseup", this.mouseUpListener);
 
@@ -96,6 +99,12 @@ export class DragReorder {
   }
 
   private onSelectionChange() {
+    requestAnimationFrame(() => {
+      this.repositionHandles();
+    });
+  }
+
+  private onRefreshUI() {
     requestAnimationFrame(() => {
       this.repositionHandles();
     });

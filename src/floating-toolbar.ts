@@ -13,6 +13,7 @@ export class FloatingToolbar {
   private activeCell: { blockId: string; coord: CellCoord; tableBlock: HTMLElement } | null = null;
   private selectionListener: (() => void) | null = null;
   private scrollListener: (() => void) | null = null;
+  private refreshListener: (() => void) | null = null;
   public isExecuting = false;
   private executeTimeoutId: any = null;
 
@@ -31,6 +32,14 @@ export class FloatingToolbar {
     };
     document.addEventListener("selectionchange", this.selectionListener);
 
+    // 监听统一刷新 UI 事件以在光标异步恢复后定位
+    this.refreshListener = () => {
+      requestAnimationFrame(() => {
+        this.update();
+      });
+    };
+    document.addEventListener("siyuan-table-mater-refresh-ui", this.refreshListener);
+
     // 监听 scroll 与 resize 事件以在视口变化时重新定位工具栏
     this.scrollListener = () => {
       requestAnimationFrame(() => {
@@ -45,6 +54,10 @@ export class FloatingToolbar {
     if (this.selectionListener) {
       document.removeEventListener("selectionchange", this.selectionListener);
       this.selectionListener = null;
+    }
+    if (this.refreshListener) {
+      document.removeEventListener("siyuan-table-mater-refresh-ui", this.refreshListener);
+      this.refreshListener = null;
     }
     if (this.scrollListener) {
       document.removeEventListener("scroll", this.scrollListener, true);

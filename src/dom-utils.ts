@@ -208,7 +208,7 @@ function getUniqueCssSelector(element: HTMLElement, rootElement: HTMLElement): s
     current = parent;
   }
 
-  return `[data-node-id="${rootElement.dataset.nodeId}"] ` + path.join(" > ");
+  return path.join(" > ");
 }
 
 /**
@@ -267,7 +267,7 @@ export function highlightActiveRowAndCol(
   // 交叉活动单元格高亮样式：增加 [data-node-id] 限定大幅提高 CSS 特异性，防止被默认样式覆盖
   const cellCss = `[data-node-id="${blockId}"] ${cellSelector} {
     background-color: color-mix(in srgb, var(--b3-theme-primary) 12%, transparent) !important;
-    box-shadow: inset 0 0 0 1.5px var(--b3-theme-primary) !important;
+    box-shadow: inset 0 0 0 2px var(--b3-theme-primary) !important;
   }`;
 
   // 4. 将生成的样式写入到 style 标签中
