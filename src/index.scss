@@ -315,11 +315,20 @@
   background-color: var(--b3-theme-background) !important;
 }
 
-.at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table thead th,
-.at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table tr:first-child th,
-.at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table tr:first-child td {
+/* 仅在有 thead 结构时，定位 thead 中的 th */
+.at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table thead th {
   position: sticky !important;
-  top: 0 !important; /* 紧贴思源滚动容器顶部，面包屑栏是在滚动容器外静态平铺的 */
+  top: 0 !important;
+  z-index: 100 !important;
+  background-color: var(--b3-theme-background) !important;
+  box-shadow: inset 0 -1px 0 var(--b3-theme-border), 0 1px 0 var(--b3-theme-border) !important;
+}
+
+/* 仅在无 thead 结构的扁平表格中，对首行（第一行 tr）的 th 或 td 进行定位，防止误伤 normal tbody td */
+.at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table:not(:has(thead)) tr:first-child th,
+.at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table:not(:has(thead)) tr:first-child td {
+  position: sticky !important;
+  top: 0 !important;
   z-index: 100 !important;
   background-color: var(--b3-theme-background) !important;
   box-shadow: inset 0 -1px 0 var(--b3-theme-border), 0 1px 0 var(--b3-theme-border) !important;
