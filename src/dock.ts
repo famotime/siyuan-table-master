@@ -64,6 +64,10 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
   // 缓存最近一次被编辑的表格状态及单元格坐标
   let lastActiveCell: { blockId: string; coord: CellCoord; tableBlock: HTMLElement } | null = null;
 
+  // 连续 Dock 操作锁定标志位，防范思源 updateBlock 时的选区回弹和抖动
+  let dockOperationActive = false;
+  let dockOperationTimeoutId: any = null;
+
   const dockType = "advanced-tables-toolbox";
   const dockIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" style="fill:none!important"/><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18" style="fill:none!important"/><path d="M3 15h18" style="fill:none!important"/></svg>`;
 
@@ -140,6 +144,12 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
             e.preventDefault();
             e.stopPropagation();
             
+            // 锁定本地推演坐标，在重绘防抖期内屏蔽 selectionchange 的回弹干扰
+            dockOperationActive = true;
+            if (dockOperationTimeoutId) {
+              clearTimeout(dockOperationTimeoutId);
+            }
+
             // 获取预设上下文，如果有有效缓存直接使用并旁路 isCursorInTable 检测
             let preset = null;
             if (lastActiveCell) {
@@ -156,6 +166,7 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
             // 操作后本地坐标动态演进推演（用于支持高频连续移动操作）
             if (lastActiveCell) {
               const coord = lastActiveCell.coord;
+              const oldRow = coord.row;
               if (cmd.id === "move-row-up") {
                 coord.row = Math.max(0, coord.row - 1);
               } else if (cmd.id === "move-row-down") {
@@ -165,20 +176,33 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
               } else if (cmd.id === "move-column-right") {
                 coord.col = coord.col + 1;
               }
+
+              // 强行纠正：为了保证连续操作时不会拿 detached 节点导致高亮失效，高亮前立即在 DOM 里抓取最新的 attached 表格节点
+              const latestEl = document.querySelector(`[data-node-id="${lastActiveCell.blockId}"]`) as HTMLElement;
+              if (latestEl) {
+                lastActiveCell.tableBlock = latestEl;
+              }
+
               // 立即应用推演后的高亮，加速视觉跟随
               highlightActiveRowAndCol(lastActiveCell.tableBlock, coord);
 
               // 异步重绘兜底高亮：等待思源 DOM 树彻底挂载完毕后，重新刷新最新的 DOM 容器及高亮状态
               setTimeout(() => {
                 if (lastActiveCell) {
-                  const latestEl = document.querySelector(`[data-node-id="${lastActiveCell.blockId}"]`) as HTMLElement;
-                  if (latestEl) {
-                    lastActiveCell.tableBlock = latestEl;
-                    highlightActiveRowAndCol(latestEl, coord);
+                  const finalLatestEl = document.querySelector(`[data-node-id="${lastActiveCell.blockId}"]`) as HTMLElement;
+                  if (finalLatestEl) {
+                    lastActiveCell.tableBlock = finalLatestEl;
+                    highlightActiveRowAndCol(finalLatestEl, coord);
                   }
                 }
               }, 50);
+
+              // 锁定延迟 350ms 后释放，留足时间给思源和浏览器处理选区和重绘
+              dockOperationTimeoutId = setTimeout(() => {
+                dockOperationActive = false;
+              }, 350);
             }
+
             
             // 不需要再做强同步 updateStatus()，交给 selectionchange 去平滑刷新
           });
@@ -215,6 +239,14 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
 
       // 实时状态检测与缓存更新方法
       const updateStatus = () => {
+        // 如果 Dock 连续操作中，仅渲染推演高亮，防止被未归位选区的 selectionchange 覆盖
+        if (dockOperationActive && lastActiveCell) {
+          highlightActiveRowAndCol(lastActiveCell.tableBlock, lastActiveCell.coord);
+          const size = getTableSize(lastActiveCell.tableBlock);
+          setUIState(true, size.rows, size.cols);
+          return;
+        }
+
         const activeEditor = getActiveEditor();
         if (!activeEditor?.protyle) {
           lastActiveCell = null;

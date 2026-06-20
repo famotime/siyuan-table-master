@@ -190,21 +190,53 @@ export function getTableColCount(tableBlock: HTMLElement): number {
  * @param tableBlock - NodeTable 的块根元素，为 null 时清除所有高亮
  * @param coord - 当前单元格坐标，为 null 时清除所有高亮
  */
+/**
+ * 获取元素在指定根节点下的唯一 CSS 选择器路径（基于 :nth-child）
+ */
+function getUniqueCssSelector(element: HTMLElement, rootElement: HTMLElement): string {
+  const path: string[] = [];
+  let current: HTMLElement | null = element;
+
+  while (current && current !== rootElement) {
+    const parent = current.parentElement;
+    if (!parent) break;
+
+    const index = Array.from(parent.children).indexOf(current);
+    const tagName = current.tagName.toLowerCase();
+    path.unshift(`${tagName}:nth-child(${index + 1})`);
+
+    current = parent;
+  }
+
+  return `[data-node-id="${rootElement.dataset.nodeId}"] ` + path.join(" > ");
+}
+
+/**
+ * 高亮表格中的当前操作行与列
+ * 
+ * @param tableBlock - NodeTable 的块根元素，为 null 时清除所有高亮
+ * @param coord - 当前单元格坐标，为 null 时清除所有高亮
+ */
 export function highlightActiveRowAndCol(
   tableBlock: HTMLElement | null,
   coord: CellCoord | null,
 ): void {
-  // 1. 全局清理已存在的高亮，防止切换块或者跳出表格时视觉残留
-  const activeCells = document.querySelectorAll(".at-active-cell");
-  const activeRows = document.querySelectorAll(".at-active-row");
-  const activeCols = document.querySelectorAll(".at-active-col");
-  
-  activeCells.forEach(el => el.classList.remove("at-active-cell"));
-  activeRows.forEach(el => el.classList.remove("at-active-row"));
-  activeCols.forEach(el => el.classList.remove("at-active-col"));
+  // 1. 获取或创建动态高亮样式标签
+  let styleEl = document.getElementById("at-dynamic-highlight-style") as HTMLStyleElement;
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "at-dynamic-highlight-style";
+    document.head.appendChild(styleEl);
+  }
 
-  // 2. 如果缺少要素，直接完成清理并返回
-  if (!tableBlock || !coord) return;
+  // 2. 如果缺少要素，直接清除样式内容并返回
+  if (!tableBlock || !coord) {
+    styleEl.innerHTML = "";
+    return;
+  }
+
+  const blockId = tableBlock.dataset.nodeId;
+  if (!blockId) return;
 
   const table = tableBlock.querySelector("table");
   if (!table) return;
@@ -212,19 +244,38 @@ export function highlightActiveRowAndCol(
   const rows = table.querySelectorAll("tr");
   if (coord.row < 0 || coord.row >= rows.length) return;
 
-  // 3. 激活当前聚焦行高亮
-  const activeRow = rows[coord.row];
-  activeRow.classList.add("at-active-row");
+  const activeRow = rows[coord.row] as HTMLElement;
+  const cells = activeRow.querySelectorAll("td, th");
+  if (coord.col < 0 || coord.col >= cells.length) return;
+  const activeCell = cells[coord.col] as HTMLElement;
 
-  // 4. 激活当前聚焦列及单元格高亮
-  rows.forEach(tr => {
-    const cells = tr.querySelectorAll("td, th");
-    if (coord.col >= 0 && coord.col < cells.length) {
-      const activeCell = cells[coord.col];
-      activeCell.classList.add("at-active-col");
-      if (tr === activeRow) {
-        activeCell.classList.add("at-active-cell");
-      }
-    }
-  });
+  // 3. 利用 DOM 树层级自动匹配生成唯一行选择器和交叉单元格选择器
+  const rSelector = getUniqueCssSelector(activeRow, tableBlock);
+  const cellSelector = getUniqueCssSelector(activeCell, tableBlock);
+  const colIndex = coord.col + 1;
+
+  // 行高亮样式
+  const rowCss = `${rSelector} td, ${rSelector} th {
+    background-color: color-mix(in srgb, var(--b3-theme-primary) 6%, transparent) !important;
+  }`;
+
+  // 列高亮样式
+  const colCss = `[data-node-id="${blockId}"] td:nth-child(${colIndex}), [data-node-id="${blockId}"] th:nth-child(${colIndex}) {
+    background-color: color-mix(in srgb, var(--b3-theme-primary) 6%, transparent) !important;
+  }`;
+
+  // 交叉活动单元格高亮样式
+  const cellCss = `${cellSelector} {
+    background-color: color-mix(in srgb, var(--b3-theme-primary) 12%, transparent) !important;
+    box-shadow: inset 0 0 0 1.5px var(--b3-theme-primary) !important;
+  }`;
+
+  // 4. 将生成的样式写入到 style 标签中
+  styleEl.innerHTML = `
+    ${rowCss}
+    ${colCss}
+    ${cellCss}
+  `;
 }
+
+

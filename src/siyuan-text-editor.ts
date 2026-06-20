@@ -27,6 +27,7 @@ import {
   rangeToCellCoord,
   cellCoordToRange,
   getTableRowCount,
+  getTableColCount,
   highlightActiveRowAndCol,
 } from "./dom-utils";
 import {
@@ -235,50 +236,61 @@ export class SiyuanTextEditor implements ITextEditor {
    */
   private _restoreCursor(): void {
     // 需要等 DOM 更新后才能恢复光标
-    // 使用 requestAnimationFrame 确保 DOM 已重渲染
-    requestAnimationFrame(() => {
-      try {
-        // 动态获取文档中最新的表格 DOM 节点，以防 updateBlock 重绘后节点脱离文档树
-        const currentBlockEl = document.querySelector(`[data-node-id="${this.blockId}"]`) as HTMLElement || this.tableBlockEl;
-        
-        const coord = this._rowModelToDomCoord(this._cursor.row, this._cursor.column);
-        if (coord) {
-          const range = cellCoordToRange(coord, currentBlockEl, true);
-          if (range) {
-            const sel = window.getSelection();
-            if (sel) {
-              sel.removeAllRanges();
-              sel.addRange(range);
+    // 使用 setTimeout 延迟 80ms 确保思源内核 updateBlock 完成且 DOM 节点树被真正挂载替换
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        try {
+          // 动态获取文档中最新的表格 DOM 节点，以防 updateBlock 重绘后节点脱离文档树
+          // 使用更具体的选择器，限定在编辑器区域内并指定 [data-type="NodeTable"]，防止误匹配到面包屑等辅助 DOM 节点
+          const currentBlockEl = (document.querySelector(`.protyle-wysiwyg [data-node-id="${this.blockId}"][data-type="NodeTable"]`) || 
+                                  document.querySelector(`[data-node-id="${this.blockId}"][data-type="NodeTable"]`)) as HTMLElement || this.tableBlockEl;
+          
+          const coord = this._rowModelToDomCoord(this._cursor.row, this._cursor.column, currentBlockEl);
+          
+          if (coord) {
+            const range = cellCoordToRange(coord, currentBlockEl, true);
+            if (range) {
+              const sel = window.getSelection();
+              if (sel) {
+                sel.removeAllRanges();
+                sel.addRange(range);
 
-              // 强行把焦点还给编辑器，使光标能保持闪烁且支持连续点击操作
-              const focusEl = range.startContainer.nodeType === Node.ELEMENT_NODE
-                ? (range.startContainer as HTMLElement)
-                : range.startContainer.parentElement;
-              if (focusEl) {
-                focusEl.focus();
+                // 强行把焦点还给编辑器，使光标能保持闪烁且支持连续点击操作
+                const focusEl = range.startContainer.nodeType === Node.ELEMENT_NODE
+                  ? (range.startContainer as HTMLElement)
+                  : range.startContainer.parentElement;
+                if (focusEl) {
+                  focusEl.focus();
+                }
+
+                // 重绘完成后立即对新 DOM 节点重新施加行列高亮，确保连续移动过程中高亮不丢失
+                highlightActiveRowAndCol(currentBlockEl, coord);
               }
-
-              // 重绘完成后立即对新 DOM 节点重新施加行列高亮，确保连续移动过程中高亮不丢失
-              highlightActiveRowAndCol(currentBlockEl, coord);
             }
           }
+        } catch (err) {
+          // 光标恢复失败不应该是致命错误
+          console.warn("[siyuan-advanced-tables] cursor restore failed:", err);
         }
-      } catch (err) {
-        // 光标恢复失败不应该是致命错误
-        console.warn("[siyuan-advanced-tables] cursor restore failed:", err);
-      }
-    });
+      });
+    }, 80);
   }
+
 
   /**
    * 将核心库的行模型坐标反向映射为 DOM 单元格坐标
    */
-  private _rowModelToDomCoord(row: number, col: number): CellCoord | null {
+  /**
+   * 将核心库的行模型坐标反向映射为 DOM 单元格坐标
+   */
+  private _rowModelToDomCoord(row: number, col: number, tableBlockEl?: HTMLElement): CellCoord | null {
+    const activeTableBlock = tableBlockEl || this.tableBlockEl;
     // 核心库行 0 = 表头 → DOM 行 0
     // 核心库行 2+ = 数据行 → DOM 行 = row - 1
     const domRow = row <= 0 ? 0 : row - 1;
+    const tableCount = getTableRowCount(activeTableBlock);
 
-    if (domRow < 0 || domRow >= getTableRowCount(this.tableBlockEl)) {
+    if (domRow < 0 || domRow >= tableCount) {
       return null;
     }
 
@@ -302,7 +314,8 @@ export class SiyuanTextEditor implements ITextEditor {
     }
 
     const domCol = Math.max(0, pipeCount - 2); // 减去首尾两个 |
-    return { row: domRow, col: Math.min(domCol, getTableRowCount(this.tableBlockEl) - 1) };
+    const colCount = getTableColCount(activeTableBlock);
+    return { row: domRow, col: Math.min(domCol, colCount - 1) };
   }
 }
 

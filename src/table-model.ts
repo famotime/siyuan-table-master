@@ -108,10 +108,10 @@ export function isSeparatorLine(line: string): boolean {
   const trimmed = line.trim();
   if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) return false;
 
-  // 去掉首尾 | 后，按 | 分割，每个分隔单元格只含 -, :, 空格
+  // 去掉首尾 | 后，按 | 分割，每个分隔单元格只含 -, :, 空格，且必须包含至少一个破折号 -
   const inner = trimmed.slice(1, -1);
   const cells = inner.split("|");
-  return cells.length > 0 && cells.every(cell => /^[\s\-:]+$/.test(cell));
+  return cells.length > 0 && cells.every(cell => /^\s*:?-+:?\s*$/.test(cell));
 }
 
 /**

@@ -90,6 +90,14 @@ export async function executeCommand(
     let blockId = preset?.blockId || null;
     let presetCellCoord = preset?.coord || null;
 
+    // 强行纠正：如果使用了预设，必须实时从 document 重新查询该 blockId 对应的最新表格块 DOM，以防连续快速重绘后节点脱离文档树
+    if (blockId) {
+      const latestEl = document.querySelector(`[data-node-id="${blockId}"]`) as HTMLElement;
+      if (latestEl) {
+        tableBlock = latestEl;
+      }
+    }
+
     if (!tableBlock || !blockId) {
       // 动态从当前 DOM range 抓取选区
       const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
@@ -100,6 +108,7 @@ export async function executeCommand(
       tableBlock = tb;
       blockId = bid;
     }
+
 
     const ctx = new SiyuanTextEditor({
       protyle: protyle.protyle,
