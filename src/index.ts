@@ -5,7 +5,7 @@
  * 为思源笔记 NodeTable 块提供增强编辑能力。
  */
 
-import { Plugin, showMessage, Menu } from "siyuan";
+import { Plugin, showMessage, Setting } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from "@/../plugin.json";
 import { registerCommands, TABLE_COMMANDS, executeCommand } from "./commands";
@@ -31,6 +31,14 @@ export default class AdvancedTablesPlugin extends Plugin {
   async onload() {
     console.log(`[siyuan-advanced-tables] v${version} loading...`);
 
+    // 注册自定义图标，使侧栏和顶栏图标一致
+    this.addIcons(`<symbol id="iconAdvancedTables" viewBox="0 0 24 24">
+      <path d="M12 3v18" style="fill:none!important;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"/>
+      <rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"/>
+      <path d="M3 9h18" style="fill:none!important;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"/>
+      <path d="M3 15h18" style="fill:none!important;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"/>
+    </symbol>`);
+
     // 加载设置
     this.settings = await loadSettings(this);
     await saveSettings(this, this.settings);
@@ -43,13 +51,12 @@ export default class AdvancedTablesPlugin extends Plugin {
 
     // 顶栏按钮
     if (this.settings.showTopBarIcon) {
-      const topBarIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" style="fill:none!important"/><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18" style="fill:none!important"/><path d="M3 15h18" style="fill:none!important"/></svg>`;
       this.addTopBar({
-        icon: topBarIcon,
-        title: "高级表格快捷菜单",
+        icon: "iconAdvancedTables",
+        title: this.i18n.settingsTitle || "高级表格设置",
         position: "right",
-        callback: (event: MouseEvent) => {
-          this.showTopBarMenu(event);
+        callback: () => {
+          this.openSetting();
         },
       });
     }
@@ -93,97 +100,80 @@ export default class AdvancedTablesPlugin extends Plugin {
   }
 
   openSetting() {
-    // TODO: M2 阶段实现设置面板
-    showMessage("设置面板将在后续版本实现", 3000);
+    const setting = new Setting({
+      confirmCallback: async () => {
+        await saveSettings(this, this.settings);
+        this.installKeybindToAllEditors();
+        if (this.floatingToolbar) {
+          this.floatingToolbar.update();
+        }
+      },
+    });
+
+    // 1. 浮动工具栏配置
+    const showFloatingToolbarCheck = document.createElement("input");
+    showFloatingToolbarCheck.type = "checkbox";
+    showFloatingToolbarCheck.className = "b3-switch fn__flex-center";
+    showFloatingToolbarCheck.checked = this.settings.showFloatingToolbar;
+    showFloatingToolbarCheck.addEventListener("change", (e) => {
+      this.settings.showFloatingToolbar = (e.target as HTMLInputElement).checked;
+    });
+
+    setting.addItem({
+      title: this.i18n.showFloatingToolbar || "当光标在表格内时显示浮动工具栏",
+      description: this.i18n.showFloatingToolbarDesc || "开启后，光标进入表格时将在光标附近显示浮动的快速操作工具栏",
+      actionElement: showFloatingToolbarCheck,
+    });
+
+    // 2. Tab 键导航配置
+    const bindTabCheck = document.createElement("input");
+    bindTabCheck.type = "checkbox";
+    bindTabCheck.className = "b3-switch fn__flex-center";
+    bindTabCheck.checked = this.settings.bindTab;
+    bindTabCheck.addEventListener("change", (e) => {
+      this.settings.bindTab = (e.target as HTMLInputElement).checked;
+    });
+
+    setting.addItem({
+      title: this.i18n.bindTab || "绑定 Tab 键导航",
+      description: this.i18n.bindTabDesc || "在表格内按 Tab 键可快速跳转到下一个单元格，按 Shift+Tab 可跳转至上一个单元格",
+      actionElement: bindTabCheck,
+    });
+
+    // 3. Enter 键换行配置
+    const bindEnterCheck = document.createElement("input");
+    bindEnterCheck.type = "checkbox";
+    bindEnterCheck.className = "b3-switch fn__flex-center";
+    bindEnterCheck.checked = this.settings.bindEnter;
+    bindEnterCheck.addEventListener("change", (e) => {
+      this.settings.bindEnter = (e.target as HTMLInputElement).checked;
+    });
+
+    setting.addItem({
+      title: this.i18n.bindEnter || "绑定 Enter 键换行",
+      description: this.i18n.bindEnterDesc || "在表格内按 Enter 键可跳转到下一行的当前列，如果在最后一行则自动插入新行",
+      actionElement: bindEnterCheck,
+    });
+
+    // 4. CJK 字符对齐校正配置
+    const fixCJKWidthCheck = document.createElement("input");
+    fixCJKWidthCheck.type = "checkbox";
+    fixCJKWidthCheck.className = "b3-switch fn__flex-center";
+    fixCJKWidthCheck.checked = this.settings.fixCJKWidth;
+    fixCJKWidthCheck.addEventListener("change", (e) => {
+      this.settings.fixCJKWidth = (e.target as HTMLInputElement).checked;
+    });
+
+    setting.addItem({
+      title: this.i18n.fixCJKWidth || "CJK 字符宽度校正",
+      description: this.i18n.fixCJKWidthDesc || "对中文、日文、韩文等双字节字符进行宽度估算，以实现排版对齐效果",
+      actionElement: fixCJKWidthCheck,
+    });
+
+    setting.open(this.i18n.settingsTitle || "高级表格设置");
   }
 
   // ── 私有方法 ──
-
-  /** 弹出顶栏快捷操作菜单 */
-  private showTopBarMenu(event: MouseEvent) {
-    const menu = new Menu("advanced-tables-topbar-menu");
-
-    menu.addItem({
-      icon: "iconSparkles",
-      label: "格式化表格",
-      click: async () => {
-        const cmd = TABLE_COMMANDS.find(c => c.id === "format-table");
-        if (cmd) await executeCommand(cmd, this.settings);
-      },
-    });
-
-    menu.addSeparator();
-
-    menu.addItem({
-      icon: "iconAlignCenter",
-      label: "居中对齐列",
-      click: async () => {
-        const cmd = TABLE_COMMANDS.find(c => c.id === "center-align-column");
-        if (cmd) await executeCommand(cmd, this.settings);
-      },
-    });
-
-    menu.addItem({
-      icon: "iconMath",
-      label: "计算公式",
-      click: async () => {
-        const cmd = TABLE_COMMANDS.find(c => c.id === "evaluate-formulas");
-        if (cmd) await executeCommand(cmd, this.settings);
-      },
-    });
-
-    menu.addItem({
-      icon: "iconRefresh",
-      label: "转置表格",
-      click: async () => {
-        const cmd = TABLE_COMMANDS.find(c => c.id === "transpose");
-        if (cmd) await executeCommand(cmd, this.settings);
-      },
-    });
-
-    menu.addSeparator();
-
-    menu.addItem({
-      icon: "iconTable",
-      label: "插入行",
-      click: async () => {
-        const cmd = TABLE_COMMANDS.find(c => c.id === "insert-row");
-        if (cmd) await executeCommand(cmd, this.settings);
-      },
-    });
-
-    menu.addItem({
-      icon: "iconTrashcan",
-      label: "删除行",
-      click: async () => {
-        const cmd = TABLE_COMMANDS.find(c => c.id === "delete-row");
-        if (cmd) await executeCommand(cmd, this.settings);
-      },
-    });
-
-    menu.addItem({
-      icon: "iconTable",
-      label: "插入列",
-      click: async () => {
-        const cmd = TABLE_COMMANDS.find(c => c.id === "insert-column");
-        if (cmd) await executeCommand(cmd, this.settings);
-      },
-    });
-
-    menu.addItem({
-      icon: "iconTrashcan",
-      label: "删除列",
-      click: async () => {
-        const cmd = TABLE_COMMANDS.find(c => c.id === "delete-column");
-        if (cmd) await executeCommand(cmd, this.settings);
-      },
-    });
-
-    menu.open({
-      x: event.clientX,
-      y: event.clientY,
-    });
-  }
 
   /** 安装键盘拦截到所有编辑器 */
   private installKeybindToAllEditors() {

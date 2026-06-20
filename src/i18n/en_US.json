@@ -1,3 +1,12 @@
 {
-  "addTopBarIcon": "PluginSampleViteVue"
+  "addTopBarIcon": "PluginSampleViteVue",
+  "showFloatingToolbar": "Show floating toolbar when cursor is inside a table",
+  "showFloatingToolbarDesc": "When enabled, a floating toolbar will appear near the cursor when editing a table, providing quick access to alignment, sorting, moving rows/columns, etc.",
+  "settingsTitle": "Advanced Tables Settings",
+  "bindTab": "Bind Tab key navigation",
+  "bindTabDesc": "Press Tab in a table cell to jump to the next cell, and Shift+Tab to jump to the previous cell",
+  "bindEnter": "Bind Enter key navigation",
+  "bindEnterDesc": "Press Enter in a table cell to jump to the same column in the next row, automatically inserting a new row if at the last row",
+  "fixCJKWidth": "CJK character width correction",
+  "fixCJKWidthDesc": "Estimate width for Chinese, Japanese, and Korean double-byte characters to achieve perfectly aligned Markdown table formatting"
 }

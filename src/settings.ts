@@ -15,6 +15,8 @@ export interface PluginSettings {
   fixCJKWidth: boolean;
   /** 显示顶栏图标 */
   showTopBarIcon: boolean;
+  /** 当光标在表格内时是否出现浮动工具栏 */
+  showFloatingToolbar: boolean;
 }
 
 export const defaultSettings: PluginSettings = {
@@ -23,6 +25,7 @@ export const defaultSettings: PluginSettings = {
   bindEnter: true,
   fixCJKWidth: true,
   showTopBarIcon: true,
+  showFloatingToolbar: true,
 };
 
 const SETTINGS_KEY = "config";

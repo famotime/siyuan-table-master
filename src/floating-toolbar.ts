@@ -65,8 +65,13 @@ export class FloatingToolbar {
     document.body.appendChild(this.container);
   }
 
-  private update() {
+  public update() {
     if (this.isExecuting) return;
+
+    if (!this.plugin.settings.showFloatingToolbar) {
+      this.hide();
+      return;
+    }
 
     const activeEditor = getActiveEditor();
     if (!activeEditor?.protyle) {
