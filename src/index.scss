@@ -288,6 +288,10 @@
 }
 
 /* 粘性表头样式 */
+.at-enable-sticky-header .protyle-wysiwyg {
+  overflow: visible !important;
+}
+
 .at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] {
   overflow: visible !important;
 }
@@ -300,7 +304,7 @@
 .at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table tr:first-child th,
 .at-enable-sticky-header .protyle-wysiwyg [data-type="NodeTable"] table tr:first-child td {
   position: sticky !important;
-  top: 0 !important;
+  top: 36px !important; /* 避开思源顶部悬浮面包屑栏 */
   z-index: 100 !important;
   background-color: var(--b3-theme-background) !important;
   box-shadow: inset 0 -1px 0 var(--b3-theme-border), 0 1px 0 var(--b3-theme-border) !important;
