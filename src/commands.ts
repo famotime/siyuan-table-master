@@ -9,8 +9,9 @@ import type { PluginSettings } from "./settings";
 import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
 import type { CellCoord } from "./dom-utils";
 import { TableEditor } from "./table-editor";
-import { showMessage, getActiveEditor } from "siyuan";
+import { getActiveEditor, showMessage } from "siyuan";
 import { executeTextToTable } from "./text-to-table";
+import { executeTableToChart } from "./table-to-chart";
 
 /** 命令定义 */
 export interface TableCommand {
@@ -66,6 +67,7 @@ export const TABLE_COMMANDS: TableCommand[] = [
   // ── 求和计算 ──
   { id: "row-sum", nameZh: "行求和", nameEn: "Row sum", action: te => te.rowSum() },
   { id: "column-sum", nameZh: "列求和", nameEn: "Column sum", action: te => te.columnSum() },
+  { id: "table-to-chart", nameZh: "一键数据图表化", nameEn: "Convert table to chart", action: te => executeTableToChart(te) },
   // 文本转表格：action 占位符，实际由 executeCommand 中特判处理
   { id: "text-to-table", nameZh: "文本转为表格", nameEn: "Convert text to table", action: async () => {} },
 ];

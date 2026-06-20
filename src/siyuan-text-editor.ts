@@ -57,7 +57,7 @@ export interface SiyuanTextEditorOptions {
 export class SiyuanTextEditor implements ITextEditor {
   private protyle: Protyle;
   private tableBlockEl: HTMLElement;
-  private blockId: string;
+  public readonly blockId: string;
   private fixCJKWidth: boolean;
   private presetCellCoord: CellCoord | null;
 

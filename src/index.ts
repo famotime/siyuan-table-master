@@ -63,7 +63,7 @@ const { version } = PluginInfo;
 export default class TableMaterPlugin extends Plugin {
   public settings!: PluginSettings;
   private keybindUninstall: (() => void) | null = null;
-  private floatingToolbar: FloatingToolbar | null = null;
+  public floatingToolbar: FloatingToolbar | null = null;
   private smartPaste: SmartPaste | null = null;
   private quickCalc: QuickCalc | null = null;
   private dragReorder: DragReorder | null = null;

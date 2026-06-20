@@ -14,6 +14,7 @@ import {
   isBoxDrawingTable,
   escapeHtml,
   gridToMarkdown,
+  sanitizeValue,
 } from "../src/text-to-table-utils";
 
 // ── parseLines ──
@@ -190,3 +191,35 @@ describe("gridToMarkdown", () => {
     expect(result).toBe("| A | B | C |\n| --- | --- | --- |\n| 1 |  |  |");
   });
 });
+
+// ── sanitizeValue ──
+
+describe("sanitizeValue", () => {
+  it("普通正整数", () => {
+    expect(sanitizeValue("123")).toBe(123);
+    expect(sanitizeValue("  456  ")).toBe(456);
+  });
+
+  it("负数和小数", () => {
+    expect(sanitizeValue("-123.45")).toBe(-123.45);
+    expect(sanitizeValue("+0.12")).toBe(0.12);
+  });
+
+  it("百分数清洗", () => {
+    expect(sanitizeValue("85%")).toBe(85);
+    expect(sanitizeValue("-12.5%")).toBe(-12.5);
+  });
+
+  it("千分位和货币符号清洗", () => {
+    expect(sanitizeValue("$1,234.56")).toBe(1234.56);
+    expect(sanitizeValue("￥-12,345")).toBe(-12345);
+  });
+
+  it("非法文本与空单元格", () => {
+    expect(sanitizeValue("")).toBe(0);
+    expect(sanitizeValue("abc")).toBe(0);
+    expect(sanitizeValue("-")).toBe(0);
+    expect(sanitizeValue("   ")).toBe(0);
+  });
+});
+

@@ -82,3 +82,32 @@ export function gridToMarkdown(grid: string[][]): string {
 
   return lines.join("\n");
 }
+
+/**
+ * 清洗单元格字符并转换为浮点数
+ * 支持百分数（如 85%）、千分位（如 1,234.5）、货币符号（如 $100 / ￥200）以及正负号
+ */
+export function sanitizeValue(val: string): number {
+  if (!val) return 0;
+  
+  let clean = val.trim();
+  
+  // 处理百分比
+  const isPercent = clean.endsWith("%");
+  if (isPercent) {
+    clean = clean.slice(0, -1).trim();
+  }
+  
+  // 去除非数字、非小数点、非正负号的字符（例如千分位逗号、货币符号等）
+  clean = clean.replace(/[^\d.+-]/g, "");
+  
+  if (clean === "-" || clean === "+" || clean === "") {
+    return 0;
+  }
+  
+  const num = parseFloat(clean);
+  if (isNaN(num)) return 0;
+  
+  return num;
+}
+

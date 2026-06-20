@@ -31,7 +31,8 @@ export const SVG_ICONS: Record<string, string> = {
   "paste-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z" style="fill:none!important"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" style="fill:none!important"/><line x1="8" x2="16" y1="12" y2="12" style="fill:none!important"/><path d="m9 15 3 3 3-3" style="fill:none!important"/></svg>`,
   "paste-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z" style="fill:none!important"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" style="fill:none!important"/><line x1="12" x2="12" y1="10" y2="18" style="fill:none!important"/><path d="m15 15-3 3-3-3" style="fill:none!important"/></svg>`,
   "row-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H6v4l4 4-4 4v4h10" style="fill:none!important"/><path d="M6 12h12" style="fill:none!important"/><path d="m14 8 4 4-4 4" style="fill:none!important"/></svg>`,
-  "column-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H6v4l4 4-4 4v4h10" style="fill:none!important"/><path d="M12 6v12" style="fill:none!important"/><path d="m8 14 4 4 4-4" style="fill:none!important"/></svg>`
+  "column-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H6v4l4 4-4 4v4h10" style="fill:none!important"/><path d="M12 6v12" style="fill:none!important"/><path d="m8 14 4 4 4-4" style="fill:none!important"/></svg>`,
+  "table-to-chart": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" style="fill:none!important"/><path d="m19 9-5 5-4-4-3 3" style="fill:none!important"/></svg>`
 };
 
 // ═══════════════════════════════════════════════════
@@ -57,7 +58,7 @@ const COMMAND_GROUPS: CommandGroup[] = [
   { title: "行列移动", commandIds: ["move-row-up", "move-row-down", "move-column-left", "move-column-right"] },
   { title: "高级与导航", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "evaluate-formulas", "escape-table"] },
   { title: "复制与粘贴", commandIds: ["copy-row", "copy-column", "paste-row", "paste-column"] },
-  { title: "求和计算", commandIds: ["row-sum", "column-sum"] },
+  { title: "求和与图表", commandIds: ["row-sum", "column-sum", "table-to-chart"] },
 ];
 
 /** 计算 DOM 表格的大小 */
@@ -321,6 +322,7 @@ export function registerDock(plugin: TableMaterPlugin) {
         btn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
+
           dockOperationActive = true;
           if (dockOperationTimeoutId) clearTimeout(dockOperationTimeoutId);
 
@@ -329,7 +331,24 @@ export function registerDock(plugin: TableMaterPlugin) {
             preset = { tableBlock: lastActiveCell.tableBlock, blockId: lastActiveCell.blockId, coord: { ...lastActiveCell.coord } };
           }
 
-          await executeCommand(cmd, plugin.settings, preset);
+          // 命令执行期间，阻断悬浮工具栏重绘并立即隐藏
+          if (plugin.floatingToolbar) {
+            plugin.floatingToolbar.isExecuting = true;
+            plugin.floatingToolbar.hide();
+          }
+
+          try {
+            await executeCommand(cmd, plugin.settings, preset);
+          } finally {
+            if (plugin.floatingToolbar) {
+              setTimeout(() => {
+                if (plugin.floatingToolbar) {
+                  plugin.floatingToolbar.isExecuting = false;
+                  plugin.floatingToolbar.update();
+                }
+              }, 350);
+            }
+          }
 
           if (lastActiveCell) {
             const coord = lastActiveCell.coord;

@@ -32,7 +32,7 @@ export function getTableClipboard(): TableClipboard | null {
 
 export class TableEditor {
   private mte: MTEEditor;
-  private ctx: SiyuanTextEditor;
+  public readonly ctx: SiyuanTextEditor;
 
   constructor(ctx: SiyuanTextEditor, private settings: PluginSettings) {
     this.ctx = ctx;

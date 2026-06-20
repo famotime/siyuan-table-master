@@ -13,7 +13,7 @@ export class FloatingToolbar {
   private activeCell: { blockId: string; coord: CellCoord; tableBlock: HTMLElement } | null = null;
   private selectionListener: (() => void) | null = null;
   private scrollListener: (() => void) | null = null;
-  private isExecuting = false;
+  public isExecuting = false;
   private executeTimeoutId: any = null;
 
   constructor(plugin: TableMaterPlugin) {
@@ -68,6 +68,12 @@ export class FloatingToolbar {
 
   public update() {
     if (this.isExecuting) return;
+
+    // 如果当前页面有活动的思源 Dialog，不显示浮动工具栏以防遮挡
+    if (document.querySelector(".b3-dialog")) {
+      this.hide();
+      return;
+    }
 
     if (!this.plugin.settings.showFloatingToolbar) {
       this.hide();
@@ -162,7 +168,7 @@ export class FloatingToolbar {
 
     let cmdIds: string[] = [];
     if (rowIdx === 0) {
-      // 光标在表头时，工具栏按钮：左对齐、居中、右对齐、升序、降序、转置、粘性表头
+      // 光标在表头时，工具栏按钮：左对齐、居中、右对齐、升序、降序、转置、粘性表头、图表化
       cmdIds = [
         "left-align-column",
         "center-align-column",
@@ -171,6 +177,7 @@ export class FloatingToolbar {
         "sort-rows-desc",
         "transpose",
         "toggle-sticky-header",
+        "table-to-chart",
       ];
     } else {
       // 光标在非表头行时，工具栏按钮：上移行、下移行，左移列、右移列、复制行、复制列
@@ -256,6 +263,10 @@ export class FloatingToolbar {
         e.stopPropagation();
 
         if (this.isExecuting) return;
+
+        if (cmd.id === "table-to-chart") {
+          this.hide();
+        }
 
         this.isExecuting = true;
         if (this.executeTimeoutId) clearTimeout(this.executeTimeoutId);
