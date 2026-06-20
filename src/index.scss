@@ -173,13 +173,40 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
   gap: 8px;
 }
 
-/* 按钮样式 - 极致线框与悬浮光效 */
-.at-btn {
+/* 按钮项容器 - 用于垂直排列按钮和文字，承载悬浮及点击的统一动效 */
+.at-btn-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 4.5px;
+  width: 100%;
+
+  &:hover {
+    .at-btn {
+      border-color: var(--b3-theme-primary);
+      background-color: var(--b3-theme-surface-light, rgba(0, 0, 0, 0.03));
+      color: var(--b3-theme-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+
+      .at-btn-icon svg {
+        transform: scale(1.1);
+      }
+    }
+    .at-btn-label {
+      opacity: 1;
+      color: var(--b3-theme-primary);
+    }
+  }
+}
+
+/* 按钮样式 - 极致线框与悬浮光效 */
+.at-btn {
+  display: flex;
+  align-items: center;
   justify-content: center;
-  height: 52px;
+  width: 100%;
+  height: 36px;
   border: 1px solid var(--b3-border-color);
   border-radius: 6px;
   background-color: var(--b3-theme-surface);
@@ -187,17 +214,8 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
   cursor: pointer;
   outline: none;
   transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
-  padding: 4px 2px;
+  padding: 0;
   box-sizing: border-box;
-  gap: 3px;
-
-  &:hover {
-    border-color: var(--b3-theme-primary);
-    background-color: var(--b3-theme-surface-light, rgba(0, 0, 0, 0.03));
-    color: var(--b3-theme-primary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  }
 
   &:active {
     transform: translateY(0);
@@ -211,14 +229,14 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
   justify-content: center;
   
   svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     transition: transform 0.2s ease;
   }
 }
 
 .at-btn-label {
-  font-size: 9px;
+  font-size: 9.5px;
   line-height: 1.2;
   font-weight: 500;
   white-space: nowrap;
@@ -226,11 +244,11 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
   text-overflow: ellipsis;
   width: 100%;
   text-align: center;
-  opacity: 0.85;
-}
-
-.at-btn:hover .at-btn-icon svg {
-  transform: scale(1.1);
+  opacity: 0.7;
+  color: var(--b3-theme-on-surface);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 /* 底部提示栏 - 精致线性渐变分割线 */
@@ -294,14 +312,13 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
 
   .at-floating-context {
     font-size: $text-xs;
-    color: var(--b3-theme-primary);
-    background-color: var(--b3-theme-primary-light, rgba(92, 180, 210, 0.08));
-    padding: 2px 6px;
+    color: var(--b3-theme-on-primary, #ffffff);
+    background-color: var(--b3-theme-primary);
+    padding: 2px 6.5px;
     border-radius: $radius-sm;
     font-weight: 600;
     user-select: none;
     white-space: nowrap;
-    border: 1px solid color-mix(in srgb, var(--b3-theme-primary) 12%, transparent);
     transition: opacity $duration-fast ease;
   }
 

@@ -30,8 +30,8 @@ export const SVG_ICONS: Record<string, string> = {
   "copy-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" style="fill:none!important"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" style="fill:none!important"/><line x1="13" x2="13" y1="9" y2="22" style="fill:none!important"/><line x1="17" x2="17" y1="9" y2="22" style="fill:none!important"/></svg>`,
   "paste-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z" style="fill:none!important"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" style="fill:none!important"/><line x1="8" x2="16" y1="12" y2="12" style="fill:none!important"/><path d="m9 15 3 3 3-3" style="fill:none!important"/></svg>`,
   "paste-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z" style="fill:none!important"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" style="fill:none!important"/><line x1="12" x2="12" y1="10" y2="18" style="fill:none!important"/><path d="m15 15-3 3-3-3" style="fill:none!important"/></svg>`,
-  "row-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6H6l4 6h8"/><path d="M10 12l-4 6h8"/><path d="M15 9l3 3-3 3"/></svg>`,
-  "column-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 5H8l4 6v8"/><path d="M12 11l-4 6h8"/><path d="M9 16l3 3 3-3"/></svg>`,
+  "row-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4v2.5l3.5 4.5-3.5 4.5V19h5"/><path d="M12 12h8"/><path d="M17 9l3 3-3 3"/></svg>`,
+  "column-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4H9v1.5l2.5 2.5-2.5 2.5V12h6"/><path d="M12 14v6"/><path d="M9 17l3 3 3-3"/></svg>`,
   "table-to-chart": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" style="fill:none!important"/><path d="m19 9-5 5-4-4-3 3" style="fill:none!important"/></svg>`
 };
 
@@ -271,7 +271,7 @@ export function registerDock(plugin: TableMaterPlugin) {
                     const cmd = TABLE_COMMANDS.find(c => c.id === cmdId);
                     if (!cmd) return "";
                     const iconSvg = SVG_ICONS[cmdId] || "";
-                    return `<button class="at-btn ariaLabel" data-cmd-id="${cmdId}" aria-label="${plugin.i18n[cmdId] || cmd.nameZh}"><span class="at-btn-icon">${iconSvg}</span><span class="at-btn-label">${plugin.i18n["kw-" + cmdId] || cmd.nameZh}</span></button>`;
+                    return `<div class="at-btn-item"><button class="at-btn ariaLabel" data-cmd-id="${cmdId}" aria-label="${plugin.i18n[cmdId] || cmd.nameZh}"><span class="at-btn-icon">${iconSvg}</span></button><span class="at-btn-label">${plugin.i18n["kw-" + cmdId] || cmd.nameZh}</span></div>`;
                   }).join("")}
                 </div>
               </div>
@@ -307,6 +307,20 @@ export function registerDock(plugin: TableMaterPlugin) {
         const cmdId = btn.getAttribute("data-cmd-id");
         const cmd = TABLE_COMMANDS.find(c => c.id === cmdId);
         if (!cmd) return;
+
+        // 让对应的 label 的点击也转发给 btn
+        const label = btn.nextElementSibling as HTMLElement;
+        if (label && label.classList.contains("at-btn-label")) {
+          label.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            btn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          });
+          label.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            btn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          });
+        }
 
         btn.addEventListener("mousedown", () => {
           const activeEditor = getActiveEditor();
