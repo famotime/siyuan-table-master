@@ -238,8 +238,8 @@ export class FloatingToolbar {
         "sort-rows-asc",
         "sort-rows-desc",
         "transpose",
-        "toggle-sticky-header",
         "table-to-chart",
+        "toggle-sticky-header",
       ];
     } else {
       // 光标在非表头行时，工具栏按钮：上移行、下移行，左移列、右移列、复制行、复制列
