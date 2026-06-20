@@ -81,7 +81,7 @@ export class SiyuanTextEditor implements ITextEditor {
       });
 
       if (res.code === 0 && res.data) {
-        const kramdown = res.data as string;
+        const kramdown = (typeof res.data === "string" ? res.data : res.data.kramdown) as string;
         const parsed = parseTableKramdown(kramdown);
 
         this._lines = [...parsed.tableLines];

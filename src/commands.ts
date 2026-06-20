@@ -8,10 +8,10 @@ import type { Plugin, Protyle } from "siyuan";
 import type { PluginSettings } from "./settings";
 import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
 import { TableEditor } from "./table-editor";
-import { showMessage } from "siyuan";
+import { showMessage, getActiveEditor } from "siyuan";
 
 /** 命令定义 */
-interface TableCommand {
+export interface TableCommand {
   id: string;
   nameZh: string;
   nameEn: string;
@@ -20,7 +20,7 @@ interface TableCommand {
 }
 
 /** 所有命令 */
-const TABLE_COMMANDS: TableCommand[] = [
+export const TABLE_COMMANDS: TableCommand[] = [
   { id: "next-cell", nameZh: "下一单元格", nameEn: "Next cell", icon: "iconTab", action: te => te.nextCell() },
   { id: "previous-cell", nameZh: "上一单元格", nameEn: "Previous cell", action: te => te.previousCell() },
   { id: "next-row", nameZh: "下一行", nameEn: "Next row", icon: "iconEnter", action: te => te.nextRow() },
@@ -68,13 +68,11 @@ export function registerCommands(
 /**
  * 执行命令：获取当前编辑器 → 检查光标是否在表格 → 执行操作
  */
-async function executeCommand(
+export async function executeCommand(
   cmd: TableCommand,
   settings: PluginSettings,
 ): Promise<void> {
   try {
-    // 动态导入避免循环依赖
-    const { getActiveEditor } = await import("siyuan");
     const protyle = getActiveEditor?.();
     if (!protyle?.protyle) {
       showMessage("请先聚焦编辑器", 2000, "error");

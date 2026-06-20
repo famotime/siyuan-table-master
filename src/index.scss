@@ -1,0 +1,202 @@
+/* index.scss - 高级表格插件样式 (资深 UX 设计师优化版) */
+
+.at-dock-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px 14px;
+  background-color: var(--b3-theme-background);
+  color: var(--b3-theme-on-background);
+  font-family: var(--b3-font-family, sans-serif);
+  box-sizing: border-box;
+  overflow-y: auto;
+
+  /* 隐藏滚动条但保留滚动能力 */
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--b3-border-color);
+    border-radius: 2px;
+  }
+}
+
+/* 顶部状态卡片 Widget */
+.at-status-card {
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--b3-theme-surface);
+  border: 1px solid var(--b3-border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  margin-bottom: 20px;
+  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  &.at-active {
+    border-color: var(--b3-theme-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background: linear-gradient(180deg, var(--b3-theme-surface) 0%, rgba(92, 180, 210, 0.02) 100%);
+  }
+}
+
+.at-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.at-status-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+/* 指示灯呼吸发光圈 */
+.at-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--b3-theme-error, #f44336);
+  display: inline-block;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 6px var(--b3-theme-error, #f44336);
+}
+
+@keyframes at-fade-pulse {
+  0% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0.5; transform: scale(0.9); }
+}
+
+.at-status-dot.at-pulse {
+  background-color: var(--b3-theme-primary);
+  box-shadow: 0 0 8px var(--b3-theme-primary);
+  animation: at-fade-pulse 1.8s infinite ease-in-out;
+}
+
+.at-status-text {
+  font-size: 11px;
+  opacity: 0.6;
+  font-weight: 500;
+}
+
+/* 按钮分组容器 */
+.at-button-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  &.at-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+    filter: grayscale(80%);
+  }
+}
+
+.at-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 分组标题设计 - 渐变短横线指示器 */
+.at-group-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--b3-theme-primary);
+  opacity: 0.85;
+  padding-left: 2px;
+  margin-bottom: 2px;
+  display: flex;
+  flex-direction: column;
+  
+  &::after {
+    content: "";
+    display: block;
+    width: 20px;
+    height: 1.5px;
+    margin-top: 5px;
+    background: linear-gradient(to right, var(--b3-theme-primary), transparent);
+    border-radius: 1px;
+  }
+}
+
+/* 按钮网格 */
+.at-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+/* 按钮样式 - 极致线框与悬浮光效 */
+.at-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border: 1px solid var(--b3-border-color);
+  border-radius: 6px;
+  background-color: var(--b3-theme-surface);
+  color: var(--b3-theme-on-surface);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
+  padding: 0;
+
+  &:hover {
+    border-color: var(--b3-theme-primary);
+    background-color: var(--b3-theme-surface-light, rgba(0, 0, 0, 0.03));
+    color: var(--b3-theme-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+}
+
+.at-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  svg {
+    width: 15px;
+    height: 15px;
+    transition: transform 0.2s ease;
+  }
+}
+
+.at-btn:hover .at-btn-icon svg {
+  transform: scale(1.06);
+}
+
+/* 底部提示栏 - 精致线性渐变分割线 */
+.at-footer-tooltip {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid transparent;
+  border-image: linear-gradient(to right, transparent, var(--b3-border-color) 20%, var(--b3-border-color) 80%, transparent) 1;
+}
+
+.at-tooltip-bar {
+  font-size: 11px;
+  color: var(--b3-theme-on-surface);
+  opacity: 0.55;
+  text-align: center;
+  line-height: 1.4;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  padding: 0 4px;
+  letter-spacing: 0.2px;
+}

@@ -25,16 +25,18 @@ export const defaultSettings: PluginSettings = {
   showTopBarIcon: true,
 };
 
+const SETTINGS_KEY = "config";
+
 export async function loadSettings(
-  plugin: { loadData: () => Promise<any> },
+  plugin: { loadData: (key: string) => Promise<any> },
 ): Promise<PluginSettings> {
-  const saved = await plugin.loadData();
+  const saved = await plugin.loadData(SETTINGS_KEY);
   return { ...defaultSettings, ...saved };
 }
 
 export async function saveSettings(
-  plugin: { saveData: (data: any) => Promise<void> },
+  plugin: { saveData: (key: string, data: any) => Promise<void> },
   settings: PluginSettings,
 ): Promise<void> {
-  await plugin.saveData(settings);
+  await plugin.saveData(SETTINGS_KEY, settings);
 }

@@ -5,13 +5,14 @@
  * 为思源笔记 NodeTable 块提供增强编辑能力。
  */
 
-import { Plugin } from "siyuan";
+import { Plugin, showMessage, Menu } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from "@/../plugin.json";
-import { registerCommands } from "./commands";
+import { registerCommands, TABLE_COMMANDS, executeCommand } from "./commands";
 import { installKeybind, installKeybindAll } from "./keybind";
 import { loadSettings, saveSettings, defaultSettings, PluginSettings } from "./settings";
 import { getAllEditor } from "siyuan";
+import { registerDock } from "./dock";
 
 let PluginInfo = { version: "" };
 try {
@@ -35,15 +36,18 @@ export default class AdvancedTablesPlugin extends Plugin {
     // 注册命令
     registerCommands(this, this.settings);
 
+    // 注册 Dock 栏工具箱
+    registerDock(this);
+
     // 顶栏按钮
     if (this.settings.showTopBarIcon) {
+      const topBarIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" style="fill:none!important"/><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18" style="fill:none!important"/><path d="M3 15h18" style="fill:none!important"/></svg>`;
       this.addTopBar({
-        icon: "iconTable",
-        title: "高级表格",
+        icon: topBarIcon,
+        title: "高级表格快捷菜单",
         position: "right",
-        callback: () => {
-          // TODO: M2 阶段打开 Dock 工具栏
-          this.showMessage("高级表格已就绪 — 使用命令面板或快捷键操作", 3000);
+        callback: (event: MouseEvent) => {
+          this.showTopBarMenu(event);
         },
       });
     }
@@ -78,10 +82,96 @@ export default class AdvancedTablesPlugin extends Plugin {
 
   openSetting() {
     // TODO: M2 阶段实现设置面板
-    this.showMessage("设置面板将在后续版本实现", 3000);
+    showMessage("设置面板将在后续版本实现", 3000);
   }
 
   // ── 私有方法 ──
+
+  /** 弹出顶栏快捷操作菜单 */
+  private showTopBarMenu(event: MouseEvent) {
+    const menu = new Menu("advanced-tables-topbar-menu");
+
+    menu.addItem({
+      icon: "iconSparkles",
+      label: "格式化表格",
+      click: async () => {
+        const cmd = TABLE_COMMANDS.find(c => c.id === "format-table");
+        if (cmd) await executeCommand(cmd, this.settings);
+      },
+    });
+
+    menu.addSeparator();
+
+    menu.addItem({
+      icon: "iconAlignCenter",
+      label: "居中对齐列",
+      click: async () => {
+        const cmd = TABLE_COMMANDS.find(c => c.id === "center-align-column");
+        if (cmd) await executeCommand(cmd, this.settings);
+      },
+    });
+
+    menu.addItem({
+      icon: "iconMath",
+      label: "计算公式",
+      click: async () => {
+        const cmd = TABLE_COMMANDS.find(c => c.id === "evaluate-formulas");
+        if (cmd) await executeCommand(cmd, this.settings);
+      },
+    });
+
+    menu.addItem({
+      icon: "iconRefresh",
+      label: "转置表格",
+      click: async () => {
+        const cmd = TABLE_COMMANDS.find(c => c.id === "transpose");
+        if (cmd) await executeCommand(cmd, this.settings);
+      },
+    });
+
+    menu.addSeparator();
+
+    menu.addItem({
+      icon: "iconTable",
+      label: "插入行",
+      click: async () => {
+        const cmd = TABLE_COMMANDS.find(c => c.id === "insert-row");
+        if (cmd) await executeCommand(cmd, this.settings);
+      },
+    });
+
+    menu.addItem({
+      icon: "iconTrashcan",
+      label: "删除行",
+      click: async () => {
+        const cmd = TABLE_COMMANDS.find(c => c.id === "delete-row");
+        if (cmd) await executeCommand(cmd, this.settings);
+      },
+    });
+
+    menu.addItem({
+      icon: "iconTable",
+      label: "插入列",
+      click: async () => {
+        const cmd = TABLE_COMMANDS.find(c => c.id === "insert-column");
+        if (cmd) await executeCommand(cmd, this.settings);
+      },
+    });
+
+    menu.addItem({
+      icon: "iconTrashcan",
+      label: "删除列",
+      click: async () => {
+        const cmd = TABLE_COMMANDS.find(c => c.id === "delete-column");
+        if (cmd) await executeCommand(cmd, this.settings);
+      },
+    });
+
+    menu.open({
+      x: event.clientX,
+      y: event.clientY,
+    });
+  }
 
   /** 安装键盘拦截到所有编辑器 */
   private installKeybindToAllEditors() {
