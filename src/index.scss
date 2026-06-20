@@ -176,9 +176,10 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
 /* 按钮样式 - 极致线框与悬浮光效 */
 .at-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 36px;
+  height: 52px;
   border: 1px solid var(--b3-border-color);
   border-radius: 6px;
   background-color: var(--b3-theme-surface);
@@ -186,7 +187,9 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
   cursor: pointer;
   outline: none;
   transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
-  padding: 0;
+  padding: 4px 2px;
+  box-sizing: border-box;
+  gap: 3px;
 
   &:hover {
     border-color: var(--b3-theme-primary);
@@ -208,10 +211,22 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
   justify-content: center;
   
   svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     transition: transform 0.2s ease;
   }
+}
+
+.at-btn-label {
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
+  opacity: 0.85;
 }
 
 .at-btn:hover .at-btn-icon svg {
