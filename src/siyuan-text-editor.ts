@@ -84,17 +84,37 @@ export class SiyuanTextEditor implements ITextEditor {
         id: this.blockId,
       });
 
-      if (res.code === 0 && res.data) {
-        const kramdown = (typeof res.data === "string" ? res.data : res.data.kramdown) as string;
-        const parsed = parseTableKramdown(kramdown);
-
-        this._lines = [...parsed.tableLines];
-        this._ialLine = parsed.ialLine;
-        this._dirty = false;
-
-        // 从 DOM 读取当前光标位置并映射到行模型坐标
-        this._syncCursorFromDOM();
+      // 提取 kramdown，默认空字符串
+      let kramdown: any = "";
+      if (res && res.code === 0 && res.data) {
+        if (typeof res.data === "string") {
+          kramdown = res.data;
+        } else if (typeof res.data === "object" && res.data !== null) {
+          kramdown = (res.data as any).kramdown;
+        }
       }
+
+      // 终极防线：无论是什么非法类型（undefined、null、object 等），强行转换为 string 兜底，并打印详细 warn
+      if (typeof kramdown !== "string") {
+        console.warn(
+          "[siyuan-advanced-tables] Non-string kramdown detected in reload, type:",
+          typeof kramdown,
+          "val:",
+          kramdown,
+          "response:",
+          res
+        );
+        kramdown = String(kramdown ?? "");
+      }
+
+      const parsed = parseTableKramdown(kramdown);
+
+      this._lines = [...parsed.tableLines];
+      this._ialLine = parsed.ialLine;
+      this._dirty = false;
+
+      // 从 DOM 读取当前光标位置并映射到行模型坐标
+      this._syncCursorFromDOM();
     } catch (err) {
       console.error("[siyuan-advanced-tables] reload failed:", err);
     }

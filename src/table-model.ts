@@ -33,6 +33,15 @@ export interface ParsedTableKramdown {
  * @returns 解析后的结构
  */
 export function parseTableKramdown(kramdown: string): ParsedTableKramdown {
+  if (typeof kramdown !== "string") {
+    console.warn(
+      "[siyuan-advanced-tables] parseTableKramdown received non-string value, forcing string cast. Type:",
+      typeof kramdown,
+      "Value:",
+      kramdown
+    );
+    kramdown = String(kramdown ?? "");
+  }
   const lines = kramdown.split("\n");
 
   // 找到所有表格行（以 | 开头或以 | 结尾）
