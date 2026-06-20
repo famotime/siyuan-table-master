@@ -776,8 +776,8 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
   color: var(--b3-theme-primary);
 }
 
-/* 全局 SVG 覆盖，移除 style="fill:none!important" 这种 inline style */
-.at-btn svg path,
+/* 全局 SVG 覆盖，只对描边图标移除默认填充 */
+.at-btn svg:not(.at-svg-fill) path,
 .at-floating-btn svg path,
 .at-floating-btn svg line,
 .at-floating-btn svg rect,
