@@ -27,6 +27,7 @@ import {
   rangeToCellCoord,
   cellCoordToRange,
   getTableRowCount,
+  highlightActiveRowAndCol,
 } from "./dom-utils";
 import {
   parseTableKramdown,
@@ -237,9 +238,12 @@ export class SiyuanTextEditor implements ITextEditor {
     // 使用 requestAnimationFrame 确保 DOM 已重渲染
     requestAnimationFrame(() => {
       try {
+        // 动态获取文档中最新的表格 DOM 节点，以防 updateBlock 重绘后节点脱离文档树
+        const currentBlockEl = document.querySelector(`[data-node-id="${this.blockId}"]`) as HTMLElement || this.tableBlockEl;
+        
         const coord = this._rowModelToDomCoord(this._cursor.row, this._cursor.column);
         if (coord) {
-          const range = cellCoordToRange(coord, this.tableBlockEl, true);
+          const range = cellCoordToRange(coord, currentBlockEl, true);
           if (range) {
             const sel = window.getSelection();
             if (sel) {
@@ -253,6 +257,9 @@ export class SiyuanTextEditor implements ITextEditor {
               if (focusEl) {
                 focusEl.focus();
               }
+
+              // 重绘完成后立即对新 DOM 节点重新施加行列高亮，确保连续移动过程中高亮不丢失
+              highlightActiveRowAndCol(currentBlockEl, coord);
             }
           }
         }
