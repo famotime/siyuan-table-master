@@ -1,0 +1,29 @@
+{
+  "name": "siyuan-advanced-tables",
+  "author": "siyuan-advanced-tables-contributors",
+  "url": "https://github.com/siyuan-note/siyuan-advanced-tables",
+  "version": "0.1.0",
+  "minAppVersion": "3.5.7",
+  "disabledInPublish": false,
+  "backends": ["all"],
+  "frontends": ["all"],
+  "displayName": {
+    "default": "Advanced Tables",
+    "en_US": "Advanced Tables",
+    "zh_CN": "高级表格"
+  },
+  "description": {
+    "default": "Improved table navigation, formatting, and manipulation for SiYuan Note",
+    "en_US": "Improved table navigation, formatting, and manipulation for SiYuan Note",
+    "zh_CN": "思源笔记表格增强：自动格式化、单元格导航、行列操作、排序、对齐、公式"
+  },
+  "readme": {
+    "default": "README.md",
+    "en_US": "README.md",
+    "zh_CN": "README_zh_CN.md"
+  },
+  "funding": {
+    "custom": []
+  },
+  "keywords": ["table", "markdown", "format", "navigation", "formula"]
+}
