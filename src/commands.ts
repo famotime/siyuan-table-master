@@ -45,6 +45,23 @@ export const TABLE_COMMANDS: TableCommand[] = [
     if (err) showMessage(`公式错误: ${err}`, 5000, "error");
   }},
   { id: "escape-table", nameZh: "跳出表格", nameEn: "Escape table", action: te => te.escape() },
+  // ── 复制与粘贴 ──
+  { id: "copy-row", nameZh: "复制行", nameEn: "Copy row", action: async (te) => {
+    const err = await te.copyRow();
+    if (err) showMessage(err, 3000, "error");
+  }},
+  { id: "copy-column", nameZh: "复制列", nameEn: "Copy column", action: async (te) => {
+    const err = await te.copyColumn();
+    if (err) showMessage(err, 3000, "error");
+  }},
+  { id: "paste-row", nameZh: "粘贴行", nameEn: "Paste row", action: async (te) => {
+    const err = await te.pasteRow();
+    if (err) showMessage(err, 3000, "error");
+  }},
+  { id: "paste-column", nameZh: "粘贴列", nameEn: "Paste column", action: async (te) => {
+    const err = await te.pasteColumn();
+    if (err) showMessage(err, 3000, "error");
+  }},
 ];
 
 /**

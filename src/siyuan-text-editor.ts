@@ -36,6 +36,8 @@ import {
   domCoordToRowModelIndex,
   getPipePosition,
   fixCJKSeparatorWidth,
+  splitTableRow,
+  isSeparatorLine,
 } from "./table-model";
 
 /** 适配器构造选项 */
@@ -277,9 +279,82 @@ export class SiyuanTextEditor implements ITextEditor {
   }
 
 
+  // ═══════════════════════════════════════════════════
+  // 公共访问方法 — 供 TableEditor 复制/粘贴功能使用
+  // ═══════════════════════════════════════════════════
+
   /**
-   * 将核心库的行模型坐标反向映射为 DOM 单元格坐标
+   * 返回 reload() 后确定的初始 DOM 单元格坐标。
+   * 可用于获取当前光标所在行列号。
    */
+  getCursorDomCoord(): CellCoord | null {
+    return this._initialCellCoord;
+  }
+
+  /**
+   * 获取指定行模型行索引处的所有单元格内容（不含首尾 | 及空白）。
+   * @param lineIndex - _lines 数组索引（0=表头, 1=分隔行, 2+=数据行）
+   */
+  getRowCellsAt(lineIndex: number): string[] {
+    const line = this._lines[lineIndex] ?? "";
+    return splitTableRow(line);
+  }
+
+  /**
+   * 将给定内容写入指定行模型行，列数以目标行为准。
+   * 多余的 cells 截断；不足时剩余列清空。
+   * 会将适配器标记为 dirty，flush() 时统一写回思源。
+   */
+  setRowCellsAt(lineIndex: number, cells: string[]): void {
+    const orig = this._lines[lineIndex];
+    if (orig === undefined) return;
+    const origCells = splitTableRow(orig);
+    const numCols = origCells.length;
+    // 按目标行列数对齐：多余截断，不足补空字符串
+    const newCells = Array.from({ length: numCols }, (_, i) =>
+      i < cells.length ? cells[i] : ""
+    );
+    this._lines[lineIndex] = `| ${newCells.join(" | ")} |`;
+    this._dirty = true;
+  }
+
+  /**
+   * 获取指定 DOM 列索引在所有非分隔行（含表头）中的单元格内容，
+   * 按 [表头, 数据行0, 数据行1, ...] 顺序返回。
+   */
+  getColCells(domCol: number): string[] {
+    const result: string[] = [];
+    for (const line of this._lines) {
+      if (isSeparatorLine(line)) continue;
+      const cells = splitTableRow(line);
+      result.push(cells[domCol] ?? "");
+    }
+    return result;
+  }
+
+  /**
+   * 将 colCells 依次写入指定 DOM 列索引的所有非分隔行。
+   * colCells 顺序须与 getColCells() 返回的顺序一致（表头优先）。
+   * 行数不匹配时：colCells 多余部分忽略，目标行超出部分保持原值。
+   */
+  setColCells(domCol: number, colCells: string[]): void {
+    let cellIdx = 0;
+    for (let i = 0; i < this._lines.length && cellIdx < colCells.length; i++) {
+      if (isSeparatorLine(this._lines[i])) continue;
+      const cells = splitTableRow(this._lines[i]);
+      if (domCol < cells.length) {
+        cells[domCol] = colCells[cellIdx];
+        this._lines[i] = `| ${cells.join(" | ")} |`;
+      }
+      cellIdx++;
+    }
+    this._dirty = true;
+  }
+
+  // ═══════════════════════════════════════════════════
+  // 内部私有方法
+  // ═══════════════════════════════════════════════════
+
   /**
    * 将核心库的行模型坐标反向映射为 DOM 单元格坐标
    */

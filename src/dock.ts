@@ -25,7 +25,12 @@ const SVG_ICONS: Record<string, string> = {
   "sort-rows-desc": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4" style="fill:none!important"/><path d="M7 20V4" style="fill:none!important"/><path d="M11 12h10" style="fill:none!important"/><path d="M11 8h7" style="fill:none!important"/><path d="M11 4h4" style="fill:none!important"/></svg>`,
   "transpose": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" style="fill:none!important"/><path d="M3 3v5h5" style="fill:none!important"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" style="fill:none!important"/><path d="M16 16h5v5" style="fill:none!important"/></svg>`,
   "evaluate-formulas": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" style="fill:none!important"/><line x1="8" x2="16" y1="6" y2="6" style="fill:none!important"/><line x1="16" x2="16" y1="14" y2="18" style="fill:none!important"/><path d="M16 10h.01" style="fill:none!important"/><path d="M12 10h.01" style="fill:none!important"/><path d="M8 10h.01" style="fill:none!important"/><path d="M12 14h.01" style="fill:none!important"/><path d="M8 14h.01" style="fill:none!important"/><path d="M12 18h.01" style="fill:none!important"/><path d="M8 18h.01" style="fill:none!important"/></svg>`,
-  "escape-table": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" style="fill:none!important"/><polyline points="16 17 21 12 16 7" style="fill:none!important"/><line x1="21" y1="12" x2="9" y2="12" style="fill:none!important"/></svg>`
+  "escape-table": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" style="fill:none!important"/><polyline points="16 17 21 12 16 7" style="fill:none!important"/><line x1="21" y1="12" x2="9" y2="12" style="fill:none!important"/></svg>`,
+  // 复制粘贴图标：基于 Lucide copy2 变体 + 行/列强调线
+  "copy-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" style="fill:none!important"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" style="fill:none!important"/><line x1="9" x2="22" y1="13" y2="13" style="fill:none!important"/><line x1="9" x2="22" y1="17" y2="17" style="fill:none!important"/></svg>`,
+  "copy-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" style="fill:none!important"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" style="fill:none!important"/><line x1="13" x2="13" y1="9" y2="22" style="fill:none!important"/><line x1="17" x2="17" y1="9" y2="22" style="fill:none!important"/></svg>`,
+  "paste-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z" style="fill:none!important"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" style="fill:none!important"/><line x1="8" x2="16" y1="12" y2="12" style="fill:none!important"/><path d="m9 15 3 3 3-3" style="fill:none!important"/></svg>`,
+  "paste-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z" style="fill:none!important"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" style="fill:none!important"/><line x1="12" x2="12" y1="10" y2="18" style="fill:none!important"/><path d="m15 15-3 3-3-3" style="fill:none!important"/></svg>`
 };
 
 /** 命令功能分组描述 */
@@ -50,6 +55,10 @@ const COMMAND_GROUPS: CommandGroup[] = [
   {
     title: "高级与导航",
     commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "evaluate-formulas", "escape-table"],
+  },
+  {
+    title: "复制与粘贴",
+    commandIds: ["copy-row", "copy-column", "paste-row", "paste-column"],
   },
 ];
 
