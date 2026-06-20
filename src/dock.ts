@@ -167,6 +167,17 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
               }
               // 立即应用推演后的高亮，加速视觉跟随
               highlightActiveRowAndCol(lastActiveCell.tableBlock, coord);
+
+              // 异步重绘兜底高亮：等待思源 DOM 树彻底挂载完毕后，重新刷新最新的 DOM 容器及高亮状态
+              setTimeout(() => {
+                if (lastActiveCell) {
+                  const latestEl = document.querySelector(`[data-node-id="${lastActiveCell.blockId}"]`) as HTMLElement;
+                  if (latestEl) {
+                    lastActiveCell.tableBlock = latestEl;
+                    highlightActiveRowAndCol(latestEl, coord);
+                  }
+                }
+              }, 50);
             }
             
             // 不需要再做强同步 updateStatus()，交给 selectionchange 去平滑刷新

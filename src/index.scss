@@ -204,7 +204,8 @@
 /* ==========================================
    活动单元格、行、列高亮可视化标记样式
    ========================================== */
-.at-active-row {
+.at-active-row td,
+.at-active-row th {
   background-color: color-mix(in srgb, var(--b3-theme-primary) 6%, transparent) !important;
 }
 
