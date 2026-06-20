@@ -249,7 +249,8 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
             }
             
             // 如果明确发现了其他非当前缓存表格的 Block，说明用户确实把光标移走了，此时才真正置灰并清空缓存
-            if (otherBlock && (!lastActiveCell || otherBlock !== lastActiveCell.tableBlock)) {
+            const otherBlockId = otherBlock ? (otherBlock.dataset.nodeId || "") : "";
+            if (otherBlock && (!lastActiveCell || otherBlockId !== lastActiveCell.blockId)) {
               lastActiveCell = null;
               highlightActiveRowAndCol(null, null); // 确切跳出表格时清空高亮
               setUIState(false);
