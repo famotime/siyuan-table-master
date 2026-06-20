@@ -2,7 +2,7 @@ import { getActiveEditor, showMessage } from "siyuan";
 import { isCursorInTable } from "./siyuan-text-editor";
 import { TABLE_COMMANDS, executeCommand, TableCommand } from "./commands";
 import type AdvancedTablesPlugin from "./index";
-import { rangeToCellCoord, CellCoord, highlightActiveRowAndCol } from "./dom-utils";
+import { rangeToCellCoord, CellCoord, highlightActiveRowAndCol, findTableBlock } from "./dom-utils";
 
 /** SVG 图标定义 - Lucide 专业线框风格，显式内联阻断 fill 覆写，无填充 */
 export const SVG_ICONS: Record<string, string> = {
@@ -148,6 +148,14 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
           </div>
         </div>
       `;
+
+      // 初始化 DOM 引用，修复由于没有赋值导致 setUIState 状态无法更新的 Bug
+      statusCardEl = this.element.querySelector(".at-status-card") as HTMLElement;
+      statusTextEl = this.element.querySelector("#at-status-text") as HTMLElement;
+      statusDotEl = this.element.querySelector("#at-status-dot") as HTMLElement;
+      buttonGridContainer = this.element.querySelector("#at-button-container") as HTMLElement;
+      tooltipBarEl = this.element.querySelector("#at-tooltip-bar") as HTMLElement;
+
       // 绑定“将文本转换为表格”按钮事件
       const textToTableBtn = this.element.querySelector("#at-dock-text-to-table-btn") as HTMLElement;
       if (textToTableBtn) {
@@ -310,18 +318,33 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
           return;
         }
 
-        const activeEditor = getActiveEditor();
-        if (!activeEditor?.protyle) {
-          lastActiveCell = null;
-          highlightActiveRowAndCol(null, null); // 失去编辑器焦点时清除高亮
-          setUIState(false);
-          return;
+        let inTable = false;
+        let tableBlock: HTMLElement | null = null;
+
+        // 1. 优先通过 Selection API 检测，这样不依赖 getActiveEditor()，更鲁棒
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          tableBlock = findTableBlock(range.startContainer);
+          if (tableBlock) {
+            inTable = true;
+          }
         }
 
-        const { inTable, tableBlock } = isCursorInTable(activeEditor);
+        // 2. 如果 Selection 无法确定，但有活跃的编辑器，使用 selection 丢失的兜底逻辑（如选中思源表格块本身）
+        if (!inTable) {
+          const activeEditor = getActiveEditor();
+          if (activeEditor?.protyle) {
+            const res = isCursorInTable(activeEditor);
+            if (res.inTable && res.tableBlock) {
+              inTable = true;
+              tableBlock = res.tableBlock;
+            }
+          }
+        }
+
         if (inTable && tableBlock) {
           // 在表格内，保存并更新最新的光标坐标
-          const sel = window.getSelection();
           if (sel && sel.rangeCount > 0) {
             const range = sel.getRangeAt(0);
             const coord = rangeToCellCoord(range, tableBlock);
@@ -339,7 +362,6 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
         } else {
           // 惰性失焦：如果光标暂时离开了表格（可能是由于点击了 Dock 按钮等）
           // 只要用户并没有把光标明确挪到表格外的其他 Block 块元素上，我们就继续保留面板的激活状态！
-          const sel = window.getSelection();
           if (sel && sel.rangeCount > 0) {
             const range = sel.getRangeAt(0);
             let node = range.startContainer as HTMLElement;
