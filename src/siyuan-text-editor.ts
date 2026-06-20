@@ -352,6 +352,50 @@ export class SiyuanTextEditor implements ITextEditor {
   }
 
   // ═══════════════════════════════════════════════════
+  // 扩展公共接口 — 供外部模块直接操作内存行模型
+  // ═══════════════════════════════════════════════════
+
+  /** 返回内存行模型的总行数 */
+  getLineCount(): number {
+    return this._lines.length;
+  }
+
+  /** 按索引直接读取一行（含首尾 | 及空白），越界返回 undefined */
+  getLineAt(index: number): string | undefined {
+    return this._lines[index];
+  }
+
+  /** 按索引直接写入一行，并自动标记 dirty */
+  setLineAt(index: number, line: string): void {
+    if (index >= 0 && index < this._lines.length) {
+      this._lines[index] = line;
+      this._dirty = true;
+    }
+  }
+
+  /**
+   * 在指定索引处插入一行，并自动标记 dirty。
+   * 常用于外部模块在末尾追加空行。
+   */
+  insertLineAt(index: number, line: string): void {
+    this._lines.splice(index, 0, line);
+    this._dirty = true;
+  }
+
+  /** 删除指定索引处的一行，并自动标记 dirty */
+  removeLine(index: number): void {
+    if (index >= 0 && index < this._lines.length) {
+      this._lines.splice(index, 1);
+      this._dirty = true;
+    }
+  }
+
+  /** 标记适配器为 dirty，使下次 flush() 时写回思源 */
+  markDirty(): void {
+    this._dirty = true;
+  }
+
+  // ═══════════════════════════════════════════════════
   // 内部私有方法
   // ═══════════════════════════════════════════════════
 

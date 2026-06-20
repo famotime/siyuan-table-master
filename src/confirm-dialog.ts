@@ -6,6 +6,7 @@
  */
 
 import { Dialog } from "siyuan";
+import { escapeHtml } from "./dom-utils";
 
 /**
  * 弹出粘贴覆盖确认框
@@ -69,13 +70,4 @@ export function showPasteConfirmDialog(
       dialog.destroy();
       onCancel();
     });
-}
-
-/** HTML 转义，防止单元格内容中出现 < > 等符号破坏 dialog 结构 */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }

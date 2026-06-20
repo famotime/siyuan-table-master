@@ -1,5 +1,5 @@
 import { getActiveEditor } from "siyuan";
-import { findTableBlock } from "./dom-utils";
+import { findTableBlock, getCellCoordFromTable } from "./dom-utils";
 import type AdvancedTablesPlugin from "./index";
 
 export class QuickCalc {
@@ -54,7 +54,7 @@ export class QuickCalc {
     const block = findTableBlock(cell);
     if (!block) return;
 
-    const coord = this.getCellCoord(cell, block);
+    const coord = getCellCoordFromTable(cell, block);
     if (!coord) return;
 
     e.preventDefault();
@@ -84,7 +84,7 @@ export class QuickCalc {
     const block = findTableBlock(cell);
     if (block !== this.tableBlock) return;
 
-    const currentCoord = this.getCellCoord(cell, block);
+    const currentCoord = getCellCoordFromTable(cell, block);
     if (!currentCoord) return;
 
     e.preventDefault();
@@ -138,25 +138,6 @@ export class QuickCalc {
     }
   }
 
-  /** 获取单元格坐标 */
-  private getCellCoord(cell: HTMLTableCellElement, tableBlock: HTMLElement): { row: number; col: number } | null {
-    const table = tableBlock.querySelector("table");
-    if (!table) return null;
-
-    const rows = Array.from(table.querySelectorAll("tr"));
-    const tr = cell.parentElement as HTMLTableRowElement;
-    if (!tr) return null;
-
-    const rowIdx = rows.indexOf(tr);
-    if (rowIdx === -1) return null;
-
-    const cells = Array.from(tr.querySelectorAll("td, th"));
-    const colIdx = cells.indexOf(cell);
-    if (colIdx === -1) return null;
-
-    return { row: rowIdx, col: colIdx };
-  }
-
   /** 清除多选状态 */
   private clearSelection() {
     this.isSelecting = false;
@@ -192,7 +173,7 @@ export class QuickCalc {
     let minCol = Infinity, maxCol = -Infinity;
 
     selectedCells.forEach(cell => {
-      const coord = this.getCellCoord(cell as HTMLTableCellElement, this.tableBlock!);
+      const coord = getCellCoordFromTable(cell as HTMLTableCellElement, this.tableBlock!);
       if (coord) {
         minRow = Math.min(minRow, coord.row);
         maxRow = Math.max(maxRow, coord.row);

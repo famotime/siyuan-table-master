@@ -26,7 +26,6 @@ export const SVG_ICONS: Record<string, string> = {
   "transpose": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" style="fill:none!important"/><path d="M3 3v5h5" style="fill:none!important"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" style="fill:none!important"/><path d="M16 16h5v5" style="fill:none!important"/></svg>`,
   "evaluate-formulas": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" style="fill:none!important"/><line x1="8" x2="16" y1="6" y2="6" style="fill:none!important"/><line x1="16" x2="16" y1="14" y2="18" style="fill:none!important"/><path d="M16 10h.01" style="fill:none!important"/><path d="M12 10h.01" style="fill:none!important"/><path d="M8 10h.01" style="fill:none!important"/><path d="M12 14h.01" style="fill:none!important"/><path d="M8 14h.01" style="fill:none!important"/><path d="M12 18h.01" style="fill:none!important"/><path d="M8 18h.01" style="fill:none!important"/></svg>`,
   "escape-table": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" style="fill:none!important"/><polyline points="16 17 21 12 16 7" style="fill:none!important"/><line x1="21" y1="12" x2="9" y2="12" style="fill:none!important"/></svg>`,
-  // 复制粘贴图标：基于 Lucide copy2 变体 + 行/列强调线
   "copy-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" style="fill:none!important"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" style="fill:none!important"/><line x1="9" x2="22" y1="13" y2="13" style="fill:none!important"/><line x1="9" x2="22" y1="17" y2="17" style="fill:none!important"/></svg>`,
   "copy-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" style="fill:none!important"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" style="fill:none!important"/><line x1="13" x2="13" y1="9" y2="22" style="fill:none!important"/><line x1="17" x2="17" y1="9" y2="22" style="fill:none!important"/></svg>`,
   "paste-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z" style="fill:none!important"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" style="fill:none!important"/><line x1="8" x2="16" y1="12" y2="12" style="fill:none!important"/><path d="m9 15 3 3 3-3" style="fill:none!important"/></svg>`,
@@ -35,6 +34,17 @@ export const SVG_ICONS: Record<string, string> = {
   "column-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H6v4l4 4-4 4v4h10" style="fill:none!important"/><path d="M12 6v12" style="fill:none!important"/><path d="m8 14 4 4 4-4" style="fill:none!important"/></svg>`
 };
 
+// ═══════════════════════════════════════════════════
+// 模块级工具函数
+// ═══════════════════════════════════════════════════
+
+/** Dock 状态缓存类型 */
+interface ActiveCellState {
+  blockId: string;
+  coord: CellCoord;
+  tableBlock: HTMLElement;
+}
+
 /** 命令功能分组描述 */
 interface CommandGroup {
   title: string;
@@ -42,44 +52,174 @@ interface CommandGroup {
 }
 
 const COMMAND_GROUPS: CommandGroup[] = [
-  {
-    title: "格式与对齐",
-    commandIds: ["format-table", "left-align-column", "center-align-column", "right-align-column"],
-  },
-  {
-    title: "行列增删",
-    commandIds: ["insert-row", "delete-row", "insert-column", "delete-column"],
-  },
-  {
-    title: "行列移动",
-    commandIds: ["move-row-up", "move-row-down", "move-column-left", "move-column-right"],
-  },
-  {
-    title: "高级与导航",
-    commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "evaluate-formulas", "escape-table"],
-  },
-  {
-    title: "复制与粘贴",
-    commandIds: ["copy-row", "copy-column", "paste-row", "paste-column"],
-  },
-  {
-    title: "求和计算",
-    commandIds: ["row-sum", "column-sum"],
-  },
+  { title: "格式与对齐", commandIds: ["format-table", "left-align-column", "center-align-column", "right-align-column"] },
+  { title: "行列增删", commandIds: ["insert-row", "delete-row", "insert-column", "delete-column"] },
+  { title: "行列移动", commandIds: ["move-row-up", "move-row-down", "move-column-left", "move-column-right"] },
+  { title: "高级与导航", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "evaluate-formulas", "escape-table"] },
+  { title: "复制与粘贴", commandIds: ["copy-row", "copy-column", "paste-row", "paste-column"] },
+  { title: "求和计算", commandIds: ["row-sum", "column-sum"] },
 ];
+
+/** 计算 DOM 表格的大小 */
+function getTableSize(tableBlock: HTMLElement): { rows: number; cols: number } {
+  try {
+    const trs = tableBlock.querySelectorAll("tr");
+    const rows = trs.length;
+    let cols = 0;
+    if (rows > 0) {
+      cols = trs[0].querySelectorAll("th, td").length;
+    }
+    return { rows, cols };
+  } catch (e) {
+    console.warn("[siyuan-advanced-tables] getTableSize failed:", e);
+    return { rows: 0, cols: 0 };
+  }
+}
+
+/** Dock 面板 UI 元素引用 */
+interface DockUIElements {
+  statusCardEl: HTMLElement | null;
+  statusTextEl: HTMLElement | null;
+  statusDotEl: HTMLElement | null;
+  buttonGridContainer: HTMLElement | null;
+  tooltipBarEl: HTMLElement | null;
+}
+
+/** 切换 Dock 面板的激活/非激活 UI 状态 */
+function setDockUIState(
+  elements: DockUIElements,
+  dockElement: HTMLElement,
+  active: boolean,
+  rows = 0,
+  cols = 0,
+): void {
+  const { statusCardEl, statusDotEl, statusTextEl, buttonGridContainer, tooltipBarEl } = elements;
+  const textToTableBtn = dockElement.querySelector("#at-dock-text-to-table-btn") as HTMLElement;
+
+  if (active) {
+    statusCardEl?.classList.add("at-active");
+    if (statusDotEl) {
+      statusDotEl.style.backgroundColor = "var(--b3-theme-primary)";
+      statusDotEl.classList.add("at-pulse");
+    }
+    if (statusTextEl) statusTextEl.innerText = `表格编辑中 (${rows} 行 × ${cols} 列)`;
+    buttonGridContainer?.classList.remove("at-disabled");
+    if (tooltipBarEl && tooltipBarEl.innerText.startsWith("提示：")) {
+      tooltipBarEl.innerText = `当前表格：${rows} 行 × ${cols} 列`;
+    }
+    if (textToTableBtn) textToTableBtn.style.display = "none";
+  } else {
+    statusCardEl?.classList.remove("at-active");
+    if (statusDotEl) {
+      statusDotEl.style.backgroundColor = "var(--b3-theme-error, #f44336)";
+      statusDotEl.classList.remove("at-pulse");
+    }
+    if (statusTextEl) statusTextEl.innerText = "未检测到聚焦表格";
+    buttonGridContainer?.classList.add("at-disabled");
+    if (tooltipBarEl && !tooltipBarEl.innerText.startsWith("提示：")) {
+      tooltipBarEl.innerText = "提示：将光标移动至表格中开始编辑";
+    }
+    if (textToTableBtn) textToTableBtn.style.display = "flex";
+  }
+}
+
+/**
+ * 实时检测光标所在表格状态，更新 lastActiveCell 缓存和 UI。
+ * 从 init() 闭包中提取为独立函数。
+ */
+function updateDockStatus(
+  dockOperationActive: boolean,
+  lastActiveCell: ActiveCellState | null,
+  elements: DockUIElements,
+  dockElement: HTMLElement,
+  updateLastActiveCell: (cell: ActiveCellState | null) => void,
+): void {
+  // 如果 Dock 连续操作中，仅渲染推演高亮，防止被未归位选区的 selectionchange 覆盖
+  if (dockOperationActive && lastActiveCell) {
+    highlightActiveRowAndCol(lastActiveCell.tableBlock, lastActiveCell.coord);
+    const size = getTableSize(lastActiveCell.tableBlock);
+    setDockUIState(elements, dockElement, true, size.rows, size.cols);
+    return;
+  }
+
+  let inTable = false;
+  let tableBlock: HTMLElement | null = null;
+
+  // 1. 优先通过 Selection API 检测
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    const range = sel.getRangeAt(0);
+    tableBlock = findTableBlock(range.startContainer);
+    if (tableBlock) inTable = true;
+  }
+
+  // 2. 兜底：通过编辑器 API
+  if (!inTable) {
+    const activeEditor = getActiveEditor();
+    if (activeEditor?.protyle) {
+      const res = isCursorInTable(activeEditor);
+      if (res.inTable && res.tableBlock) {
+        inTable = true;
+        tableBlock = res.tableBlock;
+      }
+    }
+  }
+
+  if (inTable && tableBlock) {
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      const coord = rangeToCellCoord(range, tableBlock);
+      if (coord) {
+        updateLastActiveCell({
+          blockId: tableBlock.dataset.nodeId || "",
+          coord,
+          tableBlock,
+        });
+        highlightActiveRowAndCol(tableBlock, coord);
+      }
+    }
+    const size = getTableSize(tableBlock);
+    setDockUIState(elements, dockElement, true, size.rows, size.cols);
+  } else {
+    // 惰性失焦检测
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      let node = range.startContainer as HTMLElement;
+      let otherBlock: HTMLElement | null = null;
+      while (node && node !== document.body) {
+        if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-node-id")) {
+          otherBlock = node;
+          break;
+        }
+        node = node.parentNode as HTMLElement;
+      }
+      const otherBlockId = otherBlock ? (otherBlock.dataset.nodeId || "") : "";
+      if (otherBlock && (!lastActiveCell || otherBlockId !== lastActiveCell.blockId)) {
+        updateLastActiveCell(null);
+        highlightActiveRowAndCol(null, null);
+        setDockUIState(elements, dockElement, false);
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// 注册入口
+// ═══════════════════════════════════════════════════
 
 export function registerDock(plugin: AdvancedTablesPlugin) {
   let selectionListener: (() => void) | null = null;
-  let statusCardEl: HTMLElement | null = null;
-  let statusTextEl: HTMLElement | null = null;
-  let statusDotEl: HTMLElement | null = null;
-  let buttonGridContainer: HTMLElement | null = null;
-  let tooltipBarEl: HTMLElement | null = null;
 
-  // 缓存最近一次被编辑的表格状态及单元格坐标
-  let lastActiveCell: { blockId: string; coord: CellCoord; tableBlock: HTMLElement } | null = null;
+  // DOM 引用
+  const elements: DockUIElements = {
+    statusCardEl: null,
+    statusTextEl: null,
+    statusDotEl: null,
+    buttonGridContainer: null,
+    tooltipBarEl: null,
+  };
 
-  // 连续 Dock 操作锁定标志位，防范思源 updateBlock 时的选区回弹和抖动
+  let lastActiveCell: ActiveCellState | null = null;
   let dockOperationActive = false;
   let dockOperationTimeoutId: any = null;
 
@@ -96,10 +236,8 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
     data: {},
     type: dockType,
     init() {
-      // 构建主容器 DOM
       this.element.innerHTML = `
         <div class="at-dock-panel fn__flex-1 fn__flex-column">
-          <!-- 顶部状态卡片 -->
           <div class="at-status-card">
             <div class="at-status-header">
               <span class="at-status-title">高级表格状态</span>
@@ -116,8 +254,6 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
               将文本转换为表格
             </button>
           </div>
-
-          <!-- 按钮分组容器 -->
           <div id="at-button-container" class="at-button-container at-disabled">
             ${COMMAND_GROUPS.map(group => `
               <div class="at-group">
@@ -127,45 +263,33 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
                     const cmd = TABLE_COMMANDS.find(c => c.id === cmdId);
                     if (!cmd) return "";
                     const iconSvg = SVG_ICONS[cmdId] || "";
-                    return `
-                      <button 
-                        class="at-btn ariaLabel" 
-                        data-cmd-id="${cmdId}" 
-                        aria-label="${cmd.nameZh}"
-                      >
-                        <span class="at-btn-icon">${iconSvg}</span>
-                      </button>
-                    `;
+                    return `<button class="at-btn ariaLabel" data-cmd-id="${cmdId}" aria-label="${cmd.nameZh}"><span class="at-btn-icon">${iconSvg}</span></button>`;
                   }).join("")}
                 </div>
               </div>
             `).join("")}
           </div>
-
-          <!-- 底部提示栏 -->
           <div class="at-footer-tooltip">
             <div id="at-tooltip-bar" class="at-tooltip-bar">提示：将光标移动至表格中开始编辑</div>
           </div>
         </div>
       `;
 
-      // 初始化 DOM 引用，修复由于没有赋值导致 setUIState 状态无法更新的 Bug
-      statusCardEl = this.element.querySelector(".at-status-card") as HTMLElement;
-      statusTextEl = this.element.querySelector("#at-status-text") as HTMLElement;
-      statusDotEl = this.element.querySelector("#at-status-dot") as HTMLElement;
-      buttonGridContainer = this.element.querySelector("#at-button-container") as HTMLElement;
-      tooltipBarEl = this.element.querySelector("#at-tooltip-bar") as HTMLElement;
+      // 初始化 DOM 引用
+      elements.statusCardEl = this.element.querySelector(".at-status-card") as HTMLElement;
+      elements.statusTextEl = this.element.querySelector("#at-status-text") as HTMLElement;
+      elements.statusDotEl = this.element.querySelector("#at-status-dot") as HTMLElement;
+      elements.buttonGridContainer = this.element.querySelector("#at-button-container") as HTMLElement;
+      elements.tooltipBarEl = this.element.querySelector("#at-tooltip-bar") as HTMLElement;
 
-      // 绑定“将文本转换为表格”按钮事件
+      // 绑定"将文本转换为表格"按钮
       const textToTableBtn = this.element.querySelector("#at-dock-text-to-table-btn") as HTMLElement;
       if (textToTableBtn) {
         textToTableBtn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
           const cmd = TABLE_COMMANDS.find(c => c.id === "text-to-table");
-          if (cmd) {
-            await executeCommand(cmd, plugin.settings);
-          }
+          if (cmd) await executeCommand(cmd, plugin.settings);
         });
       }
 
@@ -174,291 +298,117 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
       buttons.forEach((btn: HTMLButtonElement) => {
         const cmdId = btn.getAttribute("data-cmd-id");
         const cmd = TABLE_COMMANDS.find(c => c.id === cmdId);
-        
-        if (cmd) {
-          // ── mousedown：焦点尚未转移，此时 selection 仍指向编辑器 ──
-          // 提前抢救当前的表格上下文，确保 click 时 lastActiveCell 一定有值
-          btn.addEventListener("mousedown", () => {
-            const activeEditor = getActiveEditor();
-            if (!activeEditor?.protyle) return;
+        if (!cmd) return;
 
-            const sel = window.getSelection();
-            if (!sel || sel.rangeCount === 0) return;
-
-            const range = sel.getRangeAt(0);
-            // 找到当前 selection 所在的表格块
-            let node: Node | null = range.startContainer;
-            let capturedTableBlock: HTMLElement | null = null;
-            while (node && node !== document.body) {
-              if (node instanceof HTMLElement &&
-                  node.dataset.type === "NodeTable" &&
-                  node.dataset.nodeId) {
-                capturedTableBlock = node;
-                break;
-              }
-              node = node.parentNode;
+        btn.addEventListener("mousedown", () => {
+          const activeEditor = getActiveEditor();
+          if (!activeEditor?.protyle) return;
+          const sel = window.getSelection();
+          if (!sel || sel.rangeCount === 0) return;
+          const range = sel.getRangeAt(0);
+          let node: Node | null = range.startContainer;
+          let capturedTableBlock: HTMLElement | null = null;
+          while (node && node !== document.body) {
+            if (node instanceof HTMLElement && node.dataset.type === "NodeTable" && node.dataset.nodeId) {
+              capturedTableBlock = node;
+              break;
             }
-            if (!capturedTableBlock) return;
+            node = node.parentNode;
+          }
+          if (!capturedTableBlock) return;
+          const coord = rangeToCellCoord(range, capturedTableBlock);
+          if (!coord) return;
+          lastActiveCell = { blockId: capturedTableBlock.dataset.nodeId || "", coord, tableBlock: capturedTableBlock };
+        });
 
-            // 获取当前单元格坐标（直接使用顶部已导入的 rangeToCellCoord）
-            const coord = rangeToCellCoord(range, capturedTableBlock);
-            if (!coord) return;
+        btn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dockOperationActive = true;
+          if (dockOperationTimeoutId) clearTimeout(dockOperationTimeoutId);
 
-            // 更新 lastActiveCell 缓存（在焦点离开前）
-            lastActiveCell = {
-              blockId: capturedTableBlock.dataset.nodeId || "",
-              coord,
-              tableBlock: capturedTableBlock,
-            };
-          });
+          let preset = null;
+          if (lastActiveCell) {
+            preset = { tableBlock: lastActiveCell.tableBlock, blockId: lastActiveCell.blockId, coord: { ...lastActiveCell.coord } };
+          }
 
-          btn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // 锁定本地推演坐标，在重绘防抖期内屏蔽 selectionchange 的回弹干扰
-            dockOperationActive = true;
-            if (dockOperationTimeoutId) {
-              clearTimeout(dockOperationTimeoutId);
-            }
+          await executeCommand(cmd, plugin.settings, preset);
 
-            // 获取预设上下文，如果有有效缓存直接使用并旁路 isCursorInTable 检测
-            let preset = null;
-            if (lastActiveCell) {
-              preset = {
-                tableBlock: lastActiveCell.tableBlock,
-                blockId: lastActiveCell.blockId,
-                coord: { ...lastActiveCell.coord },
-              };
-            }
+          if (lastActiveCell) {
+            const coord = lastActiveCell.coord;
+            if (cmd.id === "move-row-up") coord.row = Math.max(0, coord.row - 1);
+            else if (cmd.id === "move-row-down") coord.row = coord.row + 1;
+            else if (cmd.id === "move-column-left") coord.col = Math.max(0, coord.col - 1);
+            else if (cmd.id === "move-column-right") coord.col = coord.col + 1;
 
-            // 执行命令，传入预设上下文
-            await executeCommand(cmd, plugin.settings, preset);
+            const latestEl = document.querySelector(`[data-node-id="${lastActiveCell.blockId}"]`) as HTMLElement;
+            if (latestEl) lastActiveCell.tableBlock = latestEl;
+            highlightActiveRowAndCol(lastActiveCell.tableBlock, coord);
 
-            // 操作后本地坐标动态演进推演（用于支持高频连续移动操作）
-            if (lastActiveCell) {
-              const coord = lastActiveCell.coord;
-              if (cmd.id === "move-row-up") {
-                coord.row = Math.max(0, coord.row - 1);
-              } else if (cmd.id === "move-row-down") {
-                coord.row = coord.row + 1;
-              } else if (cmd.id === "move-column-left") {
-                coord.col = Math.max(0, coord.col - 1);
-              } else if (cmd.id === "move-column-right") {
-                coord.col = coord.col + 1;
-              }
-
-              // 强行纠正：为了保证连续操作时不会拿 detached 节点导致高亮失效，高亮前立即在 DOM 里抓取最新的 attached 表格节点
-              const latestEl = document.querySelector(`[data-node-id="${lastActiveCell.blockId}"]`) as HTMLElement;
-              if (latestEl) {
-                lastActiveCell.tableBlock = latestEl;
-              }
-
-              // 立即应用推演后的高亮，加速视觉跟随
-              highlightActiveRowAndCol(lastActiveCell.tableBlock, coord);
-
-              // 异步重绘兜底高亮：等待思源 DOM 树彻底挂载完毕后，重新刷新最新的 DOM 容器及高亮状态
-              setTimeout(() => {
-                if (lastActiveCell) {
-                  const finalLatestEl = document.querySelector(`[data-node-id="${lastActiveCell.blockId}"]`) as HTMLElement;
-                  if (finalLatestEl) {
-                    lastActiveCell.tableBlock = finalLatestEl;
-                    highlightActiveRowAndCol(finalLatestEl, coord);
-                  }
-                }
-              }, 50);
-
-              // 锁定延迟 350ms 后释放，留足时间给思源和浏览器处理选区和重绘
-              dockOperationTimeoutId = setTimeout(() => {
-                dockOperationActive = false;
-              }, 350);
-            }
-
-            
-            // 不需要再做强同步 updateStatus()，交给 selectionchange 去平滑刷新
-          });
-
-          // Hover 状态显示详细介绍和英文名
-          btn.addEventListener("mouseenter", () => {
-            if (tooltipBarEl) {
-              tooltipBarEl.innerText = `${cmd.nameZh} (${cmd.nameEn})`;
-            }
-          });
-
-          btn.addEventListener("mouseleave", () => {
-            if (tooltipBarEl) {
-              // 恢复默认提示
-              const activeEditor = getActiveEditor();
-              if (activeEditor?.protyle) {
-                const { inTable, tableBlock } = isCursorInTable(activeEditor);
-                if (inTable && tableBlock) {
-                  const size = getTableSize(tableBlock);
-                  tooltipBarEl.innerText = `当前表格：${size.rows} 行 × ${size.cols} 列`;
-                  return;
-                }
-              }
+            setTimeout(() => {
               if (lastActiveCell) {
-                const size = getTableSize(lastActiveCell.tableBlock);
-                tooltipBarEl.innerText = `当前表格：${size.rows} 行 × ${size.cols} 列`;
+                const finalLatestEl = document.querySelector(`[data-node-id="${lastActiveCell.blockId}"]`) as HTMLElement;
+                if (finalLatestEl) {
+                  lastActiveCell.tableBlock = finalLatestEl;
+                  highlightActiveRowAndCol(finalLatestEl, coord);
+                }
+              }
+            }, 50);
+
+            dockOperationTimeoutId = setTimeout(() => { dockOperationActive = false; }, 350);
+          }
+        });
+
+        btn.addEventListener("mouseenter", () => {
+          if (elements.tooltipBarEl) {
+            elements.tooltipBarEl.innerText = `${cmd.nameZh} (${cmd.nameEn})`;
+          }
+        });
+
+        btn.addEventListener("mouseleave", () => {
+          if (elements.tooltipBarEl) {
+            const activeEditor = getActiveEditor();
+            if (activeEditor?.protyle) {
+              const { inTable, tableBlock } = isCursorInTable(activeEditor);
+              if (inTable && tableBlock) {
+                const size = getTableSize(tableBlock);
+                elements.tooltipBarEl.innerText = `当前表格：${size.rows} 行 × ${size.cols} 列`;
                 return;
               }
-              tooltipBarEl.innerText = "提示：将光标移动至表格中开始编辑";
             }
-          });
-        }
+            if (lastActiveCell) {
+              const size = getTableSize(lastActiveCell.tableBlock);
+              elements.tooltipBarEl.innerText = `当前表格：${size.rows} 行 × ${size.cols} 列`;
+              return;
+            }
+            elements.tooltipBarEl.innerText = "提示：将光标移动至表格中开始编辑";
+          }
+        });
       });
 
-      // 实时状态检测与缓存更新方法
-      const updateStatus = () => {
-        // 如果 Dock 连续操作中，仅渲染推演高亮，防止被未归位选区的 selectionchange 覆盖
-        if (dockOperationActive && lastActiveCell) {
-          highlightActiveRowAndCol(lastActiveCell.tableBlock, lastActiveCell.coord);
-          const size = getTableSize(lastActiveCell.tableBlock);
-          setUIState(true, size.rows, size.cols);
-          return;
-        }
-
-        let inTable = false;
-        let tableBlock: HTMLElement | null = null;
-
-        // 1. 优先通过 Selection API 检测，这样不依赖 getActiveEditor()，更鲁棒
-        const sel = window.getSelection();
-        if (sel && sel.rangeCount > 0) {
-          const range = sel.getRangeAt(0);
-          tableBlock = findTableBlock(range.startContainer);
-          if (tableBlock) {
-            inTable = true;
-          }
-        }
-
-        // 2. 如果 Selection 无法确定，但有活跃的编辑器，使用 selection 丢失的兜底逻辑（如选中思源表格块本身）
-        if (!inTable) {
-          const activeEditor = getActiveEditor();
-          if (activeEditor?.protyle) {
-            const res = isCursorInTable(activeEditor);
-            if (res.inTable && res.tableBlock) {
-              inTable = true;
-              tableBlock = res.tableBlock;
-            }
-          }
-        }
-
-        if (inTable && tableBlock) {
-          // 在表格内，保存并更新最新的光标坐标
-          if (sel && sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0);
-            const coord = rangeToCellCoord(range, tableBlock);
-            if (coord) {
-              lastActiveCell = {
-                blockId: tableBlock.dataset.nodeId || "",
-                coord,
-                tableBlock,
-              };
-              highlightActiveRowAndCol(tableBlock, coord); // 触发操作行列高亮
-            }
-          }
-          const size = getTableSize(tableBlock);
-          setUIState(true, size.rows, size.cols);
-        } else {
-          // 惰性失焦：如果光标暂时离开了表格（可能是由于点击了 Dock 按钮等）
-          // 只要用户并没有把光标明确挪到表格外的其他 Block 块元素上，我们就继续保留面板的激活状态！
-          if (sel && sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0);
-            let node = range.startContainer as HTMLElement;
-            let otherBlock: HTMLElement | null = null;
-            
-            // 向上寻找当前选区聚焦 of 块元素
-            while (node && node !== document.body) {
-              if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-node-id")) {
-                otherBlock = node;
-                break;
-              }
-              node = node.parentNode as HTMLElement;
-            }
-            
-            // 如果明确发现了其他非当前缓存表格的 Block，说明用户确实把光标移走了，此时才真正置灰并清空缓存
-            const otherBlockId = otherBlock ? (otherBlock.dataset.nodeId || "") : "";
-            if (otherBlock && (!lastActiveCell || otherBlockId !== lastActiveCell.blockId)) {
-              lastActiveCell = null;
-              highlightActiveRowAndCol(null, null); // 确切跳出表格时清空高亮
-              setUIState(false);
-            }
-          }
-        }
-      };
-
-      // 改变 UI 状态
-      const setUIState = (active: boolean, rows = 0, cols = 0) => {
-        const textToTableBtn = this.element.querySelector("#at-dock-text-to-table-btn") as HTMLElement;
-
-        if (active) {
-          if (statusCardEl) statusCardEl.classList.add("at-active");
-          if (statusDotEl) {
-            statusDotEl.style.backgroundColor = "var(--b3-theme-primary)";
-            statusDotEl.classList.add("at-pulse");
-          }
-          if (statusTextEl) statusTextEl.innerText = `表格编辑中 (${rows} 行 × ${cols} 列)`;
-          if (buttonGridContainer) buttonGridContainer.classList.remove("at-disabled");
-          if (tooltipBarEl && tooltipBarEl.innerText.startsWith("提示：")) {
-            tooltipBarEl.innerText = `当前表格：${rows} 行 × ${cols} 列`;
-          }
-          if (textToTableBtn) {
-            textToTableBtn.style.display = "none";
-          }
-        } else {
-          if (statusCardEl) statusCardEl.classList.remove("at-active");
-          if (statusDotEl) {
-            statusDotEl.style.backgroundColor = "var(--b3-theme-error, #f44336)";
-            statusDotEl.classList.remove("at-pulse");
-          }
-          if (statusTextEl) statusTextEl.innerText = "未检测到聚焦表格";
-          if (buttonGridContainer) buttonGridContainer.classList.add("at-disabled");
-          if (tooltipBarEl && !tooltipBarEl.innerText.startsWith("提示：")) {
-            tooltipBarEl.innerText = "提示：将光标移动至表格中开始编辑";
-          }
-          if (textToTableBtn) {
-            textToTableBtn.style.display = "flex";
-          }
-        }
-      };
-
-      // 监听系统 selectionchange 事件来秒级响应光标位置变化
-      selectionListener = () => {
-        // 使用 requestAnimationFrame 避免在选区高频变动时造成卡顿
+      // 状态更新回调
+      const refreshStatus = () => {
         requestAnimationFrame(() => {
-          updateStatus();
+          updateDockStatus(
+            dockOperationActive,
+            lastActiveCell,
+            elements,
+            this.element,
+            (cell) => { lastActiveCell = cell; },
+          );
         });
       };
-      document.addEventListener("selectionchange", selectionListener);
 
-      // 初次加载时运行一次
-      updateStatus();
+      selectionListener = refreshStatus;
+      document.addEventListener("selectionchange", selectionListener);
+      refreshStatus();
     },
     destroy() {
       if (selectionListener) {
         document.removeEventListener("selectionchange", selectionListener);
         selectionListener = null;
       }
-      highlightActiveRowAndCol(null, null); // 面板注销时彻底移除行列高亮类
+      highlightActiveRowAndCol(null, null);
     },
   });
-}
-
-/**
- * 辅助函数：计算 DOM 表格的大小
- */
-function getTableSize(tableBlock: HTMLElement): { rows: number; cols: number } {
-  try {
-    const trs = tableBlock.querySelectorAll("tr");
-    const rows = trs.length;
-    let cols = 0;
-    if (rows > 0) {
-      // 统计首个 tr 下 td/th 数量作为列数
-      cols = trs[0].querySelectorAll("th, td").length;
-    }
-    return { rows, cols };
-  } catch (e) {
-    console.warn("[siyuan-advanced-tables] getTableSize failed:", e);
-    return { rows: 0, cols: 0 };
-  }
 }

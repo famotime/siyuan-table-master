@@ -1,8 +1,6 @@
 # 高级表格 (Advanced Tables)
 
-思源笔记表格增强插件，提供自动格式化、单元格导航、行列操作、排序对齐、公式求值等高级编辑能力。
-
-> 基于 [@tgrosinger/md-advanced-tables](https://github.com/tgrosinger/md-advanced-tables) 核心库（MIT），为思源原生 NodeTable 块提供类电子表格的编辑体验。
+思源笔记表格增强插件，基于 [@tgrosinger/md-advanced-tables](https://github.com/tgrosinger/md-advanced-tables) 核心库，为思源原生 NodeTable 块提供增强编辑能力。
 
 ## 功能
 
@@ -21,8 +19,14 @@
 - **转置** — 行列互换
 - **公式** — 支持 SUM、AVERAGE、COUNT、MAX、MIN 等电子表格公式
 - **跳出表格** — 快速退出表格到下方编辑
-
-> 当前为 M1 里程碑（MVP），功能已完整实现。后续规划见[设计文档](docs/01-设计方案.md)。
+- **复制粘贴** — 行列级复制/粘贴（带覆盖确认）
+- **求和** — 行求和 / 列求和
+- **文本转表格** — 将逗号/Tab/终端制图表转换为 Markdown 表格
+- **智能粘贴** — 自动识别 Excel/网页粘贴的表格数据
+- **即时计算** — Alt+拖拽框选，实时求和/平均值/计数
+- **拖拽重排** — 拖拽手柄行列排序
+- **浮动工具栏** — 光标附近悬浮快速操作
+- **粘性表头** — 长表格滚动表头固定
 
 ## 安装
 
@@ -39,18 +43,48 @@
 将光标置于表格内，通过以下任一方式操作：
 
 - **快捷键** — `Tab` / `Shift+Tab` / `Enter`
-- **命令面板** — `Ctrl+P` 搜索「高级表格」相关命令
-- **工具栏** — 点击顶栏表格图标（需在设置中开启）
+- **命令面板** — `Ctrl+P` 搜索相关命令
+- **侧栏工具箱** — 右侧 Dock 面板集中操作
+- **浮动工具栏** — 光标附近悬浮按钮
+- **右键菜单** — 支持「文本转表格」
 
 ## 设置
 
 | 选项 | 默认 | 说明 |
 |------|------|------|
-| 格式化风格 | 弱格式(WEAK) | WEAK 无额外填充（推荐 CJK 场景），NORMAL 标准填充对齐 |
+| 浮动工具栏 | 开启 | 光标在表格内时显示浮动操作栏 |
+| 粘性表头 | 开启 | 滚动时表头固定 |
+| 智能粘贴 | 开启 | 自动识别 Excel/网页表格数据 |
+| 即时计算 | 开启 | Alt+拖拽选区实时统计 |
+| 拖拽重排 | 开启 | 鼠标拖拽调整行列顺序 |
 | Tab 键导航 | 开启 | Tab 切换单元格 |
 | Enter 键导航 | 开启 | Enter 进入下一行 |
-| CJK 宽度校正 | 开启 | NORMAL 格式下中文宽度修正 |
-| 顶栏图标 | 开启 | 在顶栏显示表格图标入口 |
+| CJK 宽度校正 | 开启 | 中文字符宽度修正 |
+
+## 开发
+
+```bash
+pnpm install            # 安装依赖
+npm run dev             # 开发模式（需配置 .env 中的 VITE_SIYUAN_WORKSPACE_PATH）
+npm run build           # 生产构建 → ./dist/ + ./package.zip
+npm test                # 运行测试（vitest，103 个测试）
+npm run test:watch      # 测试监视模式
+npx eslint src/         # 代码检查
+```
+
+## 架构
+
+```
+Command/Key → commands.ts → SiyuanTextEditor → TableEditor → md-advanced-tables 核心库
+                                 (reload)         (flush)
+                        GET /api/block/getBlockKramdown    POST /api/block/updateBlock
+```
+
+- `siyuan-text-editor.ts` — 核心适配器，实现 ITextEditor 接口
+- `table-editor.ts` — 表格编辑器封装
+- `table-model.ts` — kramdown ↔ 行数组纯函数
+- `text-to-table-utils.ts` — 文本转表格纯函数
+- 详情见 `docs/project-structure.md`
 
 ## 致谢
 

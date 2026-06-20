@@ -113,17 +113,17 @@ export class SmartPaste {
     startCol: number,
     grid: string[][]
   ) {
-    const lines = (ctx as any)._lines as string[];
-    if (!lines || lines.length === 0) return;
+    const lineCount = ctx.getLineCount();
+    if (lineCount === 0) return;
 
     // 1. 计算当前的行列数
-    const firstRowCells = splitTableRow(lines[0] ?? "");
+    const firstRowCells = splitTableRow(ctx.getLineAt(0) ?? "");
     let currentColCount = firstRowCells.length;
 
     // 计算分隔行中单元格的长度，用于扩充列时填充 "---"
     let sepLineIdx = -1;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+    for (let i = 0; i < lineCount; i++) {
+      const line = ctx.getLineAt(i) ?? "";
       if (line.includes("|") && line.replace(/[^|]/g, "").length >= 2) {
         const cells = splitTableRow(line);
         if (cells.every(c => c.trim().match(/^:?-+:?$/))) {
@@ -137,46 +137,52 @@ export class SmartPaste {
     const maxColNeeded = startCol + Math.max(...grid.map(r => r.length));
     if (maxColNeeded > currentColCount) {
       const colDiff = maxColNeeded - currentColCount;
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      for (let i = 0; i < lineCount; i++) {
+        const line = ctx.getLineAt(i) ?? "";
         if (i === sepLineIdx) {
           // 对分隔行添加 "---"
           const suffix = Array(colDiff).fill(" --- ").join("|");
-          lines[i] = line.replace(/\s*\|\s*$/, ` |${suffix} |`);
+          ctx.setLineAt(i, line.replace(/\s*\|\s*$/, ` |${suffix} |`));
         } else {
           // 对普通行和表头行添加空值
           const suffix = Array(colDiff).fill(" ").join("|");
-          lines[i] = line.replace(/\s*\|\s*$/, ` |${suffix} |`);
+          ctx.setLineAt(i, line.replace(/\s*\|\s*$/, ` |${suffix} |`));
         }
       }
       currentColCount = maxColNeeded;
-      (ctx as any)._dirty = true;
     }
 
     // 3. 智能扩充行数
-    // 数据模型行包含 1 行表头、1 行分隔线，所以 DOM 数据行数 = lines.length - 2（如果存在分隔行）
+    // 数据模型行包含 1 行表头、1 行分隔线，所以 DOM 数据行数 = lineCount - 2（如果存在分隔行）
     // 目标最大 DOM 行数是 startRow + grid.length
     const isHeaderPasted = startRow === 0;
     const maxDomRowNeeded = startRow + grid.length;
     // 表格原本的 DOM 行数 (包含 header)
-    const currentDomRowCount = lines.filter(l => {
-      // 排除分隔行和可能存在的 IAL 行
-      return !l.trim().match(/^\{:[^}]+\}$/) && l !== lines[sepLineIdx];
-    }).length;
+    const currentDomRowCount = (() => {
+      let count = 0;
+      for (let i = 0; i < lineCount; i++) {
+        const line = ctx.getLineAt(i) ?? "";
+        // 排除分隔行和可能存在的 IAL 行
+        if (i === sepLineIdx) continue;
+        if (line.trim().match(/^\{:[^}]+\}$/)) continue;
+        count++;
+      }
+      return count;
+    })();
 
     if (maxDomRowNeeded > currentDomRowCount) {
       const rowDiff = maxDomRowNeeded - currentDomRowCount;
       const emptyRow = `| ${Array(currentColCount).fill(" ").join(" | ")} |`;
-      
+
       // 在末尾插入空行（如果最后一行是 IAL 行，就在 IAL 之前插入）
-      const lastLineIdx = lines.length - 1;
-      const hasIal = lines[lastLineIdx]?.trim().startsWith("{:");
-      const insertAt = hasIal ? lastLineIdx : lines.length;
+      const lastLineIdx = lineCount - 1;
+      const lastLine = ctx.getLineAt(lastLineIdx) ?? "";
+      const hasIal = lastLine.trim().startsWith("{:");
+      const insertAt = hasIal ? lastLineIdx : lineCount;
 
       for (let i = 0; i < rowDiff; i++) {
-        lines.splice(insertAt, 0, emptyRow);
+        ctx.insertLineAt(insertAt, emptyRow);
       }
-      (ctx as any)._dirty = true;
     }
 
     // 4. 开始按坐标覆盖数据
@@ -192,8 +198,9 @@ export class SmartPaste {
       } else {
         // 由于有分隔行，要特别注意。最靠谱的方法是：遍历 lines，找到第 domRow 个非分隔非 IAL 的行
         let nonSepCount = 0;
-        for (let i = 0; i < lines.length; i++) {
-          if (i === sepLineIdx || lines[i].trim().startsWith("{:")) continue;
+        for (let i = 0; i < ctx.getLineCount(); i++) {
+          const line = ctx.getLineAt(i) ?? "";
+          if (i === sepLineIdx || line.trim().startsWith("{:")) continue;
           if (nonSepCount === domRow) {
             lineIdx = i;
             break;

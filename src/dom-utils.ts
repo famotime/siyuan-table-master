@@ -278,4 +278,48 @@ export function highlightActiveRowAndCol(
   `;
 }
 
+// ═══════════════════════════════════════════════════
+// 共享工具函数
+// ═══════════════════════════════════════════════════
+
+/**
+ * HTML 转义，防止 < > & " 破坏 DOM 结构
+ * 从 text-to-table、confirm-dialog 等多处统一提取。
+ */
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * 从表格块中获取单元格的 DOM 坐标 { row, col }。
+ * 从 quick-calc.ts / drag-reorder.ts 统一提取。
+ *
+ * @param cell - 目标 td/th 元素
+ * @param tableBlock - NodeTable 块根元素
+ * @returns 坐标或 null（不在表格内）
+ */
+export function getCellCoordFromTable(
+  cell: HTMLTableCellElement,
+  tableBlock: HTMLElement,
+): { row: number; col: number } | null {
+  const table = tableBlock.querySelector("table");
+  if (!table) return null;
+
+  const rows = Array.from(table.querySelectorAll("tr"));
+  const tr = cell.parentElement as HTMLTableRowElement;
+  if (!tr) return null;
+
+  const rowIdx = rows.indexOf(tr);
+  if (rowIdx === -1) return null;
+
+  const cells = Array.from(tr.querySelectorAll("td, th"));
+  const colIdx = cells.indexOf(cell);
+  if (colIdx === -1) return null;
+
+  return { row: rowIdx, col: colIdx };
+}
 

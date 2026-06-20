@@ -1,6 +1,6 @@
 /**
  * table-editor.ts - 表格编辑器封装
- * 
+ *
  * 对标参考项目 advanced-tables-obsidian 的同名文件。
  * 转发所有操作到 @tgrosinger/md-advanced-tables 核心库。
  */
@@ -202,17 +202,11 @@ export class TableEditor {
 
   // ── 复制与粘贴 ──
 
-
-  /**
-   * 复制当前光标所在行的所有单元格内容到内存剪贴板。
-   * @returns 失败时返回错误描述字符串，成功返回 null。
-   */
   async copyRow(): Promise<string | null> {
     await this.ctx.reload();
     const coord = this.ctx.getCursorDomCoord();
     if (!coord) return "无法获取光标位置";
 
-    // DOM 行号 → _lines 索引（跳过分隔行）
     const lineIdx = coord.row === 0 ? 0 : coord.row + 1;
     const cells = this.ctx.getRowCellsAt(lineIdx);
     clipboard = { type: "row", cells: [...cells] };
@@ -220,10 +214,6 @@ export class TableEditor {
     return null;
   }
 
-  /**
-   * 复制当前光标所在列的所有单元格内容（含表头）到内存剪贴板。
-   * @returns 失败时返回错误描述字符串，成功返回 null。
-   */
   async copyColumn(): Promise<string | null> {
     await this.ctx.reload();
     const coord = this.ctx.getCursorDomCoord();
@@ -235,155 +225,51 @@ export class TableEditor {
     return null;
   }
 
-  /**
-   * 将剪贴板中的行数据粘贴到当前光标所在行。
-   * 若目标行已有内容，则弹出确认对话框由用户决定是否覆盖。
-   * @returns 失败/候确认时返回错误描述字符串，其他情况返回 null。
-   */
   async pasteRow(): Promise<string | null> {
     if (!clipboard || clipboard.type !== "row") {
       return "剪贴板中没有行数据，请先使用「复制行」";
     }
-    await this.ctx.reload();
-    const coord = this.ctx.getCursorDomCoord();
-    if (!coord) return "无法获取光标位置";
-
-    const lineIdx = coord.row === 0 ? 0 : coord.row + 1;
-    const currentCells = this.ctx.getRowCellsAt(lineIdx);
-    // 过滤掉单元格级 IAL (如 {: colspan="1"}) 之后检测是否有实质内容
-    const hasContent = currentCells.some((c) => getPureCellText(c) !== "");
-    const clipCells = clipboard.cells;
-
-    const executePaste = async () => {
-      this.ctx.setRowCellsAt(lineIdx, clipCells);
-      await this.ctx.flush();
-      showMessage(`已粘贴到第 ${coord.row + 1} 行`, 1500);
-    };
-
-    if (!hasContent) {
-      await executePaste();
-      return null;
-    }
-
-    // 目标行已有内容，弹出确认对话框
-    return new Promise<string | null>((resolve) => {
-      let resolved = false; // 用于标记 Promise 是否已被解决，防止重复触发或状态丢失
-      const preview = (arr: string[]) =>
-        arr.map(getPureCellText).filter((c) => c).join(" | ") || "(空)";
-      showPasteConfirmDialog(
-        `当前第 ${coord.row + 1} 行已有内容，是否覆盖？`,
-        preview(currentCells),
-        preview(clipCells),
-        async () => {
-          resolved = true;
-          await executePaste();
-          resolve(null);
-        },
-        () => {
-          resolved = true;
-          showMessage("已取消粘贴", 1500);
-          resolve(null);
-        },
-        () => {
-          // 对话框被销毁（如点击遮罩或右上角关闭）时的兜底释放回调
-          if (!resolved) {
-            resolve(null);
-          }
-        }
-      );
-    });
+    return this.pasteWithConfirm(
+      "行",
+      clipboard.cells,
+      (coord) => {
+        const lineIdx = coord.row === 0 ? 0 : coord.row + 1;
+        return { current: this.ctx.getRowCellsAt(lineIdx), target: lineIdx };
+      },
+      (target, cells) => { this.ctx.setRowCellsAt(target as number, cells); },
+      (arr) => arr.map(getPureCellText).filter(c => c).join(" | ") || "(空)",
+    );
   }
 
-  /**
-   * 将剪贴板中的列数据粘贴到当前光标所在列。
-   * 若目标列已有内容，则弹出确认对话框由用户决定是否覆盖。
-   * @returns 失败/候确认时返回错误描述字符串，其他情况返回 null。
-   */
   async pasteColumn(): Promise<string | null> {
     if (!clipboard || clipboard.type !== "column") {
       return "剪贴板中没有列数据，请先使用「复制列」";
     }
-    await this.ctx.reload();
-    const coord = this.ctx.getCursorDomCoord();
-    if (!coord) return "无法获取光标位置";
-
-    const currentCells = this.ctx.getColCells(coord.col);
-    // 过滤掉单元格级 IAL (如 {: colspan="1"}) 之后检测是否有实质内容
-    const hasContent = currentCells.some((c) => getPureCellText(c) !== "");
-    const clipCells = clipboard.cells;
-
-    const executePaste = async () => {
-      this.ctx.setColCells(coord.col, clipCells);
-      await this.ctx.flush();
-      showMessage(`已粘贴到第 ${coord.col + 1} 列`, 1500);
-    };
-
-    if (!hasContent) {
-      await executePaste();
-      return null;
-    }
-
-    // 目标列已有内容，弹出确认对话框
-    return new Promise<string | null>((resolve) => {
-      let resolved = false; // 用于标记 Promise 是否已被解决，防止重复触发或状态丢失
-      // 列内容预览取前 3 行，并滤除属性标识，避免对话框过长
-      const preview = (arr: string[]) => {
-        const rows = arr.map(getPureCellText).filter((c) => c);
+    return this.pasteWithConfirm(
+      "列",
+      clipboard.cells,
+      (coord) => {
+        return { current: this.ctx.getColCells(coord.col), target: coord.col };
+      },
+      (target, cells) => { this.ctx.setColCells(target as number, cells); },
+      (arr) => {
+        const rows = arr.map(getPureCellText).filter(c => c);
         if (rows.length === 0) return "(空)";
         return rows.slice(0, 3).join(" / ") + (rows.length > 3 ? " …" : "");
-      };
-      showPasteConfirmDialog(
-        `当前第 ${coord.col + 1} 列已有内容，是否覆盖？`,
-        preview(currentCells),
-        preview(clipCells),
-        async () => {
-          resolved = true;
-          await executePaste();
-          resolve(null);
-        },
-        () => {
-          resolved = true;
-          showMessage("已取消粘贴", 1500);
-          resolve(null);
-        },
-        () => {
-          // 对话框被销毁（如点击遮罩或右上角关闭）时的兜底释放回调
-          if (!resolved) {
-            resolve(null);
-          }
-        }
-      );
-    });
+      },
+    );
   }
 
-  /**
-   * 行求和：计算光标所在行左侧所有单元格的数字之和，填入光标单元格。
-   * 如果存在非数字且非空的单元格内容，则跳过并弹窗提示。
-   */
+  // ── 求和 ──
+
   async rowSum(): Promise<void> {
     await this.ctx.reload();
     const coord = this.ctx.getCursorDomCoord();
     if (!coord) return;
 
-    // DOM 行号 -> _lines 索引 (跳过分隔行)
     const lineIdx = coord.row === 0 ? 0 : coord.row + 1;
     const cells = this.ctx.getRowCellsAt(lineIdx);
-
-    let sum = 0;
-    const skipped: string[] = [];
-
-    for (let i = 0; i < coord.col; i++) {
-      const pureText = getPureCellText(cells[i]);
-      if (pureText === "") continue;
-
-      const val = Number(pureText);
-      if (isNaN(val)) {
-        skipped.push(pureText);
-      } else {
-        sum += val;
-      }
-    }
-
+    const { sum, skipped } = sumCells(cells.slice(0, coord.col));
     cells[coord.col] = String(sum);
     this.ctx.setRowCellsAt(lineIdx, cells);
     await this.ctx.flush();
@@ -393,33 +279,13 @@ export class TableEditor {
     }
   }
 
-  /**
-   * 列求和：计算光标所在列上方所有单元格（从 DOM 行 1 开始，避开表头）的数字之和，填入光标单元格。
-   * 如果存在非数字且非空的单元格内容，则跳过并弹窗提示。
-   */
   async columnSum(): Promise<void> {
     await this.ctx.reload();
     const coord = this.ctx.getCursorDomCoord();
     if (!coord) return;
 
     const colCells = this.ctx.getColCells(coord.col);
-
-    let sum = 0;
-    const skipped: string[] = [];
-
-    // 从 DOM 行 1 开始（即数据行），遍历到当前行上方
-    for (let i = 1; i < coord.row; i++) {
-      const pureText = getPureCellText(colCells[i]);
-      if (pureText === "") continue;
-
-      const val = Number(pureText);
-      if (isNaN(val)) {
-        skipped.push(pureText);
-      } else {
-        sum += val;
-      }
-    }
-
+    const { sum, skipped } = sumCells(colCells.slice(1, coord.row));
     colCells[coord.row] = String(sum);
     this.ctx.setColCells(coord.col, colCells);
     await this.ctx.flush();
@@ -428,12 +294,74 @@ export class TableEditor {
       showMessage(`存在非数字内容，已跳过：${skipped.join(", ")}`, 4000, "info");
     }
   }
+
+  // ── 私有方法 ──
+
+  /**
+   * 通用粘贴流程：剪贴板校验 → 获取上下文 → 检查目标是否有内容 → 直接粘贴或弹确认框。
+   * pasteRow / pasteColumn 共享此骨架，仅在获取目标、写入目标、预览格式上不同。
+   */
+  private async pasteWithConfirm(
+    label: string,
+    clipCells: string[],
+    getTarget: (coord: { row: number; col: number }) => { current: string[]; target: number | string },
+    writeTarget: (target: number | string, cells: string[]) => void,
+    formatPreview: (arr: string[]) => string,
+  ): Promise<string | null> {
+    await this.ctx.reload();
+    const coord = this.ctx.getCursorDomCoord();
+    if (!coord) return "无法获取光标位置";
+
+    const { current: currentCells, target } = getTarget(coord);
+    const hasContent = currentCells.some(c => getPureCellText(c) !== "");
+
+    const executePaste = async () => {
+      writeTarget(target, clipCells);
+      await this.ctx.flush();
+      showMessage(`已粘贴到第 ${coord.row + 1} ${label}`, 1500);
+    };
+
+    if (!hasContent) {
+      await executePaste();
+      return null;
+    }
+
+    return new Promise<string | null>((resolve) => {
+      let resolved = false;
+      showPasteConfirmDialog(
+        `当前第 ${coord.row + 1} ${label}已有内容，是否覆盖？`,
+        formatPreview(currentCells),
+        formatPreview(clipCells),
+        async () => { resolved = true; await executePaste(); resolve(null); },
+        () => { resolved = true; showMessage("已取消粘贴", 1500); resolve(null); },
+        () => { if (!resolved) resolve(null); },
+      );
+    });
+  }
 }
+
+// ── 模块级工具函数 ──
 
 /**
  * 去除思源单元格级属性 IAL（如 {: colspan="1"} 等）后的纯文本内容。
- * 用于更精确判定单元格在内容层是否为空，并美化弹窗预览界面。
  */
 function getPureCellText(cell: string): string {
   return cell.replace(/\{:[^}]+\}/g, "").trim();
+}
+
+/** 对一组单元格文本求和，跳过非数字且非空的单元格 */
+function sumCells(cells: string[]): { sum: number; skipped: string[] } {
+  let sum = 0;
+  const skipped: string[] = [];
+  for (const cell of cells) {
+    const pureText = getPureCellText(cell);
+    if (pureText === "") continue;
+    const val = Number(pureText);
+    if (isNaN(val)) {
+      skipped.push(pureText);
+    } else {
+      sum += val;
+    }
+  }
+  return { sum, skipped };
 }

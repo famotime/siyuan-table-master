@@ -19,6 +19,38 @@ import { QuickCalc } from "./quick-calc";
 import { DragReorder } from "./drag-reorder";
 import { isCursorInTable } from "./siyuan-text-editor";
 
+// ── 设置面板工具 ——
+
+/** 开关配置项描述 */
+interface ToggleSettingItem {
+  key: keyof PluginSettings;
+  i18nTitleKey: string;
+  defaultTitle: string;
+  i18nDescKey: string;
+  defaultDesc: string;
+}
+
+/** 创建开关 setting 项并绑定双向同步 */
+function createToggleSetting(
+  setting: Setting,
+  settings: PluginSettings,
+  i18n: Record<string, string>,
+  item: ToggleSettingItem,
+): void {
+  const check = document.createElement("input");
+  check.type = "checkbox";
+  check.className = "b3-switch fn__flex-center";
+  check.checked = settings[item.key] as boolean;
+  check.addEventListener("change", (e) => {
+    (settings as any)[item.key] = (e.target as HTMLInputElement).checked;
+  });
+  setting.addItem({
+    title: i18n[item.i18nTitleKey] || item.defaultTitle,
+    description: i18n[item.i18nDescKey] || item.defaultDesc,
+    actionElement: check,
+  });
+}
+
 let PluginInfo = { version: "" };
 try {
   PluginInfo = PluginInfoString as any;
@@ -192,125 +224,20 @@ export default class AdvancedTablesPlugin extends Plugin {
       },
     });
 
-    // 1. 浮动工具栏配置
-    const showFloatingToolbarCheck = document.createElement("input");
-    showFloatingToolbarCheck.type = "checkbox";
-    showFloatingToolbarCheck.className = "b3-switch fn__flex-center";
-    showFloatingToolbarCheck.checked = this.settings.showFloatingToolbar;
-    showFloatingToolbarCheck.addEventListener("change", (e) => {
-      this.settings.showFloatingToolbar = (e.target as HTMLInputElement).checked;
-    });
+    const TOGGLES: ToggleSettingItem[] = [
+      { key: "showFloatingToolbar", i18nTitleKey: "showFloatingToolbar", defaultTitle: "当光标在表格内时显示浮动工具栏", i18nDescKey: "showFloatingToolbarDesc", defaultDesc: "开启后，光标进入表格时将在光标附近显示浮动的快速操作工具栏" },
+      { key: "enableStickyHeader", i18nTitleKey: "enableStickyHeader", defaultTitle: "启用表格粘性表头 (Sticky Header)", i18nDescKey: "enableStickyHeaderDesc", defaultDesc: "开启后，长表格滚动时表头单元格将自动固定在编辑区顶部" },
+      { key: "enableSmartPaste", i18nTitleKey: "enableSmartPaste", defaultTitle: "启用剪贴板智能粘贴", i18nDescKey: "enableSmartPasteDesc", defaultDesc: "开启后，粘贴表格数据（来自 Excel、网页等）时，将自动转换或多单元格填充" },
+      { key: "enableQuickCalc", i18nTitleKey: "enableQuickCalc", defaultTitle: "启用框选单元格即时计算", i18nDescKey: "enableQuickCalcDesc", defaultDesc: "开启后，在表格中按住 Alt 键拖动框选数值单元格，将在底部显示求和、平均值、计数等即时统计信息" },
+      { key: "enableDragReorder", i18nTitleKey: "enableDragReorder", defaultTitle: "启用拖拽行列重排", i18nDescKey: "enableDragReorderDesc", defaultDesc: "开启后，在表格内将显示行与列的拖拽手柄，可通过鼠标拖动直接调整行列顺序" },
+      { key: "bindTab", i18nTitleKey: "bindTab", defaultTitle: "绑定 Tab 键导航", i18nDescKey: "bindTabDesc", defaultDesc: "在表格内按 Tab 键可快速跳转到下一个单元格，按 Shift+Tab 可跳转至上一个单元格" },
+      { key: "bindEnter", i18nTitleKey: "bindEnter", defaultTitle: "绑定 Enter 键换行", i18nDescKey: "bindEnterDesc", defaultDesc: "在表格内按 Enter 键可跳转到下一行的当前列，如果在最后一行则自动插入新行" },
+      { key: "fixCJKWidth", i18nTitleKey: "fixCJKWidth", defaultTitle: "CJK 字符宽度校正", i18nDescKey: "fixCJKWidthDesc", defaultDesc: "对中文、日文、韩文等双字节字符进行宽度估算，以实现排版对齐效果" },
+    ];
 
-    setting.addItem({
-      title: this.i18n.showFloatingToolbar || "当光标在表格内时显示浮动工具栏",
-      description: this.i18n.showFloatingToolbarDesc || "开启后，光标进入表格时将在光标附近显示浮动的快速操作工具栏",
-      actionElement: showFloatingToolbarCheck,
-    });
-
-    // 2. 粘性表头配置
-    const enableStickyHeaderCheck = document.createElement("input");
-    enableStickyHeaderCheck.type = "checkbox";
-    enableStickyHeaderCheck.className = "b3-switch fn__flex-center";
-    enableStickyHeaderCheck.checked = this.settings.enableStickyHeader;
-    enableStickyHeaderCheck.addEventListener("change", (e) => {
-      this.settings.enableStickyHeader = (e.target as HTMLInputElement).checked;
-    });
-
-    setting.addItem({
-      title: this.i18n.enableStickyHeader || "启用表格粘性表头 (Sticky Header)",
-      description: this.i18n.enableStickyHeaderDesc || "开启后，长表格滚动时表头单元格将自动固定在编辑区顶部",
-      actionElement: enableStickyHeaderCheck,
-    });
-
-    // 3. 智能粘贴配置
-    const enableSmartPasteCheck = document.createElement("input");
-    enableSmartPasteCheck.type = "checkbox";
-    enableSmartPasteCheck.className = "b3-switch fn__flex-center";
-    enableSmartPasteCheck.checked = this.settings.enableSmartPaste;
-    enableSmartPasteCheck.addEventListener("change", (e) => {
-      this.settings.enableSmartPaste = (e.target as HTMLInputElement).checked;
-    });
-
-    setting.addItem({
-      title: this.i18n.enableSmartPaste || "启用剪贴板智能粘贴",
-      description: this.i18n.enableSmartPasteDesc || "开启后，粘贴表格数据（来自 Excel、网页等）时，将自动转换或多单元格填充",
-      actionElement: enableSmartPasteCheck,
-    });
-
-    // 4. 即时计算配置
-    const enableQuickCalcCheck = document.createElement("input");
-    enableQuickCalcCheck.type = "checkbox";
-    enableQuickCalcCheck.className = "b3-switch fn__flex-center";
-    enableQuickCalcCheck.checked = this.settings.enableQuickCalc;
-    enableQuickCalcCheck.addEventListener("change", (e) => {
-      this.settings.enableQuickCalc = (e.target as HTMLInputElement).checked;
-    });
-
-    setting.addItem({
-      title: this.i18n.enableQuickCalc || "启用框选单元格即时计算",
-      description: this.i18n.enableQuickCalcDesc || "开启后，在表格中按住 Alt 键拖动框选数值单元格，将在底部显示求和、平均值、计数等即时统计信息",
-      actionElement: enableQuickCalcCheck,
-    });
-
-    // 5. 拖拽行列重排配置
-    const enableDragReorderCheck = document.createElement("input");
-    enableDragReorderCheck.type = "checkbox";
-    enableDragReorderCheck.className = "b3-switch fn__flex-center";
-    enableDragReorderCheck.checked = this.settings.enableDragReorder;
-    enableDragReorderCheck.addEventListener("change", (e) => {
-      this.settings.enableDragReorder = (e.target as HTMLInputElement).checked;
-    });
-
-    setting.addItem({
-      title: this.i18n.enableDragReorder || "启用拖拽行列重排",
-      description: this.i18n.enableDragReorderDesc || "开启后，在表格内将显示行与列的拖拽手柄，可通过鼠标拖动直接调整行列顺序",
-      actionElement: enableDragReorderCheck,
-    });
-
-    // 6. Tab 键导航配置
-    const bindTabCheck = document.createElement("input");
-    bindTabCheck.type = "checkbox";
-    bindTabCheck.className = "b3-switch fn__flex-center";
-    bindTabCheck.checked = this.settings.bindTab;
-    bindTabCheck.addEventListener("change", (e) => {
-      this.settings.bindTab = (e.target as HTMLInputElement).checked;
-    });
-
-    setting.addItem({
-      title: this.i18n.bindTab || "绑定 Tab 键导航",
-      description: this.i18n.bindTabDesc || "在表格内按 Tab 键可快速跳转到下一个单元格，按 Shift+Tab 可跳转至上一个单元格",
-      actionElement: bindTabCheck,
-    });
-
-    // 7. Enter 键换行配置
-    const bindEnterCheck = document.createElement("input");
-    bindEnterCheck.type = "checkbox";
-    bindEnterCheck.className = "b3-switch fn__flex-center";
-    bindEnterCheck.checked = this.settings.bindEnter;
-    bindEnterCheck.addEventListener("change", (e) => {
-      this.settings.bindEnter = (e.target as HTMLInputElement).checked;
-    });
-
-    setting.addItem({
-      title: this.i18n.bindEnter || "绑定 Enter 键换行",
-      description: this.i18n.bindEnterDesc || "在表格内按 Enter 键可跳转到下一行的当前列，如果在最后一行则自动插入新行",
-      actionElement: bindEnterCheck,
-    });
-
-    // 8. CJK 字符对齐校正配置
-    const fixCJKWidthCheck = document.createElement("input");
-    fixCJKWidthCheck.type = "checkbox";
-    fixCJKWidthCheck.className = "b3-switch fn__flex-center";
-    fixCJKWidthCheck.checked = this.settings.fixCJKWidth;
-    fixCJKWidthCheck.addEventListener("change", (e) => {
-      this.settings.fixCJKWidth = (e.target as HTMLInputElement).checked;
-    });
-
-    setting.addItem({
-      title: this.i18n.fixCJKWidth || "CJK 字符宽度校正",
-      description: this.i18n.fixCJKWidthDesc || "对中文、日文、韩文等双字节字符进行宽度估算，以实现排版对齐效果",
-      actionElement: fixCJKWidthCheck,
-    });
+    for (const item of TOGGLES) {
+      createToggleSetting(setting, this.settings, this.i18n, item);
+    }
 
     setting.open(this.i18n.settingsTitle || "高级表格设置");
   }

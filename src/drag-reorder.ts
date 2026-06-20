@@ -1,7 +1,7 @@
 import { getActiveEditor } from "siyuan";
-import { findTableBlock, getCellFromRange, getTableRowCount, getTableColCount, highlightActiveRowAndCol } from "./dom-utils";
+import { findTableBlock, getCellFromRange, getCellCoordFromTable } from "./dom-utils";
 import { SiyuanTextEditor } from "./siyuan-text-editor";
-import { splitTableRow, isSeparatorLine } from "./table-model";
+import { splitTableRow } from "./table-model";
 import type AdvancedTablesPlugin from "./index";
 
 export class DragReorder {
@@ -204,7 +204,7 @@ export class DragReorder {
       const range = sel.getRangeAt(0);
       const cell = getCellFromRange(range, this.activeTableBlock);
       if (cell) {
-        this.cursorCoord = this.getCellCoord(cell, this.activeTableBlock);
+        this.cursorCoord = getCellCoordFromTable(cell, this.activeTableBlock);
       }
     }
 
@@ -245,7 +245,7 @@ export class DragReorder {
       const range = sel.getRangeAt(0);
       const cell = getCellFromRange(range, this.activeTableBlock);
       if (cell) {
-        this.cursorCoord = this.getCellCoord(cell, this.activeTableBlock);
+        this.cursorCoord = getCellCoordFromTable(cell, this.activeTableBlock);
       }
     }
 
@@ -429,25 +429,6 @@ export class DragReorder {
     }
   }
 
-  /** 获取单元格的 DOM 坐标 */
-  private getCellCoord(cell: HTMLTableCellElement, tableBlock: HTMLElement): { row: number; col: number } | null {
-    const table = tableBlock.querySelector("table");
-    if (!table) return null;
-
-    const rows = Array.from(table.querySelectorAll("tr"));
-    const tr = cell.parentElement as HTMLTableRowElement;
-    if (!tr) return null;
-
-    const rowIdx = rows.indexOf(tr);
-    if (rowIdx === -1) return null;
-
-    const cells = Array.from(tr.querySelectorAll("td, th"));
-    const colIdx = cells.indexOf(cell);
-    if (colIdx === -1) return null;
-
-    return { row: rowIdx, col: colIdx };
-  }
-
   /** 执行行重排写入 */
   private async executeRowMove(fromLineIdx: number, toLineIdx: number, presetCoord: { row: number; col: number } | null) {
     if (!this.activeTableBlock) return;
@@ -468,13 +449,13 @@ export class DragReorder {
 
       await editorCtx.reload();
 
-      const lines = (editorCtx as any)._lines as string[];
-      if (fromLineIdx < lines.length && toLineIdx < lines.length) {
-        // 调整 lines 顺序
-        const [movedLine] = lines.splice(fromLineIdx, 1);
-        lines.splice(toLineIdx, 0, movedLine);
+      const lineCount = editorCtx.getLineCount();
+      if (fromLineIdx < lineCount && toLineIdx < lineCount) {
+        // 读取要移动的行，删除后插入到目标位置
+        const movedLine = editorCtx.getLineAt(fromLineIdx)!;
+        editorCtx.removeLine(fromLineIdx);
+        editorCtx.insertLineAt(toLineIdx, movedLine);
 
-        (editorCtx as any)._dirty = true;
         await editorCtx.flush();
       }
     } catch (err) {
@@ -502,9 +483,8 @@ export class DragReorder {
 
       await editorCtx.reload();
 
-      const lines = (editorCtx as any)._lines as string[];
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      for (let i = 0; i < editorCtx.getLineCount(); i++) {
+        const line = editorCtx.getLineAt(i) ?? "";
         if (line.trim().startsWith("{:")) continue; // 跳过 IAL
 
         const cells = splitTableRow(line);
@@ -513,15 +493,11 @@ export class DragReorder {
           const [movedCell] = cells.splice(fromCol, 1);
           cells.splice(toCol, 0, movedCell);
 
-          if (isSeparatorLine(line)) {
-            lines[i] = `| ${cells.join(" | ")} |`;
-          } else {
-            lines[i] = `| ${cells.join(" | ")} |`;
-          }
+          editorCtx.setLineAt(i, `| ${cells.join(" | ")} |`);
         }
       }
 
-      (editorCtx as any)._dirty = true;
+      editorCtx.markDirty();
       await editorCtx.flush();
     } catch (err) {
       console.error("[siyuan-advanced-tables] col drag-reorder failed:", err);
