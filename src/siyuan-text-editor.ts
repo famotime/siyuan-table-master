@@ -46,6 +46,8 @@ export interface SiyuanTextEditorOptions {
   blockId: string;
   /** 是否启用 CJK 分隔行宽度校正 */
   fixCJKWidth?: boolean;
+  /** 预设单元格坐标，防止点击 Dock 按钮后选区丢失 */
+  presetCellCoord?: CellCoord | null;
 }
 
 export class SiyuanTextEditor implements ITextEditor {
@@ -53,6 +55,7 @@ export class SiyuanTextEditor implements ITextEditor {
   private tableBlockEl: HTMLElement;
   private blockId: string;
   private fixCJKWidth: boolean;
+  private presetCellCoord: CellCoord | null;
 
   // ── 内存行模型 ──
   private _lines: string[] = [];
@@ -68,6 +71,7 @@ export class SiyuanTextEditor implements ITextEditor {
     this.tableBlockEl = options.tableBlockEl;
     this.blockId = options.blockId;
     this.fixCJKWidth = options.fixCJKWidth ?? true;
+    this.presetCellCoord = options.presetCellCoord ?? null;
   }
 
   /**
@@ -186,11 +190,13 @@ export class SiyuanTextEditor implements ITextEditor {
    * 从 DOM 选区同步光标到行模型坐标
    */
   private _syncCursorFromDOM(): void {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-
-    const range = sel.getRangeAt(0);
-    const coord = rangeToCellCoord(range, this.tableBlockEl);
+    // 优先使用预设坐标
+    const coord = this.presetCellCoord || (() => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+      const range = sel.getRangeAt(0);
+      return rangeToCellCoord(range, this.tableBlockEl);
+    })();
 
     if (coord) {
       this._initialCellCoord = coord;
@@ -219,6 +225,14 @@ export class SiyuanTextEditor implements ITextEditor {
             if (sel) {
               sel.removeAllRanges();
               sel.addRange(range);
+
+              // 强行把焦点还给编辑器，使光标能保持闪烁且支持连续点击操作
+              const focusEl = range.startContainer.nodeType === Node.ELEMENT_NODE
+                ? (range.startContainer as HTMLElement)
+                : range.startContainer.parentElement;
+              if (focusEl) {
+                focusEl.focus();
+              }
             }
           }
         }

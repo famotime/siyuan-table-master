@@ -7,6 +7,7 @@
 import type { Plugin, Protyle } from "siyuan";
 import type { PluginSettings } from "./settings";
 import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
+import type { CellCoord } from "./dom-utils";
 import { TableEditor } from "./table-editor";
 import { showMessage, getActiveEditor } from "siyuan";
 
@@ -71,6 +72,11 @@ export function registerCommands(
 export async function executeCommand(
   cmd: TableCommand,
   settings: PluginSettings,
+  preset?: {
+    tableBlock: HTMLElement;
+    blockId: string;
+    coord: CellCoord;
+  } | null,
 ): Promise<void> {
   try {
     const protyle = getActiveEditor?.();
@@ -79,10 +85,20 @@ export async function executeCommand(
       return;
     }
 
-    const { inTable, tableBlock, blockId } = isCursorInTable(protyle);
-    if (!inTable || !tableBlock || !blockId) {
-      showMessage("光标不在表格内", 2000, "error");
-      return;
+    // 优先使用缓存的表格上下文
+    let tableBlock = preset?.tableBlock || null;
+    let blockId = preset?.blockId || null;
+    let presetCellCoord = preset?.coord || null;
+
+    if (!tableBlock || !blockId) {
+      // 动态从当前 DOM range 抓取选区
+      const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
+      if (!inTable || !tb || !bid) {
+        showMessage("光标不在表格内", 2000, "error");
+        return;
+      }
+      tableBlock = tb;
+      blockId = bid;
     }
 
     const ctx = new SiyuanTextEditor({
@@ -90,6 +106,7 @@ export async function executeCommand(
       tableBlockEl: tableBlock,
       blockId,
       fixCJKWidth: settings.fixCJKWidth,
+      presetCellCoord,
     });
     const te = new TableEditor(ctx, settings);
 

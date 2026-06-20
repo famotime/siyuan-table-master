@@ -2,6 +2,7 @@ import { getActiveEditor, showMessage } from "siyuan";
 import { isCursorInTable } from "./siyuan-text-editor";
 import { TABLE_COMMANDS, executeCommand, TableCommand } from "./commands";
 import type AdvancedTablesPlugin from "./index";
+import { rangeToCellCoord, CellCoord } from "./dom-utils";
 
 /** SVG 图标定义 - Lucide 专业线框风格，显式内联阻断 fill 覆写，无填充 */
 const SVG_ICONS: Record<string, string> = {
@@ -59,6 +60,9 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
   let statusDotEl: HTMLElement | null = null;
   let buttonGridContainer: HTMLElement | null = null;
   let tooltipBarEl: HTMLElement | null = null;
+
+  // 缓存最近一次被编辑的表格状态及单元格坐标
+  let lastActiveCell: { blockId: string; coord: CellCoord; tableBlock: HTMLElement } | null = null;
 
   const dockType = "advanced-tables-toolbox";
   const dockIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" style="fill:none!important"/><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18" style="fill:none!important"/><path d="M3 15h18" style="fill:none!important"/></svg>`;
@@ -136,10 +140,34 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
             e.preventDefault();
             e.stopPropagation();
             
-            // 执行命令
-            await executeCommand(cmd, plugin.settings);
-            // 执行后主动刷新一次状态
-            updateStatus();
+            // 获取预设上下文，如果有有效缓存直接使用并旁路 isCursorInTable 检测
+            let preset = null;
+            if (lastActiveCell) {
+              preset = {
+                tableBlock: lastActiveCell.tableBlock,
+                blockId: lastActiveCell.blockId,
+                coord: { ...lastActiveCell.coord },
+              };
+            }
+
+            // 执行命令，传入预设上下文
+            await executeCommand(cmd, plugin.settings, preset);
+
+            // 操作后本地坐标动态演进推演（用于支持高频连续移动操作）
+            if (lastActiveCell) {
+              const coord = lastActiveCell.coord;
+              if (cmd.id === "move-row-up") {
+                coord.row = Math.max(0, coord.row - 1);
+              } else if (cmd.id === "move-row-down") {
+                coord.row = coord.row + 1;
+              } else if (cmd.id === "move-column-left") {
+                coord.col = Math.max(0, coord.col - 1);
+              } else if (cmd.id === "move-column-right") {
+                coord.col = coord.col + 1;
+              }
+            }
+            
+            // 不需要再做强同步 updateStatus()，交给 selectionchange 去平滑刷新
           });
 
           // Hover 状态显示详细介绍和英文名
@@ -161,26 +189,67 @@ export function registerDock(plugin: AdvancedTablesPlugin) {
                   return;
                 }
               }
+              if (lastActiveCell) {
+                const size = getTableSize(lastActiveCell.tableBlock);
+                tooltipBarEl.innerText = `当前表格：${size.rows} 行 × ${size.cols} 列`;
+                return;
+              }
               tooltipBarEl.innerText = "提示：将光标移动至表格中开始编辑";
             }
           });
         }
       });
 
-      // 实时状态检测方法
+      // 实时状态检测与缓存更新方法
       const updateStatus = () => {
         const activeEditor = getActiveEditor();
         if (!activeEditor?.protyle) {
+          lastActiveCell = null;
           setUIState(false);
           return;
         }
 
         const { inTable, tableBlock } = isCursorInTable(activeEditor);
         if (inTable && tableBlock) {
+          // 在表格内，保存并更新最新的光标坐标
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            const coord = rangeToCellCoord(range, tableBlock);
+            if (coord) {
+              lastActiveCell = {
+                blockId: tableBlock.dataset.nodeId || "",
+                coord,
+                tableBlock,
+              };
+            }
+          }
           const size = getTableSize(tableBlock);
           setUIState(true, size.rows, size.cols);
         } else {
-          setUIState(false);
+          // 惰性失焦：如果光标暂时离开了表格（可能是由于点击了 Dock 按钮等）
+          // 只要用户并没有把光标明确挪到表格外的其他 Block 块元素上，我们就继续保留面板的激活状态！
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            let node = range.startContainer as HTMLElement;
+            let otherBlock: HTMLElement | null = null;
+            
+            // 向上寻找当前选区聚焦的块元素
+            while (node && node !== document.body) {
+              if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-node-id")) {
+                otherBlock = node;
+                break;
+              }
+              node = node.parentNode as HTMLElement;
+            }
+            
+            // 如果明确发现了其他非当前缓存表格的 Block，说明用户确实把光标移走了，此时才真正置灰并清空缓存
+            if (otherBlock && (!lastActiveCell || otherBlock !== lastActiveCell.tableBlock)) {
+              lastActiveCell = null;
+              setUIState(false);
+            }
+          }
         }
       };
 
