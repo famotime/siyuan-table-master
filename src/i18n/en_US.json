@@ -147,5 +147,19 @@
   "kw-paste-column": "Paste Col",
   "kw-row-sum": "Row Sum",
   "kw-column-sum": "Col Sum",
-  "kw-table-to-chart": "To Chart"
+  "kw-table-to-chart": "To Chart",
+  "shortcutTitle": "Shortcut Guide",
+  "shortcutPluginGroup": "Enhanced Features",
+  "shortcutSiyuanGroup": "SiYuan Native",
+  "shortcutDragCalc": "Alt + Drag Select Sum",
+  "shortcutNextCell": "Focus Next Cell",
+  "shortcutNextRow": "Wrap to Next Row",
+  "shortcutAlignLeft": "Align Cell Left",
+  "shortcutAlignCenter": "Align Cell Center",
+  "shortcutAlignRight": "Align Cell Right",
+  "shortcutMoveRowUp": "Move Focused Row Up",
+  "shortcutMoveRowDown": "Move Focused Row Down",
+  "shortcutMoveColLeft": "Move Focused Col Left",
+  "shortcutMoveColRight": "Move Focused Col Right",
+  "shortcutDeleteCol": "Delete Focused Column"
 }

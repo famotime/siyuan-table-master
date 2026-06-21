@@ -147,5 +147,19 @@
   "kw-paste-column": "粘贴列",
   "kw-row-sum": "行求和",
   "kw-column-sum": "列求和",
-  "kw-table-to-chart": "图表化"
+  "kw-table-to-chart": "图表化",
+  "shortcutTitle": "快捷键指南",
+  "shortcutPluginGroup": "表哥增强",
+  "shortcutSiyuanGroup": "思源内置",
+  "shortcutDragCalc": "拖选单元格计算",
+  "shortcutNextCell": "聚焦下一单元格",
+  "shortcutNextRow": "折行至下一行",
+  "shortcutAlignLeft": "水平居左对齐",
+  "shortcutAlignCenter": "水平居中对齐",
+  "shortcutAlignRight": "水平居右对齐",
+  "shortcutMoveRowUp": "向上移动整行",
+  "shortcutMoveRowDown": "向下移动整行",
+  "shortcutMoveColLeft": "向左移动整列",
+  "shortcutMoveColRight": "向右移动整列",
+  "shortcutDeleteCol": "删除当前整列"
 }

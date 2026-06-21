@@ -251,27 +251,74 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
   transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* 底部提示栏 - 精致线性渐变分割线 */
-.at-footer-tooltip {
-  margin-top: auto;
+/* 快捷键指南面板 - 精致线性渐变分割线与扁平 KBD 样式 */
+.at-shortcut-panel {
+  margin-top: 16px;
   padding-top: 14px;
   border-top: 1px solid transparent;
   border-image: linear-gradient(to right, transparent, var(--b3-border-color) 20%, var(--b3-border-color) 80%, transparent) 1;
 }
 
-.at-tooltip-bar {
-  font-size: 11px;
+.at-shortcut-header {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--b3-theme-primary);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.at-shortcut-section {
+  margin-bottom: 14px;
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.at-shortcut-section-title {
+  font-size: 9.5px;
   color: var(--b3-theme-on-surface);
-  opacity: 0.55;
-  text-align: center;
-  line-height: 1.4;
-  min-height: 32px;
+  opacity: 0.45;
+  margin-bottom: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.at-shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4.5px 0;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.at-shortcut-desc {
+  color: var(--b3-theme-on-surface);
+  opacity: 0.75;
+}
+
+.at-shortcut-keys {
+  color: var(--b3-theme-on-surface);
+  opacity: 0.9;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 2.5px;
+  font-size: 9px;
   font-weight: 500;
-  padding: 0 4px;
-  letter-spacing: 0.2px;
+
+  kbd {
+    display: inline-block;
+    padding: 1.5px 4.5px;
+    font-size: 9px;
+    font-family: var(--b3-font-family-code, monospace);
+    line-height: 1;
+    color: var(--b3-theme-on-background);
+    background-color: var(--b3-theme-background-light, rgba(0, 0, 0, 0.03));
+    border: 1px solid var(--b3-border-color);
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  }
 }
 
 /* ==========================================

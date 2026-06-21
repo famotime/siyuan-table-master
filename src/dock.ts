@@ -277,8 +277,60 @@ export function registerDock(plugin: TableMaterPlugin) {
               </div>
             `).join("")}
           </div>
-          <div class="at-footer-tooltip">
-            <div id="at-tooltip-bar" class="at-tooltip-bar">${plugin.i18n.dockTipDefault || "提示：将光标移动至表格中开始编辑。按住 Alt + 鼠标拖选可多选计算。"}</div>
+          <div class="at-shortcut-panel">
+            <div class="at-shortcut-header">${plugin.i18n.shortcutTitle || "快捷键指南"}</div>
+            
+            <div class="at-shortcut-section">
+              <div class="at-shortcut-section-title">${plugin.i18n.shortcutPluginGroup || "表哥增强"}</div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutDragCalc || "拖选单元格计算"}</span>
+                <span class="at-shortcut-keys"><kbd>Alt</kbd> + 拖选</span>
+              </div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutNextCell || "聚焦下一单元格"}</span>
+                <span class="at-shortcut-keys"><kbd>Tab</kbd></span>
+              </div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutNextRow || "折行至下一行"}</span>
+                <span class="at-shortcut-keys"><kbd>Enter</kbd></span>
+              </div>
+            </div>
+
+            <div class="at-shortcut-section">
+              <div class="at-shortcut-section-title">${plugin.i18n.shortcutSiyuanGroup || "思源内置"}</div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutAlignLeft || "水平居左对齐"}</span>
+                <span class="at-shortcut-keys"><kbd>Alt</kbd> + <kbd>L</kbd></span>
+              </div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutAlignCenter || "水平居中对齐"}</span>
+                <span class="at-shortcut-keys"><kbd>Alt</kbd> + <kbd>C</kbd></span>
+              </div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutAlignRight || "水平居右对齐"}</span>
+                <span class="at-shortcut-keys"><kbd>Alt</kbd> + <kbd>R</kbd></span>
+              </div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveRowUp || "向上移动整行"}</span>
+                <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd></span>
+              </div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveRowDown || "向下移动整行"}</span>
+                <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd></span>
+              </div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveColLeft || "向左移动整列"}</span>
+                <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd></span>
+              </div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveColRight || "向右移动整列"}</span>
+                <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd></span>
+              </div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutDeleteCol || "删除当前整列"}</span>
+                <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>-</kbd></span>
+              </div>
+            </div>
           </div>
         </div>
       `;
