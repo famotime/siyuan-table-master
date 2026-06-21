@@ -1,8 +1,8 @@
 {
-  "name": "plugin-sample-vite-vue",
+  "name": "siyuan-table-master",
   "version": "0.0.1",
   "type": "module",
-  "description": "This is a sample plugin based on vite and vue for Siyuan (https://b3log.org/siyuan)",
+  "description": "Improved table navigation, formatting, and manipulation for SiYuan Note",
   "author": "",
   "license": "MIT",
   "homepage": "",
