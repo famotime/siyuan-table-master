@@ -3,14 +3,8 @@
   "showFloatingToolbar": "Show floating toolbar when cursor is inside a table",
   "showFloatingToolbarDesc": "When enabled, a floating toolbar will appear near the cursor when editing a table, providing quick access to alignment, sorting, moving rows/columns, etc.",
   "settingsTitle": "Table Master Settings",
-  "bindTab": "Bind Tab key navigation",
-  "bindTabDesc": "Press Tab in a table cell to jump to the next cell, and Shift+Tab to jump to the previous cell",
-  "bindEnter": "Bind Enter key navigation",
-  "bindEnterDesc": "Press Enter in a table cell to jump to the same column in the next row, automatically inserting a new row if at the last row",
   "fixCJKWidth": "CJK character width correction",
   "fixCJKWidthDesc": "Estimate width for Chinese, Japanese, and Korean double-byte characters to achieve perfectly aligned Markdown table formatting",
-  "enableStickyHeader": "Enable Sticky Table Header",
-  "enableStickyHeaderDesc": "When enabled, the table header will stay fixed at the top of the editor viewport when scrolling long tables",
   "enableSmartPaste": "Enable Smart Clipboard Paste",
   "enableSmartPasteDesc": "When enabled, pasting table data (from Excel, web page, etc.) inside a table or on an empty line will trigger smart conversion or cell region filling",
   "enableQuickCalc": "Enable Region Selection & Quick Calculation",
@@ -49,8 +43,8 @@
 
   "toolbarHeader": "Header",
   "toolbarRow": "Row ${row} Col ${col}",
-  "openStickyHeader": "Enable Sticky Header",
-  "closeStickyHeader": "Disable Sticky Header",
+  "openStickyHeader": "Pin Header",
+  "closeStickyHeader": "Unpin Header",
 
   "dockTitle": "Table Master Toolbox",
   "dockStatus": "Table Master Status",
@@ -161,5 +155,6 @@
   "shortcutMoveRowDown": "Move Focused Row Down",
   "shortcutMoveColLeft": "Move Focused Col Left",
   "shortcutMoveColRight": "Move Focused Col Right",
-  "shortcutDeleteCol": "Delete Focused Column"
+  "shortcutDeleteCol": "Delete Focused Column",
+  "shortcutDeleteRow": "Delete Focused Row"
 }

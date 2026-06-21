@@ -330,6 +330,10 @@ export function registerDock(plugin: TableMaterPlugin) {
                 <span class="at-shortcut-desc">${plugin.i18n.shortcutDeleteCol || "删除当前整列"}</span>
                 <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>-</kbd></span>
               </div>
+              <div class="at-shortcut-item">
+                <span class="at-shortcut-desc">${plugin.i18n.shortcutDeleteRow || "删除当前整行"}</span>
+                <span class="at-shortcut-keys"><kbd>Ctrl</kbd> + <kbd>-</kbd></span>
+              </div>
             </div>
           </div>
         </div>

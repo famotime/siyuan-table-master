@@ -9,7 +9,6 @@ import { Plugin, showMessage, Setting, getActiveEditor } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from "@/../plugin.json";
 import { registerCommands, TABLE_COMMANDS, executeCommand } from "./commands";
-import { installKeybind, installKeybindAll } from "./keybind";
 import { loadSettings, saveSettings, defaultSettings, PluginSettings } from "./settings";
 import { getAllEditor } from "siyuan";
 import { registerDock } from "./dock";
@@ -62,7 +61,7 @@ const { version } = PluginInfo;
 
 export default class TableMaterPlugin extends Plugin {
   public settings!: PluginSettings;
-  private keybindUninstall: (() => void) | null = null;
+  public enableStickyHeader = false;
   public floatingToolbar: FloatingToolbar | null = null;
   private smartPaste: SmartPaste | null = null;
   private quickCalc: QuickCalc | null = null;
@@ -106,13 +105,7 @@ export default class TableMaterPlugin extends Plugin {
       });
     }
 
-    // 安装键盘拦截到所有已打开的编辑器
-    this.installKeybindToAllEditors();
 
-    // 监听编辑器切换事件，动态安装/卸载拦截
-    this.eventBus.on("switch-protyle", this.onSwitchProtyle);
-    this.eventBus.on("loaded-protyle-static", this.onLoadedProtyle);
-    this.eventBus.on("loaded-protyle-dynamic", this.onLoadedProtyle);
 
     // 监听编辑器右键菜单，添加“文本转表格”快捷入口
     this.eventBus.on("click-edit-contextmenu", this.onClickContextMenu);
@@ -142,16 +135,7 @@ export default class TableMaterPlugin extends Plugin {
     // 注销全局高亮监听
     this.destroyGlobalHighlight();
 
-    // 移除键盘拦截
-    if (this.keybindUninstall) {
-      this.keybindUninstall();
-      this.keybindUninstall = null;
-    }
 
-    // 成对解绑事件
-    this.eventBus.off("switch-protyle", this.onSwitchProtyle);
-    this.eventBus.off("loaded-protyle-static", this.onLoadedProtyle);
-    this.eventBus.off("loaded-protyle-dynamic", this.onLoadedProtyle);
     this.eventBus.off("click-edit-contextmenu", this.onClickContextMenu);
 
     // 销毁浮动工具栏
@@ -178,14 +162,14 @@ export default class TableMaterPlugin extends Plugin {
       this.dragReorder = null;
     }
 
-    // 移除粘性表头类
+    // 移除钉住表头类
     document.body.classList.remove("at-enable-sticky-header");
 
     console.log("[siyuan-table-mater] unloaded");
   }
 
   updateStickyHeaderClass() {
-    if (this.settings.enableStickyHeader) {
+    if (this.enableStickyHeader) {
       document.body.classList.add("at-enable-sticky-header");
     } else {
       document.body.classList.remove("at-enable-sticky-header");
@@ -224,8 +208,6 @@ export default class TableMaterPlugin extends Plugin {
     const setting = new Setting({
       confirmCallback: async () => {
         await saveSettings(this, this.settings);
-        this.updateStickyHeaderClass();
-        this.installKeybindToAllEditors();
         if (this.floatingToolbar) {
           this.floatingToolbar.update();
         }
@@ -234,12 +216,9 @@ export default class TableMaterPlugin extends Plugin {
 
     const TOGGLES: ToggleSettingItem[] = [
       { key: "showFloatingToolbar", i18nTitleKey: "showFloatingToolbar", defaultTitle: "当光标在表格内时显示浮动工具栏", i18nDescKey: "showFloatingToolbarDesc", defaultDesc: "开启后，光标进入表格时将在光标附近显示浮动的快速操作工具栏" },
-      { key: "enableStickyHeader", i18nTitleKey: "enableStickyHeader", defaultTitle: "启用表格粘性表头 (Sticky Header)", i18nDescKey: "enableStickyHeaderDesc", defaultDesc: "开启后，长表格滚动时表头单元格将自动固定在编辑区顶部" },
       { key: "enableSmartPaste", i18nTitleKey: "enableSmartPaste", defaultTitle: "启用剪贴板智能粘贴", i18nDescKey: "enableSmartPasteDesc", defaultDesc: "开启后，粘贴表格数据（来自 Excel、网页等）时，将自动转换或多单元格填充" },
       { key: "enableQuickCalc", i18nTitleKey: "enableQuickCalc", defaultTitle: "启用框选单元格即时计算", i18nDescKey: "enableQuickCalcDesc", defaultDesc: "开启后，在表格中按住 Alt 键拖动框选数值单元格，将在底部显示求和、平均值、计数等即时统计信息" },
       { key: "enableDragReorder", i18nTitleKey: "enableDragReorder", defaultTitle: "启用拖拽行列重排", i18nDescKey: "enableDragReorderDesc", defaultDesc: "开启后，在表格内将显示行与列的拖拽手柄，可通过鼠标拖动直接调整行列顺序" },
-      { key: "bindTab", i18nTitleKey: "bindTab", defaultTitle: "绑定 Tab 键导航", i18nDescKey: "bindTabDesc", defaultDesc: "在表格内按 Tab 键可快速跳转到下一个单元格，按 Shift+Tab 可跳转至上一个单元格" },
-      { key: "bindEnter", i18nTitleKey: "bindEnter", defaultTitle: "绑定 Enter 键换行", i18nDescKey: "bindEnterDesc", defaultDesc: "在表格内按 Enter 键可跳转到下一行的当前列，如果在最后一行则自动插入新行" },
       { key: "fixCJKWidth", i18nTitleKey: "fixCJKWidth", defaultTitle: "CJK 字符宽度校正", i18nDescKey: "fixCJKWidthDesc", defaultDesc: "对中文、日文、韩文等双字节字符进行宽度估算，以实现排版对齐效果" },
     ];
 
@@ -251,34 +230,6 @@ export default class TableMaterPlugin extends Plugin {
   }
 
   // ── 私有方法 ──
-
-  /** 安装键盘拦截到所有编辑器 */
-  private installKeybindToAllEditors() {
-    // 先卸载旧的
-    if (this.keybindUninstall) {
-      this.keybindUninstall();
-    }
-
-    try {
-      const editors = getAllEditor();
-      this.keybindUninstall = installKeybindAll(
-        () => editors,
-        this.settings,
-      );
-    } catch (err) {
-      console.warn("[siyuan-table-mater] installKeybindAll failed:", err);
-    }
-  }
-
-  /** 编辑器切换时重新安装拦截 */
-  private onSwitchProtyle = () => {
-    this.installKeybindToAllEditors();
-  };
-
-  /** 编辑器加载完成时安装拦截 */
-  private onLoadedProtyle = () => {
-    this.installKeybindToAllEditors();
-  };
 
   /** 初始化全局行列高亮监听，摆脱侧栏依赖 */
   private initGlobalHighlight() {

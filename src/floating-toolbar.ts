@@ -285,7 +285,7 @@ export class FloatingToolbar {
     cmdIds.forEach((cmdId) => {
       if (cmdId === "toggle-sticky-header") {
         const btn = document.createElement("button");
-        const isSticky = this.plugin.settings.enableStickyHeader;
+        const isSticky = this.plugin.enableStickyHeader;
         btn.className = "at-floating-btn ariaLabel" + (isSticky ? " at-active-toggle" : "");
         btn.setAttribute("aria-label", isSticky ? (this.plugin.i18n.closeStickyHeader || "Disable Sticky Header") : (this.plugin.i18n.openStickyHeader || "Enable Sticky Header"));
         btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91a8 8 0 0 1-1.23-4.13V5a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v2.96a8 8 0 0 1-1.23 4.13l-2.33 2.91a2 2 0 0 0-.44 1.24V17Z"></path></svg>`;
@@ -295,11 +295,10 @@ export class FloatingToolbar {
           e.stopPropagation();
         });
 
-        btn.addEventListener("click", async (e) => {
+        btn.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
-          this.plugin.settings.enableStickyHeader = !this.plugin.settings.enableStickyHeader;
-          await saveSettings(this.plugin, this.plugin.settings);
+          this.plugin.enableStickyHeader = !this.plugin.enableStickyHeader;
           this.plugin.updateStickyHeaderClass();
           this.renderButtons(0);
         });

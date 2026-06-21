@@ -83,11 +83,8 @@ Kramdown IAL (`{: id="..."}`) is managed separately by the adapter.
 
 - `formatType`: `WEAK` (default) / `NORMAL`
 - `showFloatingToolbar`: show floating toolbar when cursor in table (default: true)
-- `enableStickyHeader`: sticky table header (default: true)
 - `enableSmartPaste`: smart clipboard paste (default: true)
 - `enableQuickCalc`: Alt+drag selection calc (default: true)
 - `enableDragReorder`: drag row/col reorder (default: true)
-- `bindTab`: Tab navigation (default: true)
-- `bindEnter`: Enter next-row (default: true)
 - `fixCJKWidth`: CJK width correction (default: true)
 - `showTopBarIcon` (default: true)
