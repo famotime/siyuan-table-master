@@ -45,6 +45,7 @@
   "toolbarRow": "Row ${row} Col ${col}",
   "openStickyHeader": "Pin Header",
   "closeStickyHeader": "Unpin Header",
+  "resizeTable": "Resize Table",
 
   "dockTitle": "Table Master Toolbox",
   "dockStatus": "Table Master Status",
@@ -133,6 +134,7 @@
   "kw-sort-rows-asc": "Sort A",
   "kw-sort-rows-desc": "Sort D",
   "kw-transpose": "Transpose",
+  "kw-resizeTable": "Resize",
   "kw-evaluate-formulas": "Formula",
   "kw-escape-table": "Escape",
   "kw-copy-row": "Copy Row",

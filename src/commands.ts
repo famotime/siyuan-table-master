@@ -42,11 +42,7 @@ export const TABLE_COMMANDS: TableCommand[] = [
   { id: "sort-rows-asc", nameZh: "升序排序", nameEn: "Sort rows ascending", action: te => te.sortRowsAsc() },
   { id: "sort-rows-desc", nameZh: "降序排序", nameEn: "Sort rows descending", action: te => te.sortRowsDesc() },
   { id: "transpose", nameZh: "转置表格", nameEn: "Transpose table", action: te => te.transpose() },
-  { id: "evaluate-formulas", nameZh: "计算公式", nameEn: "Evaluate formulas", action: async (te) => {
-    const err = await te.evaluateFormulas();
-    if (err) showMessage(`公式错误: ${err}`, 5000, "error");
-  }},
-  { id: "escape-table", nameZh: "跳出表格", nameEn: "Escape table", action: te => te.escape() },
+
   // ── 复制与粘贴 ──
   { id: "copy-row", nameZh: "复制行", nameEn: "Copy row", action: async (te) => {
     const err = await te.copyRow();

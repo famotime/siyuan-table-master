@@ -6,6 +6,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
+      "siyuan": resolve(__dirname, "__tests__/helpers/siyuan.ts"),
     },
   },
   test: {

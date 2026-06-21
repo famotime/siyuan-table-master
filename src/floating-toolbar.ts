@@ -1,9 +1,9 @@
 import { getActiveEditor } from "siyuan";
-import { isCursorInTable } from "./siyuan-text-editor";
+import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
 import { rangeToCellCoord, getCellFromRange, CellCoord, getTableColCount, getTableRowCount } from "./dom-utils";
 import { TABLE_COMMANDS, executeCommand } from "./commands";
 import { SVG_ICONS } from "./dock";
-import { getTableClipboard } from "./table-editor";
+import { getTableClipboard, TableEditor } from "./table-editor";
 import type TableMaterPlugin from "./index";
 import { saveSettings } from "./settings";
 
@@ -19,6 +19,8 @@ export class FloatingToolbar {
   private refreshListener: (() => void) | null = null;
   public isExecuting = false;
   private executeTimeoutId: any = null;
+  private dropdownContainer: HTMLElement | null = null;
+  private globalClickCloseListener: ((e: MouseEvent) => void) | null = null;
 
   constructor(plugin: TableMaterPlugin) {
     this.plugin = plugin;
@@ -74,6 +76,7 @@ export class FloatingToolbar {
     if (this.executeTimeoutId) {
       clearTimeout(this.executeTimeoutId);
     }
+    this.closeDropdown();
   }
 
   private createContainer() {
@@ -142,6 +145,10 @@ export class FloatingToolbar {
 
     const isContextChanged = this.lastRowIdx !== coord.row;
     this.lastRowIdx = coord.row;
+
+    if (isContextChanged) {
+      this.closeDropdown();
+    }
 
     if (isContextChanged && !this.container.classList.contains("at-floating-hidden") && this.buttonsWrapper && this.contextTag) {
       // 触发切换过渡动画 (方案 B)
@@ -230,8 +237,9 @@ export class FloatingToolbar {
 
     let cmdIds: string[] = [];
     if (rowIdx === 0) {
-      // 光标在表头时，工具栏按钮：左对齐、居中、右对齐、升序、降序、转置、粘性表头、图表化
+      // 光标在表头时，工具栏按钮：调整表格、左对齐、居中、右对齐、升序、降序、转置、粘性表头、图表化
       cmdIds = [
+        "resize-table",
         "left-align-column",
         "center-align-column",
         "right-align-column",
@@ -283,12 +291,48 @@ export class FloatingToolbar {
     }
 
     cmdIds.forEach((cmdId) => {
+      if (cmdId === "resize-table") {
+        const btn = document.createElement("button");
+        btn.className = "at-floating-btn";
+        btn.setAttribute("aria-label", this.plugin.i18n.resizeTable || "调整表格");
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 12h18" style="fill:none!important"/><path d="M12 3v18" style="fill:none!important"/></svg>`;
+
+        const tooltipEl = document.createElement("div");
+        tooltipEl.className = "at-custom-tooltip";
+        tooltipEl.innerText = this.plugin.i18n.resizeTable || "调整表格";
+        btn.appendChild(tooltipEl);
+
+        btn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (this.dropdownContainer) {
+            this.closeDropdown();
+          } else {
+            this.showDropdown(btn);
+          }
+        });
+
+        this.buttonsWrapper?.appendChild(btn);
+        return;
+      }
+
       if (cmdId === "toggle-sticky-header") {
         const btn = document.createElement("button");
         const isSticky = this.plugin.enableStickyHeader;
-        btn.className = "at-floating-btn ariaLabel" + (isSticky ? " at-active-toggle" : "");
-        btn.setAttribute("aria-label", isSticky ? (this.plugin.i18n.closeStickyHeader || "Disable Sticky Header") : (this.plugin.i18n.openStickyHeader || "Enable Sticky Header"));
+        btn.className = "at-floating-btn" + (isSticky ? " at-active-toggle" : "");
+        const labelText = isSticky ? (this.plugin.i18n.closeStickyHeader || "Disable Sticky Header") : (this.plugin.i18n.openStickyHeader || "Enable Sticky Header");
+        btn.setAttribute("aria-label", labelText);
         btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91a8 8 0 0 1-1.23-4.13V5a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v2.96a8 8 0 0 1-1.23 4.13l-2.33 2.91a2 2 0 0 0-.44 1.24V17Z"></path></svg>`;
+
+        const tooltipEl = document.createElement("div");
+        tooltipEl.className = "at-custom-tooltip";
+        tooltipEl.innerText = labelText;
+        btn.appendChild(tooltipEl);
 
         btn.addEventListener("mousedown", (e) => {
           e.preventDefault();
@@ -311,9 +355,14 @@ export class FloatingToolbar {
       if (!cmd) return;
 
       const btn = document.createElement("button");
-      btn.className = "at-floating-btn ariaLabel";
+      btn.className = "at-floating-btn";
       btn.setAttribute("aria-label", this.plugin.i18n[cmd.id] || cmd.nameZh);
       btn.innerHTML = SVG_ICONS[cmdId] || "";
+
+      const tooltipEl = document.createElement("div");
+      tooltipEl.className = "at-custom-tooltip";
+      tooltipEl.innerText = this.plugin.i18n[cmd.id] || cmd.nameZh;
+      btn.appendChild(tooltipEl);
 
       // mousedown 时阻止默认行为，防止编辑器失去焦点
       btn.addEventListener("mousedown", (e) => {
@@ -384,9 +433,173 @@ export class FloatingToolbar {
   }
 
   private hide() {
+    this.closeDropdown();
     if (this.container) {
       this.container.classList.add("at-floating-hidden");
       this.activeCell = null;
     }
+  }
+
+  private closeDropdown() {
+    if (this.dropdownContainer) {
+      this.dropdownContainer.remove();
+      this.dropdownContainer = null;
+    }
+    if (this.globalClickCloseListener) {
+      document.removeEventListener("click", this.globalClickCloseListener, true);
+      this.globalClickCloseListener = null;
+    }
+  }
+
+  private showDropdown(btn: HTMLElement) {
+    this.closeDropdown();
+
+    if (!this.activeCell) return;
+    const tableBlock = this.activeCell.tableBlock;
+    const currentCols = getTableColCount(tableBlock);
+    const currentRows = getTableRowCount(tableBlock);
+
+    // 计算网格尺寸：最少为 6x10，如果要超过现有表格则动态拓宽
+    const gridCols = Math.max(6, currentCols + 1);
+    const gridRows = Math.max(10, currentRows + 2);
+
+    const dropdown = document.createElement("div");
+    dropdown.className = "at-resize-dropdown";
+    dropdown.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    const gridContainer = document.createElement("div");
+    gridContainer.className = "at-resize-grid";
+    gridContainer.style.gridTemplateColumns = `repeat(${gridCols}, 16px)`;
+    gridContainer.style.gridTemplateRows = `repeat(${gridRows}, 16px)`;
+
+    const label = document.createElement("div");
+    label.className = "at-resize-label";
+    label.innerText = `${currentCols} x ${currentRows}`;
+
+    const updateGridHighlight = (hoverCol: number, hoverRow: number) => {
+      const targetCols = Math.max(currentCols, hoverCol);
+      const targetRows = Math.max(currentRows, hoverRow);
+      label.innerText = `${targetCols} x ${targetRows}`;
+
+      const cells = gridContainer.querySelectorAll(".at-resize-grid-cell");
+      cells.forEach((cell: any) => {
+        const c = parseInt(cell.dataset.col || "0", 10);
+        const r = parseInt(cell.dataset.row || "0", 10);
+
+        cell.classList.remove("at-grid-cell-selected");
+        cell.classList.remove("at-grid-cell-existing");
+
+        if (c <= targetCols && r <= targetRows) {
+          cell.classList.add("at-grid-cell-selected");
+        } else if (c <= currentCols && r <= currentRows) {
+          cell.classList.add("at-grid-cell-existing");
+        }
+      });
+    };
+
+    const resetGridHighlight = () => {
+      label.innerText = `${currentCols} x ${currentRows}`;
+      const cells = gridContainer.querySelectorAll(".at-resize-grid-cell");
+      cells.forEach((cell: any) => {
+        const c = parseInt(cell.dataset.col || "0", 10);
+        const r = parseInt(cell.dataset.row || "0", 10);
+
+        cell.classList.remove("at-grid-cell-selected");
+        cell.classList.remove("at-grid-cell-existing");
+
+        if (c <= currentCols && r <= currentRows) {
+          cell.classList.add("at-grid-cell-existing");
+        }
+      });
+    };
+
+    for (let r = 1; r <= gridRows; r++) {
+      for (let c = 1; c <= gridCols; c++) {
+        const cell = document.createElement("div");
+        cell.className = "at-resize-grid-cell";
+        cell.dataset.row = String(r);
+        cell.dataset.col = String(c);
+
+        if (c <= currentCols && r <= currentRows) {
+          cell.classList.add("at-grid-cell-existing");
+        }
+
+        cell.addEventListener("mouseenter", () => {
+          updateGridHighlight(c, r);
+        });
+
+        cell.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const targetCols = Math.max(currentCols, c);
+          const targetRows = Math.max(currentRows, r);
+
+          if (targetCols > currentCols || targetRows > currentRows) {
+            this.isExecuting = true;
+            if (this.executeTimeoutId) clearTimeout(this.executeTimeoutId);
+
+            const preset = {
+              tableBlock: this.activeCell!.tableBlock,
+              blockId: this.activeCell!.blockId,
+              coord: { ...this.activeCell!.coord },
+            };
+
+            try {
+              const activeEditor = getActiveEditor();
+              if (activeEditor?.protyle) {
+                const ctx = new SiyuanTextEditor({
+                  protyle: activeEditor.protyle,
+                  tableBlockEl: preset.tableBlock,
+                  blockId: preset.blockId,
+                  fixCJKWidth: this.plugin.settings.fixCJKWidth,
+                  presetCellCoord: preset.coord,
+                });
+                const te = new TableEditor(ctx, this.plugin.settings, this.plugin.i18n);
+                await te.resizeTable(targetCols, targetRows);
+              }
+            } finally {
+              this.executeTimeoutId = setTimeout(() => {
+                this.isExecuting = false;
+                this.update();
+              }, 350);
+            }
+          }
+
+          this.closeDropdown();
+        });
+
+        gridContainer.appendChild(cell);
+      }
+    }
+
+    gridContainer.addEventListener("mouseleave", () => {
+      resetGridHighlight();
+    });
+
+    dropdown.appendChild(gridContainer);
+    dropdown.appendChild(label);
+
+    if (this.container) {
+      this.container.appendChild(dropdown);
+      this.dropdownContainer = dropdown;
+
+      // 定位 dropdown
+      const btnRect = btn.getBoundingClientRect();
+      const toolbarRect = this.container.getBoundingClientRect();
+      const leftOffset = btnRect.left - toolbarRect.left;
+      dropdown.style.left = `${leftOffset}px`;
+    }
+
+    this.globalClickCloseListener = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (dropdown && !dropdown.contains(target) && !btn.contains(target)) {
+        this.closeDropdown();
+      }
+    };
+    document.addEventListener("click", this.globalClickCloseListener, true);
   }
 }

@@ -17,6 +17,7 @@ import { showMessage } from "siyuan";
 import { SiyuanTextEditor } from "./siyuan-text-editor";
 import { showPasteConfirmDialog } from "./confirm-dialog";
 import type { PluginSettings } from "./settings";
+import { splitTableRow } from "./table-model";
 
 /** 模块级剪贴板（会话内持久） */
 interface TableClipboard {
@@ -87,11 +88,7 @@ export class TableEditor {
     await this.ctx.flush();
   }
 
-  async escape(): Promise<void> {
-    await this.ctx.reload();
-    this.mte.escape(this.opts());
-    await this.ctx.flush();
-  }
+
 
   // ── 格式化 ──
 
@@ -193,14 +190,52 @@ export class TableEditor {
     await this.ctx.flush();
   }
 
-  // ── 公式 ──
-
-  async evaluateFormulas(): Promise<string | null> {
+  async resizeTable(targetCols: number, targetRows: number): Promise<void> {
     await this.ctx.reload();
-    const err = this.mte.evaluateFormulas(this.opts());
+
+    const lineCount = this.ctx.getLineCount();
+    if (lineCount < 2) return; // 格式非法，至少有表头和分隔行
+
+    const headerLine = this.ctx.getLineAt(0) || "";
+    const originalColCount = splitTableRow(headerLine).length;
+    const originalRowCount = lineCount - 1; // 去掉分隔行后的总行数 (包含表头)
+
+    // 1. 扩充列 (如果 targetCols > originalColCount)
+    if (targetCols > originalColCount) {
+      const colDiff = targetCols - originalColCount;
+      for (let i = 0; i < lineCount; i++) {
+        const line = this.ctx.getLineAt(i) || "";
+        const cells = splitTableRow(line);
+        if (i === 1) {
+          // 分隔行，追加 "---"
+          for (let d = 0; d < colDiff; d++) {
+            cells.push("---");
+          }
+        } else {
+          // 数据行或表头，追加空单元格 ""
+          for (let d = 0; d < colDiff; d++) {
+            cells.push("");
+          }
+        }
+        this.ctx.setLineAt(i, `| ${cells.join(" | ")} |`);
+      }
+    }
+
+    // 2. 扩充行 (如果 targetRows > originalRowCount)
+    if (targetRows > originalRowCount) {
+      const rowDiff = targetRows - originalRowCount;
+      const colCount = Math.max(originalColCount, targetCols);
+      for (let r = 0; r < rowDiff; r++) {
+        const emptyRowCells = Array(colCount).fill("");
+        this.ctx.insertLineAt(this.ctx.getLineCount(), `| ${emptyRowCells.join(" | ")} |`);
+      }
+    }
+
+    // 3. 写回思源
     await this.ctx.flush();
-    return err?.message ?? null;
   }
+
+
 
   // ── CSV 导出 ──
 

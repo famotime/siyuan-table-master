@@ -168,6 +168,8 @@ export class QuickCalc {
     let count = selectedCells.length;
     let numCount = 0;
     let sum = 0;
+    let percentCount = 0;
+    let commaCount = 0;
 
     let minRow = Infinity, maxRow = -Infinity;
     let minCol = Infinity, maxCol = -Infinity;
@@ -184,18 +186,24 @@ export class QuickCalc {
       const text = cell.textContent ?? "";
       // 去除 IAL {: colspan="1"} 后提取
       const pureText = text.replace(/\{:[^}]+\}/g, "").trim();
-      if (pureText === "") return;
-
-      const num = Number(pureText);
-      if (!isNaN(num)) {
+      
+      const parsed = this.parseNumber(pureText);
+      if (parsed !== null) {
         numCount++;
-        sum += num;
+        sum += parsed.value;
+        if (parsed.hasPercent) percentCount++;
+        if (parsed.hasComma) commaCount++;
       }
     });
 
-    const average = numCount > 0 ? Number((sum / numCount).toFixed(4)) : 0;
+    const allPercent = numCount > 0 && percentCount === numCount;
+    const anyComma = commaCount > 0;
+    const average = numCount > 0 ? sum / numCount : 0;
 
-    this.showCalcBar(count, numCount, sum, average);
+    const sumStr = numCount > 0 ? this.formatResult(sum, allPercent, anyComma) : "-";
+    const avgStr = numCount > 0 ? this.formatResult(average, allPercent, anyComma) : "-";
+
+    this.showCalcBar(count, numCount, sumStr, avgStr);
 
     // 联动同步更新右侧 Dock 栏状态卡片内容
     const dockStatusText = document.querySelector("#at-status-text") as HTMLElement;
@@ -208,8 +216,6 @@ export class QuickCalc {
         statusDot.classList.add("at-pulse");
       }
 
-      const sumStr = numCount > 0 ? sum.toString() : "-";
-      const avgStr = numCount > 0 ? average.toString() : "-";
       const rangeStr = minRow !== Infinity ? `R${minRow + 1}C${minCol + 1}:R${maxRow + 1}C${maxCol + 1}` : "-";
 
       dockStatusText.innerHTML = `
@@ -237,16 +243,12 @@ export class QuickCalc {
   }
 
   /** 创建或显示计算悬浮条 */
-  private showCalcBar(count: number, numCount: number, sum: number, average: number) {
+  private showCalcBar(count: number, numCount: number, sumStr: string, avgStr: string) {
     if (!this.calcBar) {
       this.calcBar = document.createElement("div");
       this.calcBar.className = "at-quick-calc-bar";
       document.body.appendChild(this.calcBar);
     }
-
-    // 格式化输出
-    const sumStr = numCount > 0 ? sum.toString() : "-";
-    const avgStr = numCount > 0 ? average.toString() : "-";
 
     this.calcBar.innerHTML = `
       <div class="at-calc-item">
@@ -287,5 +289,47 @@ export class QuickCalc {
     }
     // 隐藏/移除时，向系统分发 selectionchange 事件，迫使 Dock 状态面板自动更新以恢复常规的编辑信息
     document.dispatchEvent(new Event("selectionchange"));
+  }
+
+  private parseNumber(text: string): { value: number; hasPercent: boolean; hasComma: boolean } | null {
+    let cleanText = text.trim();
+    if (cleanText === "") return null;
+
+    let hasPercent = false;
+    if (cleanText.endsWith("%")) {
+      hasPercent = true;
+      cleanText = cleanText.slice(0, -1).trim();
+    }
+
+    let hasComma = false;
+    if (cleanText.includes(",")) {
+      hasComma = true;
+      cleanText = cleanText.replace(/,/g, "");
+    }
+
+    const num = Number(cleanText);
+    if (isNaN(num)) return null;
+
+    return {
+      value: hasPercent ? num / 100 : num,
+      hasPercent,
+      hasComma,
+    };
+  }
+
+  private formatResult(value: number, allPercent: boolean, anyComma: boolean): string {
+    if (allPercent) {
+      const valPercent = Number((value * 100).toFixed(4));
+      if (anyComma) {
+        return new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(valPercent) + "%";
+      }
+      return valPercent.toString() + "%";
+    }
+
+    if (anyComma) {
+      return new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(value);
+    }
+
+    return Number(value.toFixed(4)).toString();
   }
 }

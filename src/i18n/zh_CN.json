@@ -45,6 +45,7 @@
   "toolbarRow": "行 ${row} 列 ${col}",
   "openStickyHeader": "钉住表头",
   "closeStickyHeader": "取消钉住表头",
+  "resizeTable": "调整表格",
 
   "dockTitle": "表哥工具箱",
   "dockStatus": "高级表格状态",
@@ -133,6 +134,7 @@
   "kw-sort-rows-asc": "升序",
   "kw-sort-rows-desc": "降序",
   "kw-transpose": "转置",
+  "kw-resizeTable": "调整",
   "kw-evaluate-formulas": "公式",
   "kw-escape-table": "跳出",
   "kw-copy-row": "复制行",

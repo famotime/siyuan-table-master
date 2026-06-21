@@ -24,8 +24,7 @@ export const SVG_ICONS: Record<string, string> = {
   "sort-rows-asc": `<svg viewBox="0 0 48 48" width="20" height="20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M23 9H43"/><path d="M5 16L13 8"/><path d="M13 8V42"/><path d="M23 19H39"/><path d="M23 29H35"/><path d="M23 39H31"/></svg>`,
   "sort-rows-desc": `<svg viewBox="0 0 48 48" width="20" height="20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M23 8H43"/><path d="M14 41L6 33"/><path d="M14 7V41"/><path d="M23 18H39"/><path d="M23 28H35"/><path d="M23 38H31"/></svg>`,
   "transpose": `<svg class="at-svg-fill" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 32 32"><path fill="currentColor" d="M19 26h-5v-2h5a5.006 5.006 0 0 0 5-5v-5h2v5a7.01 7.01 0 0 1-7 7M8 30H4a2 2 0 0 1-2-2V14a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2M4 14v14h4V14zm24-4H14a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2M14 4v4h14V4z"/></svg>`,
-  "evaluate-formulas": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" style="fill:none!important"/><line x1="8" x2="16" y1="6" y2="6" style="fill:none!important"/><line x1="16" x2="16" y1="14" y2="18" style="fill:none!important"/><path d="M16 10h.01" style="fill:none!important"/><path d="M12 10h.01" style="fill:none!important"/><path d="M8 10h.01" style="fill:none!important"/><path d="M12 14h.01" style="fill:none!important"/><path d="M8 14h.01" style="fill:none!important"/><path d="M12 18h.01" style="fill:none!important"/><path d="M8 18h.01" style="fill:none!important"/></svg>`,
-  "escape-table": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" style="fill:none!important"/><polyline points="16 17 21 12 16 7" style="fill:none!important"/><line x1="21" y1="12" x2="9" y2="12" style="fill:none!important"/></svg>`,
+
   "copy-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" style="fill:none!important"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" style="fill:none!important"/><line x1="9" x2="22" y1="13" y2="13" style="fill:none!important"/><line x1="9" x2="22" y1="17" y2="17" style="fill:none!important"/></svg>`,
   "copy-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" style="fill:none!important"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" style="fill:none!important"/><line x1="13" x2="13" y1="9" y2="22" style="fill:none!important"/><line x1="17" x2="17" y1="9" y2="22" style="fill:none!important"/></svg>`,
   "paste-row": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z" style="fill:none!important"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" style="fill:none!important"/><path d="M9 13h6" style="fill:none!important"/></svg>`,
@@ -53,12 +52,11 @@ interface CommandGroup {
 }
 
 const COMMAND_GROUPS: CommandGroup[] = [
-  { title: "格式与对齐", commandIds: ["format-table", "left-align-column", "center-align-column", "right-align-column"] },
+  { title: "格式与对齐", commandIds: ["left-align-column", "center-align-column", "right-align-column", "format-table"] },
   { title: "行列增删", commandIds: ["insert-row", "delete-row", "insert-column", "delete-column"] },
   { title: "行列移动", commandIds: ["move-row-up", "move-row-down", "move-column-left", "move-column-right"] },
-  { title: "高级与导航", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "evaluate-formulas", "escape-table"] },
   { title: "复制与粘贴", commandIds: ["copy-row", "copy-column", "paste-row", "paste-column"] },
-  { title: "求和与图表", commandIds: ["row-sum", "column-sum", "table-to-chart"] },
+  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "table-to-chart"] },
 ];
 
 /** 计算 DOM 表格的大小 */
@@ -246,6 +244,14 @@ export function registerDock(plugin: TableMaterPlugin) {
     init() {
       this.element.innerHTML = `
         <div class="at-dock-panel fn__flex-1 fn__flex-column">
+          <div class="at-dock-header">
+            <img class="at-dock-logo" src="/plugins/${plugin.name}/icon.png?v=transparent" alt="Table Master Logo" />
+            <div class="at-dock-intro">
+              <div class="at-dock-title">表哥<span class="at-dock-subtitle">Table Master</span></div>
+              <div class="at-dock-slogan">专治Markdown表格的各种不服</div>
+            </div>
+          </div>
+
           <div class="at-status-card">
             <div class="at-status-header">
               <span class="at-status-title">${plugin.i18n.dockStatus || "高级表格状态"}</span>
@@ -280,60 +286,53 @@ export function registerDock(plugin: TableMaterPlugin) {
           <div class="at-shortcut-panel">
             <div class="at-shortcut-header">${plugin.i18n.shortcutTitle || "快捷键指南"}</div>
             
-            <div class="at-shortcut-section">
-              <div class="at-shortcut-section-title">${plugin.i18n.shortcutPluginGroup || "表哥增强"}</div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutDragCalc || "拖选单元格计算"}</span>
-                <span class="at-shortcut-keys"><kbd>Alt</kbd> + 拖选</span>
-              </div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutNextCell || "聚焦下一单元格"}</span>
-                <span class="at-shortcut-keys"><kbd>Tab</kbd></span>
-              </div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutNextRow || "折行至下一行"}</span>
-                <span class="at-shortcut-keys"><kbd>Enter</kbd></span>
-              </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutDragCalc || "拖选单元格计算"}</span>
+              <span class="at-shortcut-keys"><kbd>Alt</kbd> + 拖选</span>
             </div>
-
-            <div class="at-shortcut-section">
-              <div class="at-shortcut-section-title">${plugin.i18n.shortcutSiyuanGroup || "思源内置"}</div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutAlignLeft || "水平居左对齐"}</span>
-                <span class="at-shortcut-keys"><kbd>Alt</kbd> + <kbd>L</kbd></span>
-              </div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutAlignCenter || "水平居中对齐"}</span>
-                <span class="at-shortcut-keys"><kbd>Alt</kbd> + <kbd>C</kbd></span>
-              </div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutAlignRight || "水平居右对齐"}</span>
-                <span class="at-shortcut-keys"><kbd>Alt</kbd> + <kbd>R</kbd></span>
-              </div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveRowUp || "向上移动整行"}</span>
-                <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd></span>
-              </div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveRowDown || "向下移动整行"}</span>
-                <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd></span>
-              </div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveColLeft || "向左移动整列"}</span>
-                <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd></span>
-              </div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveColRight || "向右移动整列"}</span>
-                <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd></span>
-              </div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutDeleteCol || "删除当前整列"}</span>
-                <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>-</kbd></span>
-              </div>
-              <div class="at-shortcut-item">
-                <span class="at-shortcut-desc">${plugin.i18n.shortcutDeleteRow || "删除当前整行"}</span>
-                <span class="at-shortcut-keys"><kbd>Ctrl</kbd> + <kbd>-</kbd></span>
-              </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutNextCell || "聚焦下一单元格"}</span>
+              <span class="at-shortcut-keys"><kbd>Tab</kbd></span>
+            </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutNextRow || "折行至下一行"}</span>
+              <span class="at-shortcut-keys"><kbd>Enter</kbd></span>
+            </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutAlignLeft || "水平居左对齐"}</span>
+              <span class="at-shortcut-keys"><kbd>Alt</kbd> + <kbd>L</kbd></span>
+            </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutAlignCenter || "水平居中对齐"}</span>
+              <span class="at-shortcut-keys"><kbd>Alt</kbd> + <kbd>C</kbd></span>
+            </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutAlignRight || "水平居右对齐"}</span>
+              <span class="at-shortcut-keys"><kbd>Alt</kbd> + <kbd>R</kbd></span>
+            </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveRowUp || "向上移动整行"}</span>
+              <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd></span>
+            </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveRowDown || "向下移动整行"}</span>
+              <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd></span>
+            </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveColLeft || "向左移动整列"}</span>
+              <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd></span>
+            </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutMoveColRight || "向右移动整列"}</span>
+              <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd></span>
+            </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutDeleteCol || "删除当前整列"}</span>
+              <span class="at-shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>-</kbd></span>
+            </div>
+            <div class="at-shortcut-item">
+              <span class="at-shortcut-desc">${plugin.i18n.shortcutDeleteRow || "删除当前整行"}</span>
+              <span class="at-shortcut-keys"><kbd>Ctrl</kbd> + <kbd>-</kbd></span>
             </div>
           </div>
         </div>
