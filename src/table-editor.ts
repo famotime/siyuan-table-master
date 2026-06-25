@@ -17,7 +17,7 @@ import { showMessage } from "siyuan";
 import { SiyuanTextEditor } from "./siyuan-text-editor";
 import { showPasteConfirmDialog } from "./confirm-dialog";
 import type { PluginSettings } from "./settings";
-import { splitTableRow } from "./table-model";
+import { splitTableRow, isSeparatorLine } from "./table-model";
 
 /** 模块级剪贴板（会话内持久） */
 interface TableClipboard {
@@ -244,37 +244,56 @@ export class TableEditor {
     return this.mte.exportCSV(includeHeaders, this.opts());
   }
 
-  // ── 复制与粘贴 ──
+  // ── 剪切与粘贴 ──
 
-  async copyRow(): Promise<string | null> {
+  async cutRow(): Promise<string | null> {
     await this.ctx.reload();
     const coord = this.ctx.getCursorDomCoord();
     if (!coord) return this.getMsg("无法获取光标位置", "Cannot get cursor position");
 
-    const lineIdx = coord.row === 0 ? 0 : coord.row + 1;
+    if (coord.row === 0) {
+      return this.getMsg("无法剪切表头行", "Cannot cut the header row");
+    }
+
+    const lineIdx = coord.row + 1;
     const cells = this.ctx.getRowCellsAt(lineIdx);
     clipboard = { type: "row", cells: [...cells] };
+
+    // 删除当前行
+    this.mte.deleteRow(this.opts());
+    await this.ctx.flush();
+
     showMessage(
       this.getMsg(
-        `已复制第 ${coord.row + 1} 行（${cells.length} 列）`,
-        `Copied row ${coord.row + 1} (${cells.length} columns)`
+        `已剪切第 ${coord.row + 1} 行（${cells.length} 列）`,
+        `Cut row ${coord.row + 1} (${cells.length} columns)`
       ),
       2000
     );
     return null;
   }
 
-  async copyColumn(): Promise<string | null> {
+  async cutColumn(): Promise<string | null> {
     await this.ctx.reload();
     const coord = this.ctx.getCursorDomCoord();
     if (!coord) return this.getMsg("无法获取光标位置", "Cannot get cursor position");
 
+    const colCount = this.ctx.getRowCellsAt(0).length;
+    if (colCount <= 1) {
+      return this.getMsg("无法剪切仅存的最后一列", "Cannot cut the only column");
+    }
+
     const cells = this.ctx.getColCells(coord.col);
     clipboard = { type: "column", cells: [...cells] };
+
+    // 删除当前列
+    this.mte.deleteColumn(this.opts());
+    await this.ctx.flush();
+
     showMessage(
       this.getMsg(
-        `已复制第 ${coord.col + 1} 列（${cells.length} 行）`,
-        `Copied column ${coord.col + 1} (${cells.length} rows)`
+        `已剪切第 ${coord.col + 1} 列（${cells.length} 行）`,
+        `Cut column ${coord.col + 1} (${cells.length} rows)`
       ),
       2000
     );
@@ -284,42 +303,94 @@ export class TableEditor {
   async pasteRow(): Promise<string | null> {
     if (!clipboard || clipboard.type !== "row") {
       return this.getMsg(
-        "剪贴板中没有行数据，请先使用「复制行」",
-        "No row data in clipboard, please 'Copy Row' first"
+        "剪贴板中没有行数据，请先使用「剪切行」",
+        "No row data in clipboard, please 'Cut Row' first"
       );
     }
-    return this.pasteWithConfirm(
-      "行",
-      clipboard.cells,
-      (coord) => {
-        const lineIdx = coord.row === 0 ? 0 : coord.row + 1;
-        return { current: this.ctx.getRowCellsAt(lineIdx), target: lineIdx };
-      },
-      (target, cells) => { this.ctx.setRowCellsAt(target as number, cells); },
-      (arr) => arr.map(getPureCellText).filter(c => c).join(" | ") || this.getMsg("(空)", "(Empty)"),
+
+    await this.ctx.reload();
+    const coord = this.ctx.getCursorDomCoord();
+    if (!coord) return this.getMsg("无法获取光标位置", "Cannot get cursor position");
+
+    const clipCells = clipboard.cells;
+    const numCols = this.ctx.getRowCellsAt(0).length;
+    const newCells = Array.from({ length: numCols }, (_, i) =>
+      i < clipCells.length ? clipCells[i] : ""
     );
+    const newLine = `| ${newCells.join(" | ")} |`;
+
+    if (coord.row === 0) {
+      // 如果光标在表头行，我们在 model index 0 插入新行
+      this.ctx.insertLineAt(0, newLine);
+      // 保证 model[1] 始终是分隔线行，将 model[1] 和 model[2] 交换位置
+      const temp1 = this.ctx.getLineAt(1);
+      const temp2 = this.ctx.getLineAt(2);
+      if (temp1 !== undefined && temp2 !== undefined) {
+        this.ctx.setLineAt(1, temp2);
+        this.ctx.setLineAt(2, temp1);
+      }
+    } else {
+      // 否则，直接插入在当前行上方
+      this.ctx.insertLineAt(coord.row + 1, newLine);
+    }
+
+    await this.ctx.flush();
+
+    showMessage(
+      this.getMsg(
+        `已插入行到第 ${coord.row + 1} 行上方`,
+        `Pasted row above row ${coord.row + 1}`
+      ),
+      1500
+    );
+    return null;
   }
 
   async pasteColumn(): Promise<string | null> {
     if (!clipboard || clipboard.type !== "column") {
       return this.getMsg(
-        "剪贴板中没有列数据，请先使用「复制列」",
-        "No column data in clipboard, please 'Copy Column' first"
+        "剪贴板中没有列数据，请先使用「剪切列」",
+        "No column data in clipboard, please 'Cut Column' first"
       );
     }
-    return this.pasteWithConfirm(
-      "列",
-      clipboard.cells,
-      (coord) => {
-        return { current: this.ctx.getColCells(coord.col), target: coord.col };
-      },
-      (target, cells) => { this.ctx.setColCells(target as number, cells); },
-      (arr) => {
-        const rows = arr.map(getPureCellText).filter(c => c);
-        if (rows.length === 0) return this.getMsg("(空)", "(Empty)");
-        return rows.slice(0, 3).join(" / ") + (rows.length > 3 ? " …" : "");
-      },
+
+    await this.ctx.reload();
+    const coord = this.ctx.getCursorDomCoord();
+    if (!coord) return this.getMsg("无法获取光标位置", "Cannot get cursor position");
+
+    const clipCells = clipboard.cells;
+    const colIdx = coord.col;
+
+    // 遍历所有模型行，在 colIdx 前面插入一列
+    const lineCount = this.ctx.getLineCount();
+    let cellIdx = 0;
+    for (let i = 0; i < lineCount; i++) {
+      const line = this.ctx.getLineAt(i);
+      if (line === undefined) continue;
+
+      if (isSeparatorLine(line)) {
+        const cells = splitTableRow(line);
+        cells.splice(colIdx, 0, "---");
+        this.ctx.setLineAt(i, `| ${cells.join(" | ")} |`);
+      } else {
+        const cells = splitTableRow(line);
+        const cellVal = cellIdx < clipCells.length ? clipCells[cellIdx] : "";
+        cells.splice(colIdx, 0, cellVal);
+        this.ctx.setLineAt(i, `| ${cells.join(" | ")} |`);
+        cellIdx++;
+      }
+    }
+
+    await this.ctx.flush();
+
+    showMessage(
+      this.getMsg(
+        `已插入列到第 ${coord.col + 1} 列左侧`,
+        `Pasted column before column ${coord.col + 1}`
+      ),
+      1500
     );
+    return null;
   }
 
   // ── 求和 ──

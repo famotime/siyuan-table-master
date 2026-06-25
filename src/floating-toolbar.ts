@@ -250,14 +250,14 @@ export class FloatingToolbar {
         "toggle-sticky-header",
       ];
     } else {
-      // 光标在非表头行时，工具栏按钮：上移行、下移行，左移列、右移列、复制行、复制列
+      // 光标在非表头行时，工具栏按钮：上移行、下移行，左移列、右移列、剪切行、剪切列
       cmdIds = [
         "move-row-up",
         "move-row-down",
         "move-column-left",
         "move-column-right",
-        "copy-row",
-        "copy-column",
+        "cut-row",
+        "cut-column",
       ];
       // 如果已有复制行列内容，增加对应按钮：粘贴行、粘贴列
       const clipboard = getTableClipboard();

@@ -43,13 +43,13 @@ export const TABLE_COMMANDS: TableCommand[] = [
   { id: "sort-rows-desc", nameZh: "降序排序", nameEn: "Sort rows descending", action: te => te.sortRowsDesc() },
   { id: "transpose", nameZh: "转置表格", nameEn: "Transpose table", action: te => te.transpose() },
 
-  // ── 复制与粘贴 ──
-  { id: "copy-row", nameZh: "复制行", nameEn: "Copy row", action: async (te) => {
-    const err = await te.copyRow();
+  // ── 剪切与粘贴 ──
+  { id: "cut-row", nameZh: "剪切行", nameEn: "Cut row", action: async (te) => {
+    const err = await te.cutRow();
     if (err) showMessage(err, 3000, "error");
   }},
-  { id: "copy-column", nameZh: "复制列", nameEn: "Copy column", action: async (te) => {
-    const err = await te.copyColumn();
+  { id: "cut-column", nameZh: "剪切列", nameEn: "Cut column", action: async (te) => {
+    const err = await te.cutColumn();
     if (err) showMessage(err, 3000, "error");
   }},
   { id: "paste-row", nameZh: "粘贴行", nameEn: "Paste row", action: async (te) => {
