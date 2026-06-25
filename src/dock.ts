@@ -32,7 +32,8 @@ export const SVG_ICONS: Record<string, string> = {
   "row-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4v2.5l3.5 4.5-3.5 4.5V19h5" style="fill:none!important"/><path d="M12 12h8" style="fill:none!important"/><path d="M17 9l3 3-3 3" style="fill:none!important"/></svg>`,
   "column-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4v2.5l3.5 4.5-3.5 4.5V19h5" style="fill:none!important"/><path d="M16 5v14" style="fill:none!important"/><path d="M13 16l3 3 3-3" style="fill:none!important"/></svg>`,
   "table-to-chart": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" style="fill:none!important"/><path d="m19 9-5 5-4-4-3 3" style="fill:none!important"/></svg>`,
-  "fit-content-width": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16" style="fill:none!important"/><path d="m16 8 4 4-4 4" style="fill:none!important"/><path d="m8 8-4 4 4 4" style="fill:none!important"/></svg>`
+  "fit-content-width": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16" style="fill:none!important"/><path d="m16 8 4 4-4 4" style="fill:none!important"/><path d="m8 8-4 4 4 4" style="fill:none!important"/></svg>`,
+  "text-to-table": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18" style="fill:none!important"/><path d="M3 15h18" style="fill:none!important"/><path d="M12 3v18" style="fill:none!important"/></svg>`
 };
 
 // ═══════════════════════════════════════════════════
@@ -57,7 +58,7 @@ const COMMAND_GROUPS: CommandGroup[] = [
   { title: "行列增删", commandIds: ["insert-row", "delete-row", "insert-column", "delete-column"] },
   { title: "行列移动", commandIds: ["move-row-up", "move-row-down", "move-column-left", "move-column-right"] },
   { title: "复制与粘贴", commandIds: ["copy-row", "copy-column", "paste-row", "paste-column"] },
-  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "table-to-chart"] },
+  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "table-to-chart", "text-to-table"] },
 ];
 
 /** 计算 DOM 表格的大小 */
@@ -95,8 +96,6 @@ function setDockUIState(
   cols = 0,
 ): void {
   const { statusCardEl, statusDotEl, statusTextEl, buttonGridContainer, tooltipBarEl } = elements;
-  const textToTableBtn = dockElement.querySelector("#at-dock-text-to-table-btn") as HTMLElement;
-
   if (active) {
     statusCardEl?.classList.add("at-active");
     if (statusDotEl) {
@@ -116,7 +115,6 @@ function setDockUIState(
         .replace("${rows}", String(rows))
         .replace("${cols}", String(cols));
     }
-    if (textToTableBtn) textToTableBtn.style.display = "none";
   } else {
     statusCardEl?.classList.remove("at-active");
     if (statusDotEl) {
@@ -128,7 +126,6 @@ function setDockUIState(
     if (tooltipBarEl && !(tooltipBarEl.innerText.startsWith("提示：") || tooltipBarEl.innerText.startsWith("Tip:"))) {
       tooltipBarEl.innerText = plugin.i18n.dockTipDefault || "提示：将光标移动至表格中开始编辑。按住 Alt + 鼠标拖选可多选计算。";
     }
-    if (textToTableBtn) textToTableBtn.style.display = "flex";
   }
 }
 
@@ -259,15 +256,6 @@ export function registerDock(plugin: TableMaterPlugin) {
               <span id="at-status-dot" class="at-status-dot"></span>
             </div>
             <div id="at-status-text" class="at-status-text">${plugin.i18n.noActiveTable || "未检测到聚焦表格"}</div>
-            <button id="at-dock-text-to-table-btn" class="at-dock-convert-btn">
-              <span class="fn__flex-center">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="18" height="18" x="3" y="3" rx="2"></rect>
-                  <path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M12 3v18"></path>
-                </svg>
-              </span>
-              ${plugin.i18n.textToTableContextMenu || "将文本转换为表格"}
-            </button>
           </div>
           <div id="at-button-container" class="at-button-container at-disabled">
             ${COMMAND_GROUPS.map(group => `
@@ -348,17 +336,6 @@ export function registerDock(plugin: TableMaterPlugin) {
       elements.statusDotEl = this.element.querySelector("#at-status-dot") as HTMLElement;
       elements.buttonGridContainer = this.element.querySelector("#at-button-container") as HTMLElement;
       elements.tooltipBarEl = this.element.querySelector("#at-tooltip-bar") as HTMLElement;
-
-      // 绑定"将文本转换为表格"按钮
-      const textToTableBtn = this.element.querySelector("#at-dock-text-to-table-btn") as HTMLElement;
-      if (textToTableBtn) {
-        textToTableBtn.addEventListener("click", async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const cmd = TABLE_COMMANDS.find(c => c.id === "text-to-table");
-          if (cmd) await executeCommand(cmd, plugin.settings, null, plugin.i18n);
-        });
-      }
 
       // 绑定按钮点击事件
       const buttons = this.element.querySelectorAll(".at-btn");
@@ -459,8 +436,9 @@ export function registerDock(plugin: TableMaterPlugin) {
               }
             }, 50);
 
-            dockOperationTimeoutId = setTimeout(() => { dockOperationActive = false; }, 350);
           }
+
+          dockOperationTimeoutId = setTimeout(() => { dockOperationActive = false; }, 350);
         });
 
         btn.addEventListener("mouseenter", () => {

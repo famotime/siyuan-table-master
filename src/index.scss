@@ -129,10 +129,26 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
   flex: 1;
   transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
 
+  /* 当光标在表格内 (Container 未禁用) 时，禁用“文转表”按钮，其他正常 */
+  &:not(.at-disabled) {
+    .at-btn-item:has([data-cmd-id="text-to-table"]) {
+      opacity: 0.45;
+      pointer-events: none;
+      filter: grayscale(80%);
+    }
+  }
+
+  /* 当光标不在表格内 (Container 被禁用) 时，豁免“文转表”按钮，禁用其他所有编辑按钮 */
   &.at-disabled {
-    opacity: 0.45;
-    pointer-events: none;
-    filter: grayscale(80%);
+    opacity: 1;
+    pointer-events: auto;
+    filter: none;
+
+    .at-btn-item:not(:has([data-cmd-id="text-to-table"])) {
+      opacity: 0.45;
+      pointer-events: none;
+      filter: grayscale(80%);
+    }
   }
 }
 
