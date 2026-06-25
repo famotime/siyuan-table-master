@@ -31,7 +31,8 @@ export const SVG_ICONS: Record<string, string> = {
   "paste-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z" style="fill:none!important"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" style="fill:none!important"/><path d="M12 10v6" style="fill:none!important"/></svg>`,
   "row-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4v2.5l3.5 4.5-3.5 4.5V19h5" style="fill:none!important"/><path d="M12 12h8" style="fill:none!important"/><path d="M17 9l3 3-3 3" style="fill:none!important"/></svg>`,
   "column-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4v2.5l3.5 4.5-3.5 4.5V19h5" style="fill:none!important"/><path d="M16 5v14" style="fill:none!important"/><path d="M13 16l3 3 3-3" style="fill:none!important"/></svg>`,
-  "table-to-chart": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" style="fill:none!important"/><path d="m19 9-5 5-4-4-3 3" style="fill:none!important"/></svg>`
+  "table-to-chart": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" style="fill:none!important"/><path d="m19 9-5 5-4-4-3 3" style="fill:none!important"/></svg>`,
+  "fit-content-width": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16" style="fill:none!important"/><path d="m16 8 4 4-4 4" style="fill:none!important"/><path d="m8 8-4 4 4 4" style="fill:none!important"/></svg>`
 };
 
 // ═══════════════════════════════════════════════════
@@ -52,7 +53,7 @@ interface CommandGroup {
 }
 
 const COMMAND_GROUPS: CommandGroup[] = [
-  { title: "格式与对齐", commandIds: ["left-align-column", "center-align-column", "right-align-column", "format-table"] },
+  { title: "格式与对齐", commandIds: ["left-align-column", "center-align-column", "right-align-column", "empty-placeholder", "format-table", "fit-content-width"] },
   { title: "行列增删", commandIds: ["insert-row", "delete-row", "insert-column", "delete-column"] },
   { title: "行列移动", commandIds: ["move-row-up", "move-row-down", "move-column-left", "move-column-right"] },
   { title: "复制与粘贴", commandIds: ["copy-row", "copy-column", "paste-row", "paste-column"] },
@@ -274,6 +275,9 @@ export function registerDock(plugin: TableMaterPlugin) {
                 <div class="at-group-title">${group.title}</div>
                 <div class="at-btn-grid">
                   ${group.commandIds.map(cmdId => {
+                    if (cmdId === "empty-placeholder") {
+                      return `<div class="at-btn-item at-placeholder"></div>`;
+                    }
                     const cmd = TABLE_COMMANDS.find(c => c.id === cmdId);
                     if (!cmd) return "";
                     const iconSvg = SVG_ICONS[cmdId] || "";

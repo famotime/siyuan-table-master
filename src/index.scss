@@ -992,3 +992,26 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 
+
+/* ==========================================
+   思源表格自适应正文宽度（宽度调整）
+   ========================================== */
+
+/* 1. 去掉表格外层容器的横向滚动条 */
+.protyle-wysiwyg .table[custom-table-width-auto="true"] > div[contenteditable="false"] {
+    overflow-x: visible !important;
+}
+
+/* 2. 表格最宽不超过正文宽度，但内容少时仍按内容宽度（不拉满） */
+.protyle-wysiwyg .table[custom-table-width-auto="true"] table {
+    max-width: 100% !important;
+    table-layout: auto !important;
+}
+
+/* 3. 被压窄时允许单元格内换行，避免溢出 */
+.protyle-wysiwyg .table[custom-table-width-auto="true"] th,
+.protyle-wysiwyg .table[custom-table-width-auto="true"] td {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+}

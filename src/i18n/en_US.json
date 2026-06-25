@@ -40,6 +40,7 @@
   "column-sum": "Column Sum",
   "table-to-chart": "Convert Table to Chart",
   "text-to-table": "Convert Text to Table",
+  "fit-content-width": "Adjust table width",
 
   "toolbarHeader": "Header",
   "toolbarRow": "Row ${row} Col ${col}",
@@ -144,6 +145,7 @@
   "kw-row-sum": "Row Sum",
   "kw-column-sum": "Col Sum",
   "kw-table-to-chart": "To Chart",
+  "kw-fit-content-width": "Width",
   "shortcutTitle": "Shortcut Guide",
   "shortcutPluginGroup": "Enhanced Features",
   "shortcutSiyuanGroup": "SiYuan Native",

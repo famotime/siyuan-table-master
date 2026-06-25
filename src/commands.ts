@@ -9,7 +9,7 @@ import type { PluginSettings } from "./settings";
 import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
 import type { CellCoord } from "./dom-utils";
 import { TableEditor } from "./table-editor";
-import { getActiveEditor, showMessage } from "siyuan";
+import { getActiveEditor, showMessage, fetchSyncPost } from "siyuan";
 import { executeTextToTable } from "./text-to-table";
 import { executeTableToChart } from "./table-to-chart";
 
@@ -66,6 +66,8 @@ export const TABLE_COMMANDS: TableCommand[] = [
   { id: "table-to-chart", nameZh: "一键数据图表化", nameEn: "Convert table to chart", action: te => executeTableToChart(te) },
   // 文本转表格：action 占位符，实际由 executeCommand 中特判处理
   { id: "text-to-table", nameZh: "文本转为表格", nameEn: "Convert text to table", action: async () => {} },
+  // 宽度调整：action 占位符，实际由 executeCommand 中特判处理
+  { id: "fit-content-width", nameZh: "自适应宽度调整", nameEn: "Adjust table width", action: async () => {} },
 ];
 
 /**
@@ -110,6 +112,49 @@ export async function executeCommand(
     // 特判：文本转为表格命令不受"光标必须在表格内"的限制
     if (cmd.id === "text-to-table") {
       await executeTextToTable(i18n);
+      return;
+    }
+
+    // 特判：宽度调整命令直接设置块属性，不需要加载整个表格的 Markdown
+    if (cmd.id === "fit-content-width") {
+      let tableBlock = preset?.tableBlock || null;
+      let blockId = preset?.blockId || null;
+
+      if (blockId) {
+        const latestEl = document.querySelector(`[data-node-id="${blockId}"]`) as HTMLElement;
+        if (latestEl) {
+          tableBlock = latestEl;
+        }
+      }
+
+      if (!tableBlock || !blockId) {
+        const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
+        if (!inTable || !tb || !bid) {
+          showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
+          return;
+        }
+        tableBlock = tb;
+        blockId = bid;
+      }
+
+      const currentVal = tableBlock.getAttribute("custom-table-width-auto") || "";
+      const isAuto = currentVal === "true";
+      const newVal = isAuto ? "" : "true";
+
+      // 1. 立即更新 DOM (以取得即时无缝响应效果)
+      if (newVal) {
+        tableBlock.setAttribute("custom-table-width-auto", newVal);
+      } else {
+        tableBlock.removeAttribute("custom-table-width-auto");
+      }
+
+      // 2. 调用 API 持久化
+      await fetchSyncPost("/api/attr/setBlockAttrs", {
+        id: blockId,
+        attrs: {
+          "custom-table-width-auto": newVal
+        }
+      });
       return;
     }
 
