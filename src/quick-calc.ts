@@ -5,6 +5,8 @@ import type TableMaterPlugin from "./index";
 export class QuickCalc {
   private plugin: TableMaterPlugin;
   private isSelecting = false;
+  private isMouseDown = false;
+  private wasSelecting = false;
   private startCoord: { row: number; col: number } | null = null;
   private tableBlock: HTMLElement | null = null;
   private calcBar: HTMLElement | null = null;
@@ -41,9 +43,6 @@ export class QuickCalc {
   private onMouseDown(e: MouseEvent) {
     if (!this.plugin.settings.enableQuickCalc) return;
 
-    // 只有按住 Alt 键时才触发框选多选计算
-    if (!e.altKey) return;
-
     const activeEditor = getActiveEditor();
     if (!activeEditor?.protyle) return;
 
@@ -57,89 +56,135 @@ export class QuickCalc {
     const coord = getCellCoordFromTable(cell, block);
     if (!coord) return;
 
-    e.preventDefault();
-    e.stopPropagation();
+    // 如果先前已经有了多选状态，且本次又在表格中按下，先清除上一次的多选
+    if (this.tableBlock) {
+      this.clearSelection();
+    }
 
-    this.isSelecting = true;
+    this.isMouseDown = true;
     this.startCoord = coord;
     this.tableBlock = block;
 
-    // 清除上一次的高亮
-    this.clearSelectionHighLight(block);
-    
-    // 高亮起点单元格
-    cell.classList.add("at-selected-cell");
+    // 如果按住了 Alt 键，则直接启动框选，并拦截默认事件
+    if (e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
 
-    this.updateStats();
+      this.isSelecting = true;
+      this.clearSelectionHighLight(block);
+      cell.classList.add("at-selected-cell");
+      this.updateStats();
+    }
   }
 
   private onMouseMove(e: MouseEvent) {
-    if (!this.isSelecting || !this.startCoord || !this.tableBlock) return;
+    if (!this.isMouseDown || !this.startCoord || !this.tableBlock) return;
 
     const target = e.target as HTMLElement;
     const cell = target.closest("td, th") as HTMLTableCellElement | null;
     if (!cell) return;
 
-    // 确保拖拽在同一个表格内
     const block = findTableBlock(cell);
     if (block !== this.tableBlock) return;
 
     const currentCoord = getCellCoordFromTable(cell, block);
     if (!currentCoord) return;
 
-    e.preventDefault();
-    e.stopPropagation();
+    // 尚未触发框选模式时，如果跨单元格拖拽，自动激活框选模式
+    if (!this.isSelecting) {
+      const isCrossCell = this.startCoord.row !== currentCoord.row || this.startCoord.col !== currentCoord.col;
+      if (isCrossCell) {
+        this.isSelecting = true;
+        // 清除浏览器临时文本选区，防止蓝色底色选区干扰
+        window.getSelection()?.removeAllRanges();
+        this.clearSelectionHighLight(block);
 
-    // 计算框选的矩形范围
-    const minRow = Math.min(this.startCoord.row, currentCoord.row);
-    const maxRow = Math.max(this.startCoord.row, currentCoord.row);
-    const minCol = Math.min(this.startCoord.col, currentCoord.col);
-    const maxCol = Math.max(this.startCoord.col, currentCoord.col);
-
-    // 遍历表格的所有单元格，更新高亮
-    const table = block.querySelector("table");
-    if (!table) return;
-
-    const rows = Array.from(table.querySelectorAll("tr"));
-    rows.forEach((tr, rIdx) => {
-      const cells = Array.from(tr.querySelectorAll("td, th"));
-      cells.forEach((td, cIdx) => {
-        if (rIdx >= minRow && rIdx <= maxRow && cIdx >= minCol && cIdx <= maxCol) {
-          td.classList.add("at-selected-cell");
-        } else {
-          td.classList.remove("at-selected-cell");
+        // 高亮起点单元格
+        const table = block.querySelector("table");
+        if (table) {
+          const rows = Array.from(table.querySelectorAll("tr"));
+          const startTr = rows[this.startCoord.row];
+          if (startTr) {
+            const startCells = Array.from(startTr.querySelectorAll("td, th"));
+            const startCell = startCells[this.startCoord.col];
+            if (startCell) {
+              startCell.classList.add("at-selected-cell");
+            }
+          }
         }
-      });
-    });
+      }
+    }
 
-    this.updateStats();
+    // 处于框选模式下，拦截默认事件并更新高亮矩形和即时计算条
+    if (this.isSelecting) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const minRow = Math.min(this.startCoord.row, currentCoord.row);
+      const maxRow = Math.max(this.startCoord.row, currentCoord.row);
+      const minCol = Math.min(this.startCoord.col, currentCoord.col);
+      const maxCol = Math.max(this.startCoord.col, currentCoord.col);
+
+      const table = block.querySelector("table");
+      if (!table) return;
+
+      const rows = Array.from(table.querySelectorAll("tr"));
+      rows.forEach((tr, rIdx) => {
+        const cells = Array.from(tr.querySelectorAll("td, th"));
+        cells.forEach((td, cIdx) => {
+          if (rIdx >= minRow && rIdx <= maxRow && cIdx >= minCol && cIdx <= maxCol) {
+            td.classList.add("at-selected-cell");
+          } else {
+            td.classList.remove("at-selected-cell");
+          }
+        });
+      });
+
+      this.updateStats();
+    }
   }
 
-  private onMouseUp(_e: MouseEvent) {
+  private onMouseUp(e: MouseEvent) {
+    this.wasSelecting = this.isSelecting;
     if (this.isSelecting) {
-      this.isSelecting = false;
+      e.preventDefault();
+      e.stopPropagation();
     }
+    this.isMouseDown = false;
+    this.isSelecting = false;
   }
 
   private onKeyDown(e: KeyboardEvent) {
     if (e.key === "Escape") {
       this.clearSelection();
+      return;
+    }
+
+    // 如果当前有多选计算状态，按下任意普通键（排除修饰键）均清除多选，以支持方向键或输入直接收起高亮
+    if (this.tableBlock && !["Alt", "Control", "Shift", "Meta"].includes(e.key)) {
+      this.clearSelection();
     }
   }
 
   private onDocClick(e: MouseEvent) {
-    // 用户点击了表格外部，或没有按 Alt 且不是点击在高亮单元格上，清除多选
+    if (this.wasSelecting) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.wasSelecting = false;
+      return;
+    }
+
+    // 用户点击了已选框外的其它任意区域（非高亮单元格），清除多选状态
     const target = e.target as HTMLElement;
     const cell = target.closest("td, th");
     if (!cell || !cell.classList.contains("at-selected-cell")) {
-      if (!e.altKey) {
-        this.clearSelection();
-      }
+      this.clearSelection();
     }
   }
 
   /** 清除多选状态 */
   private clearSelection() {
+    this.isMouseDown = false;
     this.isSelecting = false;
     this.startCoord = null;
     if (this.tableBlock) {

@@ -123,6 +123,12 @@ export class FloatingToolbar {
       return;
     }
 
+    // 拖选多个单元格计算时，不出现浮动工具栏
+    if (tableBlock.querySelector(".at-selected-cell")) {
+      this.hide();
+      return;
+    }
+
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) {
       this.hide();
