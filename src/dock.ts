@@ -246,7 +246,7 @@ export function registerDock(plugin: TableMaterPlugin) {
             <img class="at-dock-logo" src="/plugins/${plugin.name}/icon.png?v=transparent" alt="Table Master Logo" />
             <div class="at-dock-intro">
               <div class="at-dock-title">表哥<span class="at-dock-subtitle">Table Master</span></div>
-              <div class="at-dock-slogan">专治Markdown表格的各种不服</div>
+              <div class="at-dock-slogan">专治Markdown表格的各种不爽</div>
             </div>
           </div>
 

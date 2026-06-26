@@ -19,6 +19,7 @@ export class FloatingToolbar {
   private refreshListener: (() => void) | null = null;
   public isExecuting = false;
   private executeTimeoutId: any = null;
+  private transitionTimeoutId: any = null;
   private dropdownContainer: HTMLElement | null = null;
   private globalClickCloseListener: ((e: MouseEvent) => void) | null = null;
 
@@ -75,6 +76,10 @@ export class FloatingToolbar {
     }
     if (this.executeTimeoutId) {
       clearTimeout(this.executeTimeoutId);
+    }
+    if (this.transitionTimeoutId) {
+      clearTimeout(this.transitionTimeoutId);
+      this.transitionTimeoutId = null;
     }
     this.closeDropdown();
   }
@@ -161,7 +166,11 @@ export class FloatingToolbar {
       this.contextTag.style.opacity = "0";
       this.buttonsWrapper.style.opacity = "0";
       this.buttonsWrapper.style.transform = "scale(0.98)";
-      setTimeout(() => {
+      if (this.transitionTimeoutId) {
+        clearTimeout(this.transitionTimeoutId);
+      }
+      this.transitionTimeoutId = setTimeout(() => {
+        this.transitionTimeoutId = null;
         if (!this.activeCell) return;
         this.renderContext(coord.row, coord.col);
         this.renderButtons(coord.row);
@@ -173,8 +182,17 @@ export class FloatingToolbar {
         }
       }, 120);
     } else {
+      if (this.transitionTimeoutId) {
+        clearTimeout(this.transitionTimeoutId);
+        this.transitionTimeoutId = null;
+      }
       this.renderContext(coord.row, coord.col);
       this.renderButtons(coord.row);
+      if (this.contextTag && this.buttonsWrapper) {
+        this.contextTag.style.opacity = "1";
+        this.buttonsWrapper.style.opacity = "1";
+        this.buttonsWrapper.style.transform = "scale(1)";
+      }
       this.show();
       this.reposition();
     }
@@ -440,9 +458,18 @@ export class FloatingToolbar {
 
   private hide() {
     this.closeDropdown();
+    if (this.transitionTimeoutId) {
+      clearTimeout(this.transitionTimeoutId);
+      this.transitionTimeoutId = null;
+    }
     if (this.container) {
       this.container.classList.add("at-floating-hidden");
       this.activeCell = null;
+      if (this.contextTag && this.buttonsWrapper) {
+        this.contextTag.style.opacity = "1";
+        this.buttonsWrapper.style.opacity = "1";
+        this.buttonsWrapper.style.transform = "scale(1)";
+      }
     }
   }
 
