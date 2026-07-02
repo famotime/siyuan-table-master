@@ -50,6 +50,8 @@
 
   "dockTitle": "Table Master Toolbox",
   "dockStatus": "Table Master Status",
+  "quickSettingsTitle": "Quick Settings",
+  "quickShowFloatingToolbar": "Show Floating Toolbar",
   "noActiveTable": "No active table focused",
   "dockTipDefault": "Tip: Move cursor to table to start. Hold Alt + drag to select & calculate.",
   "dockActive": "Table editing (${rows} rows × ${cols} cols)",

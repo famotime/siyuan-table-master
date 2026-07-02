@@ -1031,3 +1031,31 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
     word-break: break-word !important;
     overflow-wrap: anywhere !important;
 }
+
+/* ==========================================
+   快捷控制面板 (Quick Settings)
+   ========================================== */
+.at-quick-settings {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--b3-theme-surface);
+  border: 1px solid var(--b3-border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.at-quick-setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--b3-theme-on-surface);
+  
+  .at-setting-label {
+    opacity: 0.8;
+  }
+}

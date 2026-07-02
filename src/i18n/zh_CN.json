@@ -50,6 +50,8 @@
 
   "dockTitle": "表哥工具箱",
   "dockStatus": "高级表格状态",
+  "quickSettingsTitle": "快捷控制",
+  "quickShowFloatingToolbar": "显示浮动工具栏",
   "noActiveTable": "未检测到聚焦表格",
   "dockTipDefault": "提示：将光标移动至表格中开始编辑。按住 Alt + 鼠标拖选可多选计算。",
   "dockActive": "表格编辑中 (${rows} 行 × ${cols} 列)",

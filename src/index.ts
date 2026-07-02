@@ -211,6 +211,11 @@ export default class TableMaterPlugin extends Plugin {
         if (this.floatingToolbar) {
           this.floatingToolbar.update();
         }
+        // 同步更新 Dock 侧栏开关状态
+        const dockCheckbox = document.getElementById("at-toggle-floating-toolbar") as HTMLInputElement;
+        if (dockCheckbox) {
+          dockCheckbox.checked = this.settings.showFloatingToolbar;
+        }
       },
     });
 

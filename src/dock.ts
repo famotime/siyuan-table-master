@@ -1,8 +1,9 @@
 import { getActiveEditor, showMessage } from "siyuan";
 import { isCursorInTable } from "./siyuan-text-editor";
 import { TABLE_COMMANDS, executeCommand, TableCommand } from "./commands";
-import type TableMaterPlugin from "./index";
 import { rangeToCellCoord, CellCoord, findTableBlock } from "./dom-utils";
+import type TableMaterPlugin from "./index";
+import { saveSettings } from "./settings";
 
 /** SVG 图标定义 - Lucide 专业线框风格，显式内联阻断 fill 覆写，无填充 */
 export const SVG_ICONS: Record<string, string> = {
@@ -257,6 +258,12 @@ export function registerDock(plugin: TableMaterPlugin) {
             </div>
             <div id="at-status-text" class="at-status-text">${plugin.i18n.noActiveTable || "未检测到聚焦表格"}</div>
           </div>
+          <div class="at-quick-settings">
+            <div class="at-quick-setting-item">
+              <span class="at-setting-label">${plugin.i18n.quickShowFloatingToolbar || "显示浮动工具栏"}</span>
+              <input id="at-toggle-floating-toolbar" type="checkbox" class="b3-switch fn__flex-center" />
+            </div>
+          </div>
           <div id="at-button-container" class="at-button-container at-disabled">
             ${COMMAND_GROUPS.map(group => `
               <div class="at-group">
@@ -336,6 +343,19 @@ export function registerDock(plugin: TableMaterPlugin) {
       elements.statusDotEl = this.element.querySelector("#at-status-dot") as HTMLElement;
       elements.buttonGridContainer = this.element.querySelector("#at-button-container") as HTMLElement;
       elements.tooltipBarEl = this.element.querySelector("#at-tooltip-bar") as HTMLElement;
+
+      // 初始化快捷设置开关状态及事件监听
+      const toggleFloatingToolbarEl = this.element.querySelector("#at-toggle-floating-toolbar") as HTMLInputElement;
+      if (toggleFloatingToolbarEl) {
+        toggleFloatingToolbarEl.checked = plugin.settings.showFloatingToolbar;
+        toggleFloatingToolbarEl.addEventListener("change", async (e) => {
+          plugin.settings.showFloatingToolbar = (e.target as HTMLInputElement).checked;
+          await saveSettings(plugin, plugin.settings);
+          if (plugin.floatingToolbar) {
+            plugin.floatingToolbar.update();
+          }
+        });
+      }
 
       // 绑定按钮点击事件
       const buttons = this.element.querySelectorAll(".at-btn");
