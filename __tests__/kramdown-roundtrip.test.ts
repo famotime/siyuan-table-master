@@ -296,3 +296,47 @@ describe("M0.3 kramdown 转置", () => {
     expect(lines.length).toBeGreaterThanOrEqual(4);
   });
 });
+
+describe("M0.3 kramdown 备注还原正则测试", () => {
+  const restoreMemos = (kramdown: string): string => {
+    return kramdown.replace(
+      /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<](?:[^|<]*[^\s|<])?))\s*<sup>\(([^)]+)\)<\/sup>/g,
+      '<span data-type="inline-memo" data-inline-memo-content="$2">$1</span>'
+    );
+  };
+
+
+  it("基本文本备注还原", () => {
+    const input = "| cc<sup>(备注1)</sup> |";
+    const expected = '| <span data-type="inline-memo" data-inline-memo-content="备注1">cc</span> |';
+    expect(restoreMemos(input)).toBe(expected);
+  });
+
+  it("HTML标签备注还原", () => {
+    const input = '| <a href="xxx">aa</a><sup>(备注)</sup> |';
+    const expected = '| <span data-type="inline-memo" data-inline-memo-content="备注"><a href="xxx">aa</a></span> |';
+    expect(restoreMemos(input)).toBe(expected);
+  });
+
+  it("带有空格的备注还原", () => {
+    const input = "| cc <sup>(备注1)</sup> |";
+    const expected = '| <span data-type="inline-memo" data-inline-memo-content="备注1">cc</span> |';
+    expect(restoreMemos(input)).toBe(expected);
+  });
+
+  it("用户提供的测试用例还原", () => {
+    const input = `| header1 | header2 | header3 |
+| --------- | --------- | --------- |
+| [aa](http://localhost:8080/example01-includeUi.html)        | bb      | cc<sup>(备注1)</sup>        |
+| dd      | ee<sup>(备注2)</sup>        | ff      |`;
+
+    const expected = `| header1 | header2 | header3 |
+| --------- | --------- | --------- |
+| [aa](http://localhost:8080/example01-includeUi.html)        | bb      | <span data-type="inline-memo" data-inline-memo-content="备注1">cc</span>        |
+| dd      | <span data-type="inline-memo" data-inline-memo-content="备注2">ee</span>        | ff      |`;
+
+    expect(restoreMemos(input)).toBe(expected);
+  });
+});
+
+
