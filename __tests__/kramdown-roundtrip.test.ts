@@ -300,10 +300,11 @@ describe("M0.3 kramdown 转置", () => {
 describe("M0.3 kramdown 备注还原正则测试", () => {
   const restoreMemos = (kramdown: string): string => {
     return kramdown.replace(
-      /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<](?:[^|<]*[^\s|<])?))\s*<sup>[(（]([^)）]+)[)）]<\/sup>/g,
+      /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<>](?:[^|<>]*[^\s|<>])?))\s*<sup>[(（](.*?)[)）]<\/sup>/g,
       '<span data-type="inline-memo" data-inline-memo-content="$2">$1</span>'
     );
   };
+
 
 
   it("基本文本备注还原", () => {
@@ -330,6 +331,18 @@ describe("M0.3 kramdown 备注还原正则测试", () => {
     expect(restoreMemos(input)).toBe(expected);
   });
 
+  it("含有嵌套小括号的复杂备注还原", () => {
+    const input = "| Gemini 教育版（闲鱼）<sup>(分配1000次额度（主要解决你自己的号不能用Gemini的问题）生成限制)</sup> |";
+    const expected = '| <span data-type="inline-memo" data-inline-memo-content="分配1000次额度（主要解决你自己的号不能用Gemini的问题）生成限制">Gemini 教育版（闲鱼）</span> |';
+    expect(restoreMemos(input)).toBe(expected);
+  });
+
+  it("同一个单元格含有多个不同备注的还原", () => {
+    const input = "| E0<br />密钥<sup>（1234）</sup><br />API key<sup>(abc)</sup> |";
+    const expected = "| E0<br /><span data-type=\"inline-memo\" data-inline-memo-content=\"1234\">密钥</span><br /><span data-type=\"inline-memo\" data-inline-memo-content=\"abc\">API key</span> |";
+    expect(restoreMemos(input)).toBe(expected);
+  });
+
   it("用户提供的测试用例还原", () => {
     const input = `| header1 | header2 | header3 |
 | --------- | --------- | --------- |
@@ -344,6 +357,7 @@ describe("M0.3 kramdown 备注还原正则测试", () => {
     expect(restoreMemos(input)).toBe(expected);
   });
 });
+
 
 
 
