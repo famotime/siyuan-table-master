@@ -150,9 +150,11 @@ export class SiyuanTextEditor implements ITextEditor {
       // 将由于思源导出局限性而退化为上标 <sup> 标签的内容备注（memos）重新还原为思源行内备注的 HTML 标签形式，
       // 以便在 updateBlock 写回后，思源后台能够重新将其解析为正常的 memo 备注，防止其退化为上标文字。
       const finalKramdown = newKramdown.replace(
-        /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<>](?:[^|<>]*[^\s|<>])?))\s*<sup>[(（](.*?)[)）]<\/sup>/g,
+        /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<>{}](?:[^|<>{}]*[^\s|<>{}])?))\s*<sup>[(（](.*?)[)）]<\/sup>/g,
         '<span data-type="inline-memo" data-inline-memo-content="$2">$1</span>'
       );
+
+
 
 
 

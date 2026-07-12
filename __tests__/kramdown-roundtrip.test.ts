@@ -300,10 +300,11 @@ describe("M0.3 kramdown 转置", () => {
 describe("M0.3 kramdown 备注还原正则测试", () => {
   const restoreMemos = (kramdown: string): string => {
     return kramdown.replace(
-      /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<>](?:[^|<>]*[^\s|<>])?))\s*<sup>[(（](.*?)[)）]<\/sup>/g,
+      /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<>{}](?:[^|<>{}]*[^\s|<>{}])?))\s*<sup>[(（](.*?)[)）]<\/sup>/g,
       '<span data-type="inline-memo" data-inline-memo-content="$2">$1</span>'
     );
   };
+
 
 
 
@@ -342,6 +343,13 @@ describe("M0.3 kramdown 备注还原正则测试", () => {
     const expected = "| E0<br /><span data-type=\"inline-memo\" data-inline-memo-content=\"1234\">密钥</span><br /><span data-type=\"inline-memo\" data-inline-memo-content=\"abc\">API key</span> |";
     expect(restoreMemos(input)).toBe(expected);
   });
+
+  it("单元格含有属性前缀（如 colspan）的备注还原", () => {
+    const input = "| {: colspan=\"1\"}Gemini 教育版（闲鱼）<sup>(备注1)</sup> |";
+    const expected = '| {: colspan="1"}<span data-type="inline-memo" data-inline-memo-content="备注1">Gemini 教育版（闲鱼）</span> |';
+    expect(restoreMemos(input)).toBe(expected);
+  });
+
 
   it("用户提供的测试用例还原", () => {
     const input = `| header1 | header2 | header3 |
