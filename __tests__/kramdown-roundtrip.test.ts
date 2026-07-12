@@ -300,7 +300,7 @@ describe("M0.3 kramdown 转置", () => {
 describe("M0.3 kramdown 备注还原正则测试", () => {
   const restoreMemos = (kramdown: string): string => {
     return kramdown.replace(
-      /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<](?:[^|<]*[^\s|<])?))\s*<sup>\(([^)]+)\)<\/sup>/g,
+      /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<](?:[^|<]*[^\s|<])?))\s*<sup>[(（]([^)）]+)[)）]<\/sup>/g,
       '<span data-type="inline-memo" data-inline-memo-content="$2">$1</span>'
     );
   };
@@ -324,6 +324,12 @@ describe("M0.3 kramdown 备注还原正则测试", () => {
     expect(restoreMemos(input)).toBe(expected);
   });
 
+  it("中文全角括号备注还原", () => {
+    const input = "| 密钥<sup>（ytjh zpfo orsq d3ql 7tbo lf7u hu6z d6b3）</sup> |";
+    const expected = '| <span data-type="inline-memo" data-inline-memo-content="ytjh zpfo orsq d3ql 7tbo lf7u hu6z d6b3">密钥</span> |';
+    expect(restoreMemos(input)).toBe(expected);
+  });
+
   it("用户提供的测试用例还原", () => {
     const input = `| header1 | header2 | header3 |
 | --------- | --------- | --------- |
@@ -338,5 +344,6 @@ describe("M0.3 kramdown 备注还原正则测试", () => {
     expect(restoreMemos(input)).toBe(expected);
   });
 });
+
 
 
