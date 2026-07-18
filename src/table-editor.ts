@@ -263,13 +263,6 @@ export class TableEditor {
     this.mte.deleteRow(this.opts());
     await this.ctx.flush();
 
-    showMessage(
-      this.getMsg(
-        `已剪切第 ${coord.row + 1} 行（${cells.length} 列）`,
-        `Cut row ${coord.row + 1} (${cells.length} columns)`
-      ),
-      2000
-    );
     return null;
   }
 
@@ -290,13 +283,6 @@ export class TableEditor {
     this.mte.deleteColumn(this.opts());
     await this.ctx.flush();
 
-    showMessage(
-      this.getMsg(
-        `已剪切第 ${coord.col + 1} 列（${cells.length} 行）`,
-        `Cut column ${coord.col + 1} (${cells.length} rows)`
-      ),
-      2000
-    );
     return null;
   }
 
@@ -336,13 +322,6 @@ export class TableEditor {
 
     await this.ctx.flush();
 
-    showMessage(
-      this.getMsg(
-        `已插入行到第 ${coord.row + 1} 行上方`,
-        `Pasted row above row ${coord.row + 1}`
-      ),
-      1500
-    );
     return null;
   }
 
@@ -383,13 +362,6 @@ export class TableEditor {
 
     await this.ctx.flush();
 
-    showMessage(
-      this.getMsg(
-        `已插入列到第 ${coord.col + 1} 列左侧`,
-        `Pasted column before column ${coord.col + 1}`
-      ),
-      1500
-    );
     return null;
   }
 
@@ -471,13 +443,6 @@ export class TableEditor {
     const executePaste = async () => {
       writeTarget(target, clipCells);
       await this.ctx.flush();
-      showMessage(
-        this.getMsg(
-          `已粘贴到第 ${coord.row + 1} ${labelI18n}`,
-          `Pasted to ${labelI18n} ${coord.row + 1}`
-        ),
-        1500
-      );
     };
 
     if (!hasContent) {

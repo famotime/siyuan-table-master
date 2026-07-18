@@ -100,6 +100,7 @@
   "errChartRowNotEnough": "Not enough rows to generate chart",
   "errChartNoDataRows": "No valid data rows found in table",
   "errChartReadFailed": "Failed to read table data",
+  "errChartInsertFailed": "Failed to insert chart block",
   "chartTitle": "Table to Chart",
   "chartTitleLabel": "Chart Title",
   "chartTitlePlaceholder": "Enter chart title...",
@@ -118,6 +119,7 @@
   "dragRowTip": "Drag to reorder row",
   "dragColTip": "Drag to reorder column",
   "errOperationFailed": "Operation failed",
+  "uninstallDataRemoveFailed": "Failed to remove plugin settings: ${error}",
 
   "kw-next-cell": "Next Cell",
   "kw-previous-cell": "Prev Cell",

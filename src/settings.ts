@@ -31,7 +31,7 @@ export const defaultSettings: PluginSettings = {
   enableDragReorder: true,
 };
 
-const SETTINGS_KEY = "config";
+export const SETTINGS_KEY = "config";
 
 export async function loadSettings(
   plugin: { loadData: (key: string) => Promise<any> },
@@ -45,4 +45,10 @@ export async function saveSettings(
   settings: PluginSettings,
 ): Promise<void> {
   await plugin.saveData(SETTINGS_KEY, settings);
+}
+
+export async function clearSettings(
+  plugin: { removeData: (key: string) => Promise<void> },
+): Promise<void> {
+  await plugin.removeData(SETTINGS_KEY);
 }

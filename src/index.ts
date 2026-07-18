@@ -7,9 +7,8 @@
 
 import { Plugin, showMessage, Setting, getActiveEditor } from "siyuan";
 import "@/index.scss";
-import PluginInfoString from "@/../plugin.json";
 import { registerCommands, TABLE_COMMANDS, executeCommand } from "./commands";
-import { loadSettings, saveSettings, defaultSettings, PluginSettings } from "./settings";
+import { clearSettings, loadSettings, saveSettings, defaultSettings, PluginSettings } from "./settings";
 import { getAllEditor } from "siyuan";
 import { registerDock } from "./dock";
 import { FloatingToolbar } from "./floating-toolbar";
@@ -51,14 +50,6 @@ function createToggleSetting(
   });
 }
 
-let PluginInfo = { version: "" };
-try {
-  PluginInfo = PluginInfoString as any;
-} catch (_err) {
-  console.log("[siyuan-table-mater] plugin info parse error");
-}
-const { version } = PluginInfo;
-
 export default class TableMaterPlugin extends Plugin {
   public settings!: PluginSettings;
   public enableStickyHeader = false;
@@ -69,8 +60,6 @@ export default class TableMaterPlugin extends Plugin {
   private globalSelectionListener: (() => void) | null = null;
 
   async onload() {
-    console.log(`[siyuan-table-mater] v${version} loading...`);
-
     // 注册自定义图标，使侧栏和顶栏图标一致
     this.addIcons(`<symbol id="iconAdvancedTables" viewBox="0 0 24 24">
       <path d="M12 3v18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -126,12 +115,9 @@ export default class TableMaterPlugin extends Plugin {
     this.dragReorder = new DragReorder(this);
     this.dragReorder.init();
 
-    console.log(`[siyuan-table-mater] v${version} loaded`);
   }
 
   onunload() {
-    console.log("[siyuan-table-mater] unloading...");
-
     // 注销全局高亮监听
     this.destroyGlobalHighlight();
 
@@ -165,7 +151,18 @@ export default class TableMaterPlugin extends Plugin {
     // 移除钉住表头类
     document.body.classList.remove("at-enable-sticky-header");
 
-    console.log("[siyuan-table-mater] unloaded");
+  }
+
+  async uninstall() {
+    try {
+      await clearSettings(this);
+    } catch (error) {
+      showMessage(
+        this.i18n.uninstallDataRemoveFailed.replace("${error}", String(error)),
+        3000,
+        "error",
+      );
+    }
   }
 
   updateStickyHeaderClass() {

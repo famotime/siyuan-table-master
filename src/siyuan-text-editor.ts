@@ -104,16 +104,8 @@ export class SiyuanTextEditor implements ITextEditor {
         }
       }
 
-      // 终极防线：无论是什么非法类型（undefined、null、object 等），强行转换为 string 兜底，并打印详细 warn
+      // 终极防线：无论是什么非法类型（undefined、null、object 等），强行转换为 string 兜底
       if (typeof kramdown !== "string") {
-        console.warn(
-          "[siyuan-table-mater] Non-string kramdown detected in reload, type:",
-          typeof kramdown,
-          "val:",
-          kramdown,
-          "response:",
-          res
-        );
         kramdown = String(kramdown ?? "");
       }
 
@@ -357,7 +349,6 @@ export class SiyuanTextEditor implements ITextEditor {
         }
       } catch (err) {
         // 光标恢复失败不应该是致命错误
-        console.warn("[siyuan-table-mater] cursor restore failed:", err);
       }
     });
   }

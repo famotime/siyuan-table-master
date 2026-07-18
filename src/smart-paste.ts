@@ -75,10 +75,9 @@ export class SmartPaste {
         this.fillGridIntoTable(editorCtx, coord.row, coord.col, grid);
 
         await editorCtx.flush();
-        showMessage(`已智能粘贴并填充 ${grid.length} 行 ${grid[0].length} 列`, 2000);
       } catch (err) {
         console.error("[siyuan-table-mater] smart paste into table failed:", err);
-        showMessage("智能粘贴填充失败", 3000, "error");
+        showMessage(this.plugin.i18n.pasteFillFailed, 3000, "error");
       }
     } else {
       // —— 情况 B：光标在空行处，直接粘贴并转换为思源表格 ——
@@ -94,10 +93,9 @@ export class SmartPaste {
             dataType: "markdown",
             data: markdownTable,
           });
-          showMessage(`已智能导入为 ${grid.length} 行表格`, 2000);
         } catch (err) {
           console.error("[siyuan-table-mater] smart paste text-to-table failed:", err);
-          showMessage("转换为表格失败", 3000, "error");
+          showMessage(this.plugin.i18n.pasteImportFailed, 3000, "error");
         }
       }
     }

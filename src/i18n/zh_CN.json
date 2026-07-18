@@ -100,6 +100,7 @@
   "errChartRowNotEnough": "表格数据行不足，无法生成图表",
   "errChartNoDataRows": "表格中未找到有效的数据行",
   "errChartReadFailed": "读取表格数据失败",
+  "errChartInsertFailed": "图表块插入失败",
   "chartTitle": "一键数据图表化 (Table to Chart)",
   "chartTitleLabel": "图表标题",
   "chartTitlePlaceholder": "输入图表标题...",
@@ -118,6 +119,7 @@
   "dragRowTip": "按住拖拽行以重新排序",
   "dragColTip": "按住拖拽列以重新排序",
   "errOperationFailed": "操作失败",
+  "uninstallDataRemoveFailed": "删除插件设置失败：${error}",
 
   "kw-next-cell": "下一格",
   "kw-previous-cell": "上一格",

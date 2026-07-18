@@ -240,10 +240,10 @@ function showChartConfigDialog(
       });
 
       if (res && res.code === 0) {
-        showMessage(getMsg("图表生成成功，已插入表格下方", "Chart generated successfully, inserted below table"), 2000);
+        // 图表生成成功，静默插入
       } else {
         console.error("[siyuan-table-mater] insertBlock error:", res);
-        showMessage(getMsg("图表块插入失败", "Failed to insert chart block"), 3000, "error");
+        showMessage(i18n.errChartInsertFailed, 3000, "error");
       }
     } catch (err) {
       console.error("[siyuan-table-mater] insertBlock failed:", err);

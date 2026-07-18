@@ -73,7 +73,6 @@ function getTableSize(tableBlock: HTMLElement): { rows: number; cols: number } {
     }
     return { rows, cols };
   } catch (e) {
-    console.warn("[siyuan-table-mater] getTableSize failed:", e);
     return { rows: 0, cols: 0 };
   }
 }

@@ -1,29 +1,31 @@
 {
   "name": "siyuan-table-master",
-  "author": "siyuan-table-master-contributors",
-  "url": "https://github.com/siyuan-note/siyuan-table-master",
-  "version": "0.1.0",
+  "author": "Quincy Zou",
+  "url": "https://github.com/famotime/siyuan-table-master",
+  "version": "1.0.0",
   "minAppVersion": "3.5.7",
-  "disabledInPublish": false,
-  "backends": ["all"],
-  "frontends": ["all"],
+  "disabledInPublish": true,
+  "backends": [
+    "windows",
+    "linux",
+    "darwin",
+    "docker"
+  ],
+  "frontends": [
+    "desktop",
+    "browser-desktop",
+    "desktop-window"
+  ],
   "displayName": {
     "default": "Table Master",
-    "en_US": "Table Master",
     "zh_CN": "表哥"
   },
   "description": {
     "default": "Improved table navigation, formatting, and manipulation for SiYuan Note",
-    "en_US": "Improved table navigation, formatting, and manipulation for SiYuan Note",
-    "zh_CN": "思源笔记表格增强：自动格式化、单元格导航、行列操作、排序、对齐、公式"
+    "zh_CN": "表哥来了，专治 Markdown 表格的各种不爽：移动、转置、排序、计算、可视化……"
   },
   "readme": {
-    "default": "README.md",
-    "en_US": "README.md",
-    "zh_CN": "README.md"
-  },
-  "funding": {
-    "custom": []
+    "default": "README.md"
   },
   "keywords": ["table", "markdown", "format", "navigation", "formula"]
 }
