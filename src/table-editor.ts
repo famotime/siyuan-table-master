@@ -190,6 +190,24 @@ export class TableEditor {
     await this.ctx.flush();
   }
 
+  /** 解除当前表格内所有单元格的横向和纵向合并。 */
+  async splitAllCells(): Promise<void> {
+    await this.ctx.reload();
+
+    for (let lineIndex = 0; lineIndex < this.ctx.getLineCount(); lineIndex++) {
+      const line = this.ctx.getLineAt(lineIndex);
+      if (!line || isSeparatorLine(line)) continue;
+
+      const cells = splitTableRow(line);
+      const splitCells = cells.map(removeMergeAttributes);
+      if (splitCells.some((cell, index) => cell !== cells[index])) {
+        this.ctx.setLineAt(lineIndex, `| ${splitCells.join(" | ")} |`);
+      }
+    }
+
+    await this.ctx.flush();
+  }
+
   async resizeTable(targetCols: number, targetRows: number): Promise<void> {
     await this.ctx.reload();
 
@@ -477,6 +495,16 @@ export class TableEditor {
  */
 function getPureCellText(cell: string): string {
   return cell.replace(/\{:[^}]+\}/g, "").trim();
+}
+
+/** 从单元格 IAL 中移除合并属性，保留其他单元格属性。 */
+function removeMergeAttributes(cell: string): string {
+  return cell.replace(/\{:\s*([^}]*)\}/g, (_match, attributes: string) => {
+    const remaining = attributes
+      .replace(/(?:^|\s+)(?:colspan|rowspan)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s}]+)/gi, "")
+      .trim();
+    return remaining ? `{: ${remaining}}` : "";
+  }).trim();
 }
 
 /** 对一组单元格文本求和，跳过非数字且非空的单元格 */
