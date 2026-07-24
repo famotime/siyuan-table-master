@@ -41,6 +41,38 @@ describe("TableEditor.splitAllCells", () => {
     ]);
   });
 
+  it("支持思源在单元格内容前输出的合并属性", async () => {
+    const editor = new MockSiyuanTextEditor([
+      '| {: colspan="2"}标题 | C |',
+      "| --- | --- |",
+      '| {: rowspan="3" custom-id="cell-a"}内容 | B |',
+    ]);
+
+    await new TableEditor(editor as any).splitAllCells();
+
+    expect(editor.lines).toEqual([
+      "| 标题 | C |",
+      "| --- | --- |",
+      '| {: custom-id="cell-a"}内容 | B |',
+    ]);
+  });
+
+  it("移除合并属性时保留单元格链接文本中的未转义管道符", async () => {
+    const editor = new MockSiyuanTextEditor([
+      '| {: colspan="2"}[Producer.ai|AI Music Agent](https://example.com) | C |',
+      "| --- | --- |",
+      "| A | B |",
+    ]);
+
+    await new TableEditor(editor as any).splitAllCells();
+
+    expect(editor.lines).toEqual([
+      "| [Producer.ai|AI Music Agent](https://example.com) | C |",
+      "| --- | --- |",
+      "| A | B |",
+    ]);
+  });
+
   it("表格不含合并属性时不修改行内容", async () => {
     const original = [
       '| A {: data-type="x"} | B |',

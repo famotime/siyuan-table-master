@@ -198,10 +198,9 @@ export class TableEditor {
       const line = this.ctx.getLineAt(lineIndex);
       if (!line || isSeparatorLine(line)) continue;
 
-      const cells = splitTableRow(line);
-      const splitCells = cells.map(removeMergeAttributes);
-      if (splitCells.some((cell, index) => cell !== cells[index])) {
-        this.ctx.setLineAt(lineIndex, `| ${splitCells.join(" | ")} |`);
+      const splitLine = removeMergeAttributes(line);
+      if (splitLine !== line) {
+        this.ctx.setLineAt(lineIndex, splitLine);
       }
     }
 
