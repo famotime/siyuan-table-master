@@ -63,6 +63,7 @@ export const TABLE_COMMANDS: TableCommand[] = [
   // ── 求和计算 ──
   { id: "row-sum", nameZh: "行求和", nameEn: "Row sum", action: te => te.rowSum() },
   { id: "column-sum", nameZh: "列求和", nameEn: "Column sum", action: te => te.columnSum() },
+  { id: "split-all-cells", nameZh: "全拆分", nameEn: "Split all cells", action: te => te.splitAllCells() },
   { id: "table-to-chart", nameZh: "一键数据图表化", nameEn: "Convert table to chart", action: te => executeTableToChart(te) },
   // 文本转表格：action 占位符，实际由 executeCommand 中特判处理
   { id: "text-to-table", nameZh: "文本转为表格", nameEn: "Convert text to table", action: async () => {} },
