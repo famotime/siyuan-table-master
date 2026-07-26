@@ -69,6 +69,8 @@ export class SiyuanTextEditor implements ITextEditor {
   // ── 内存行模型 ──
   private _lines: string[] = [];
   private _ialLine: string | null = null;
+  private _rawKramdown = "";
+  private _rawKramdownOverride: string | null = null;
   private _cursor: Point = new Point(0, 0);
   private _dirty = false;
   private _cursorUpdatedByCore = false;
@@ -109,6 +111,8 @@ export class SiyuanTextEditor implements ITextEditor {
         kramdown = String(kramdown ?? "");
       }
 
+      this._rawKramdown = kramdown;
+      this._rawKramdownOverride = null;
       const parsed = parseTableKramdown(kramdown);
 
       this._lines = [...parsed.tableLines];
@@ -131,20 +135,19 @@ export class SiyuanTextEditor implements ITextEditor {
     if (!this._dirty) return;
 
     try {
-      // CJK 分隔行宽度校正
-      const finalLines = this.fixCJKWidth
-        ? fixCJKSeparatorWidth(this._lines)
-        : this._lines;
+      let finalKramdown = this._rawKramdownOverride;
+      if (finalKramdown === null) {
+        const finalLines = this.fixCJKWidth
+          ? fixCJKSeparatorWidth(this._lines)
+          : this._lines;
+        const newKramdown = serializeTableKramdown(finalLines, this._ialLine);
 
-      // 重新组合为 kramdown
-      const newKramdown = serializeTableKramdown(finalLines, this._ialLine);
-
-      // 将由于思源导出局限性而退化为上标 <sup> 标签的内容备注（memos）重新还原为思源行内备注的 HTML 标签形式，
-      // 以便在 updateBlock 写回后，思源后台能够重新将其解析为正常的 memo 备注，防止其退化为上标文字。
-      const finalKramdown = newKramdown.replace(
-        /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<>{}](?:[^|<>{}]*[^\s|<>{}])?))\s*<sup>[(（](.*?)[)）]<\/sup>/g,
-        '<span data-type="inline-memo" data-inline-memo-content="$2">$1</span>'
-      );
+        // 将思源导出的备注上标还原为行内备注 HTML。
+        finalKramdown = newKramdown.replace(
+          /((?:<[a-zA-Z]+[^>]*?>.*?<\/[a-zA-Z]+>|[^\s|<>{}](?:[^|<>{}]*[^\s|<>{}])?))\s*<sup>[(（](.*?)[)）]<\/sup>/g,
+          '<span data-type="inline-memo" data-inline-memo-content="$2">$1</span>'
+        );
+      }
 
 
 
@@ -203,9 +206,24 @@ export class SiyuanTextEditor implements ITextEditor {
         data: finalKramdown,
       });
 
+      this._rawKramdown = finalKramdown;
+      this._rawKramdownOverride = null;
       this._dirty = false;
     } catch (err) {
       console.error("[siyuan-table-mater] flush failed:", err);
+    }
+  }
+
+  /** 获取 reload 时读取的完整 Kramdown。 */
+  getRawKramdown(): string {
+    return this._rawKramdown;
+  }
+
+  /** 使用完整 Kramdown 覆盖下一次 flush 的行模型序列化结果。 */
+  setRawKramdown(kramdown: string): void {
+    if (kramdown !== this._rawKramdown) {
+      this._rawKramdownOverride = kramdown;
+      this._dirty = true;
     }
   }
 
@@ -433,6 +451,14 @@ export class SiyuanTextEditor implements ITextEditor {
   /** 返回内存行模型的总行数 */
   getLineCount(): number {
     return this._lines.length;
+  }
+
+  /** 设置完整的表格行模型与 IAL，并重置 HTML 覆盖标记 */
+  setTableModel(lines: string[], ialLine: string | null): void {
+    this._lines = [...lines];
+    this._ialLine = ialLine;
+    this._rawKramdownOverride = null;
+    this._dirty = true;
   }
 
   /** 按索引直接读取一行（含首尾 | 及空白），越界返回 undefined */
