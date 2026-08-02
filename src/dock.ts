@@ -35,7 +35,9 @@ export const SVG_ICONS: Record<string, string> = {
   "split-all-cells": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" style="fill:none!important"/><path d="M12 3v18M3 12h18" style="fill:none!important"/><path d="m8 8 2 2m4 4 2 2m0-8-2 2m-4 4-2 2" style="fill:none!important"/></svg>`,
   "table-to-chart": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" style="fill:none!important"/><path d="m19 9-5 5-4-4-3 3" style="fill:none!important"/></svg>`,
   "fit-content-width": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16" style="fill:none!important"/><path d="m16 8 4 4-4 4" style="fill:none!important"/><path d="m8 8-4 4 4 4" style="fill:none!important"/></svg>`,
-  "text-to-table": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18" style="fill:none!important"/><path d="M3 15h18" style="fill:none!important"/><path d="M12 3v18" style="fill:none!important"/></svg>`
+  "text-to-table": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18" style="fill:none!important"/><path d="M3 15h18" style="fill:none!important"/><path d="M12 3v18" style="fill:none!important"/></svg>`,
+  "export-csv": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" style="fill:none!important"/><polyline points="14 2 14 8 20 8" style="fill:none!important"/><path d="M8 13h2a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H8v-4z" style="fill:none!important"/><path d="M16 13h-2v4h2" style="fill:none!important"/></svg>`,
+  "export-xlsx": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" style="fill:none!important"/><polyline points="14 2 14 8 20 8" style="fill:none!important"/><path d="M8 13l4 4" style="fill:none!important"/><path d="M12 13l-4 4" style="fill:none!important"/><path d="M16 13v4" style="fill:none!important"/></svg>`
 };
 
 // ═══════════════════════════════════════════════════
@@ -60,7 +62,7 @@ const COMMAND_GROUPS: CommandGroup[] = [
   { title: "行列增删", commandIds: ["insert-row", "delete-row", "insert-column", "delete-column"] },
   { title: "行列移动", commandIds: ["move-row-up", "move-row-down", "move-column-left", "move-column-right"] },
   { title: "剪切与粘贴", commandIds: ["cut-row", "cut-column", "paste-row", "paste-column"] },
-  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "split-all-cells", "table-to-chart", "text-to-table"] },
+  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "split-all-cells", "table-to-chart", "text-to-table", "export-csv", "export-xlsx"] },
 ];
 
 /** 计算 DOM 表格的大小 */

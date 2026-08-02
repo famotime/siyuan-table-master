@@ -42,6 +42,9 @@
   "table-to-chart": "Convert Table to Chart",
   "text-to-table": "Convert Text to Table",
   "fit-content-width": "Adjust table width",
+  "export-csv": "Export CSV",
+  "export-xlsx": "Export XLSX",
+  "exportSuccess": "Table exported successfully",
 
   "toolbarHeader": "Header",
   "toolbarRow": "Row ${row} Col ${col}",
@@ -153,6 +156,8 @@
   "kw-table-to-chart": "To Chart",
   "kw-text-to-table": "Txt to Tab",
   "kw-fit-content-width": "Width",
+  "kw-export-csv": "CSV",
+  "kw-export-xlsx": "XLSX",
   "shortcutTitle": "Shortcut Guide",
   "shortcutPluginGroup": "Enhanced Features",
   "shortcutSiyuanGroup": "SiYuan Native",

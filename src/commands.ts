@@ -12,6 +12,7 @@ import { TableEditor } from "./table-editor";
 import { getActiveEditor, showMessage, fetchSyncPost } from "siyuan";
 import { executeTextToTable } from "./text-to-table";
 import { executeTableToChart } from "./table-to-chart";
+import { exportToCSV, exportToXLSX } from "./table-export";
 
 /** 命令定义 */
 export interface TableCommand {
@@ -69,6 +70,9 @@ export const TABLE_COMMANDS: TableCommand[] = [
   { id: "text-to-table", nameZh: "文本转为表格", nameEn: "Convert text to table", action: async () => {} },
   // 宽度调整：action 占位符，实际由 executeCommand 中特判处理
   { id: "fit-content-width", nameZh: "自适应宽度调整", nameEn: "Adjust table width", action: async () => {} },
+  // 表格导出命令：action 占位符，实际由 executeCommand 中特判处理
+  { id: "export-csv", nameZh: "导出 CSV", nameEn: "Export CSV", action: async () => {} },
+  { id: "export-xlsx", nameZh: "导出 XLSX", nameEn: "Export XLSX", action: async () => {} },
 ];
 
 /**
@@ -79,6 +83,10 @@ export function registerCommands(
   settings: PluginSettings,
 ): void {
   for (const cmd of TABLE_COMMANDS) {
+    // 导出命令仅在 Dock 面板中显示按钮，不单独注册全局命令
+    if (cmd.id === "export-csv" || cmd.id === "export-xlsx") {
+      continue;
+    }
     plugin.addCommand({
       langKey: cmd.id,
       langMenu: cmd.nameZh,
@@ -156,6 +164,46 @@ export async function executeCommand(
           "custom-table-width-auto": newVal
         }
       });
+      return;
+    }
+
+    // 特判：导出 CSV / XLSX 命令
+    if (cmd.id === "export-csv" || cmd.id === "export-xlsx") {
+      let tableBlock = preset?.tableBlock || null;
+      let blockId = preset?.blockId || null;
+
+      if (blockId) {
+        const latestEl = document.querySelector(`[data-node-id="${blockId}"]`) as HTMLElement;
+        if (latestEl) {
+          tableBlock = latestEl;
+        }
+      }
+
+      if (!tableBlock || !blockId) {
+        const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
+        if (!inTable || !tb || !bid) {
+          showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
+          return;
+        }
+        tableBlock = tb;
+        blockId = bid;
+      }
+
+      const ctx = new SiyuanTextEditor({
+        protyle: protyle.protyle,
+        tableBlockEl: tableBlock,
+        blockId,
+        fixCJKWidth: settings.fixCJKWidth,
+      });
+      await ctx.reload();
+      const lines = ctx.getTableLines();
+
+      if (cmd.id === "export-csv") {
+        exportToCSV(lines);
+      } else {
+        exportToXLSX(lines);
+      }
+      showMessage(i18n.exportSuccess || "表格已成功导出", 2000, "info");
       return;
     }
 

@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@tgrosinger/md-advanced-tables": "^3.11.0",
-    "vue": "^3.3.8"
+    "vue": "^3.3.8",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.8.1",

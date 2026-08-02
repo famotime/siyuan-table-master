@@ -453,6 +453,11 @@ export class SiyuanTextEditor implements ITextEditor {
     return this._lines.length;
   }
 
+  /** 获取内存行模型的所有行副本 */
+  getTableLines(): string[] {
+    return [...this._lines];
+  }
+
   /** 设置完整的表格行模型与 IAL，并重置 HTML 覆盖标记 */
   setTableModel(lines: string[], ialLine: string | null): void {
     this._lines = [...lines];

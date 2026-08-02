@@ -42,6 +42,9 @@
   "table-to-chart": "一键数据图表化",
   "text-to-table": "文本转为表格",
   "fit-content-width": "自适应宽度调整",
+  "export-csv": "导出 CSV",
+  "export-xlsx": "导出 XLSX",
+  "exportSuccess": "表格已成功导出",
 
   "toolbarHeader": "表头",
   "toolbarRow": "行 ${row} 列 ${col}",
@@ -153,6 +156,8 @@
   "kw-table-to-chart": "图表化",
   "kw-text-to-table": "文转表",
   "kw-fit-content-width": "调宽度",
+  "kw-export-csv": "导出CSV",
+  "kw-export-xlsx": "导出XLSX",
   "shortcutTitle": "快捷键指南",
   "shortcutPluginGroup": "表哥增强",
   "shortcutSiyuanGroup": "思源内置",
