@@ -2,8 +2,8 @@ import { getActiveEditor, showMessage } from "siyuan";
 import { isCursorInTable } from "./siyuan-text-editor";
 import { TABLE_COMMANDS, executeCommand, TableCommand } from "./commands";
 import { rangeToCellCoord, CellCoord, findTableBlock } from "./dom-utils";
-import type TableMaterPlugin from "./index";
 import { saveSettings } from "./settings";
+import { HTML_TABLE_COMMANDS, executeHtmlCommand } from "./html-commands";
 
 /** SVG 图标定义 - Lucide 专业线框风格，显式内联阻断 fill 覆写，无填充 */
 export const SVG_ICONS: Record<string, string> = {
@@ -64,6 +64,13 @@ const COMMAND_GROUPS: CommandGroup[] = [
   { title: "剪切与粘贴", commandIds: ["cut-row", "cut-column", "paste-row", "paste-column"] },
   { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "split-all-cells", "table-to-chart", "text-to-table", "export-csv", "export-xlsx"] },
 ];
+
+const HTML_COMMAND_GROUP = {
+  title: "HTML 复杂表格",
+  commandIds: ["html-merge-cells", "html-split-cell", "html-insert-row-above", "html-insert-row-below", "html-insert-col-left", "html-insert-col-right", "html-delete-row", "html-delete-col"]
+};
+
+const HTML_COLORS = ["#f8d7da", "#d4edda", "#fff3cd", "#d1ecf1", "#e2e3e5", "#e8daef", "#fcf3cf", "#d6eaf8"];
 
 /** 计算 DOM 表格的大小 */
 function getTableSize(tableBlock: HTMLElement): { rows: number; cols: number } {
@@ -159,6 +166,13 @@ function updateDockStatus(
   if (sel && sel.rangeCount > 0) {
     const range = sel.getRangeAt(0);
     tableBlock = findTableBlock(range.startContainer);
+    if (!tableBlock) {
+       const { findHtmlTableBlock } = require("./dom-utils");
+       const htmlTableInfo = findHtmlTableBlock(range.startContainer);
+       if (htmlTableInfo) {
+         tableBlock = htmlTableInfo.block;
+       }
+    }
     if (tableBlock) inTable = true;
   }
 
@@ -267,7 +281,7 @@ export function registerDock(plugin: TableMaterPlugin) {
             </div>
           </div>
           <div id="at-button-container" class="at-button-container at-disabled">
-            ${COMMAND_GROUPS.map(group => `
+            ${[...COMMAND_GROUPS, HTML_COMMAND_GROUP].map(group => `
               <div class="at-group">
                 <div class="at-group-title">${group.title}</div>
                 <div class="at-btn-grid">
@@ -275,12 +289,23 @@ export function registerDock(plugin: TableMaterPlugin) {
                     if (cmdId === "empty-placeholder") {
                       return `<div class="at-btn-item at-placeholder"></div>`;
                     }
-                    const cmd = TABLE_COMMANDS.find(c => c.id === cmdId);
+                    const cmd = TABLE_COMMANDS.find(c => c.id === cmdId) || HTML_TABLE_COMMANDS.find(c => c.id === cmdId);
                     if (!cmd) return "";
-                    const iconSvg = SVG_ICONS[cmdId] || "";
+                    let iconSvg = SVG_ICONS[cmdId];
+                    if (!iconSvg && cmd.icon && SVG_ICONS[cmd.icon]) {
+                       iconSvg = SVG_ICONS[cmd.icon];
+                    }
+                    if (!iconSvg) {
+                       iconSvg = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>`;
+                    }
                     return `<div class="at-btn-item"><button class="at-btn ariaLabel" data-cmd-id="${cmdId}" aria-label="${plugin.i18n[cmdId] || cmd.nameZh}"><span class="at-btn-icon">${iconSvg}</span></button><span class="at-btn-label">${plugin.i18n["kw-" + cmdId] || cmd.nameZh}</span></div>`;
                   }).join("")}
                 </div>
+                ${group.title === "HTML 复杂表格" ? `
+                <div class="at-group-title" style="margin-top: 8px;">背景色预设</div>
+                <div class="at-btn-grid" style="grid-template-columns: repeat(8, 1fr); gap: 4px;">
+                  ${HTML_COLORS.map(color => `<button class="at-btn at-color-btn" data-color="${color}" aria-label="设置背景色 ${color}" style="background-color: ${color}; height: 20px; border-radius: 4px; border: 1px solid var(--b3-theme-surface-lighter);"></button>`).join("")}
+                </div>` : ''}
               </div>
             `).join("")}
           </div>
@@ -363,8 +388,14 @@ export function registerDock(plugin: TableMaterPlugin) {
       const buttons = this.element.querySelectorAll(".at-btn");
       buttons.forEach((btn: HTMLButtonElement) => {
         const cmdId = btn.getAttribute("data-cmd-id");
-        const cmd = TABLE_COMMANDS.find(c => c.id === cmdId);
-        if (!cmd) return;
+        const colorVal = btn.getAttribute("data-color");
+        
+        let cmd = null;
+        if (cmdId) {
+          cmd = TABLE_COMMANDS.find(c => c.id === cmdId) || HTML_TABLE_COMMANDS.find(c => c.id === cmdId);
+        }
+        
+        if (!cmd && !colorVal) return;
 
         // 让对应的 label 的点击也转发给 btn
         const label = btn.nextElementSibling as HTMLElement;
@@ -427,7 +458,16 @@ export function registerDock(plugin: TableMaterPlugin) {
           }
 
           try {
-            await executeCommand(cmd, plugin.settings, preset, plugin.i18n);
+            if (cmd) {
+              if (cmdId && cmdId.startsWith("html-")) {
+                 await executeHtmlCommand(cmd, plugin.i18n);
+              } else {
+                 await executeCommand(cmd, plugin.settings, preset, plugin.i18n);
+              }
+            } else if (colorVal) {
+              const { executeHtmlColorCommand } = require("./html-commands");
+              await executeHtmlColorCommand(colorVal, plugin.i18n);
+            }
           } finally {
             if (plugin.floatingToolbar) {
               setTimeout(() => {
@@ -465,8 +505,12 @@ export function registerDock(plugin: TableMaterPlugin) {
 
         btn.addEventListener("mouseenter", () => {
           if (elements.tooltipBarEl) {
-            const name = plugin.i18n[cmd.id] || cmd.nameZh;
-            elements.tooltipBarEl.innerText = `${name} (${cmd.nameEn})`;
+            if (cmd) {
+              const name = plugin.i18n[cmd.id] || cmd.nameZh;
+              elements.tooltipBarEl.innerText = `${name} (${cmd.nameEn})`;
+            } else if (colorVal) {
+              elements.tooltipBarEl.innerText = `设置背景色 ${colorVal}`;
+            }
           }
         });
 

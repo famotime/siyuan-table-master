@@ -9,9 +9,10 @@ import { Plugin, showMessage, Setting, getActiveEditor } from "siyuan";
 import "@/index.scss";
 import { registerCommands, TABLE_COMMANDS, executeCommand } from "./commands";
 import { clearSettings, loadSettings, saveSettings, defaultSettings, PluginSettings } from "./settings";
-import { getAllEditor } from "siyuan";
 import { registerDock } from "./dock";
 import { FloatingToolbar } from "./floating-toolbar";
+import { HtmlFloatingToolbar } from "./html-floating-toolbar";
+import { registerHtmlCommands } from "./html-commands";
 import { SmartPaste } from "./smart-paste";
 import { QuickCalc } from "./quick-calc";
 import { DragReorder } from "./drag-reorder";
@@ -54,6 +55,7 @@ export default class TableMaterPlugin extends Plugin {
   public settings!: PluginSettings;
   public enableStickyHeader = false;
   public floatingToolbar: FloatingToolbar | null = null;
+  public htmlFloatingToolbar: HtmlFloatingToolbar | null = null;
   private smartPaste: SmartPaste | null = null;
   private quickCalc: QuickCalc | null = null;
   private dragReorder: DragReorder | null = null;
@@ -75,6 +77,7 @@ export default class TableMaterPlugin extends Plugin {
 
     // 注册命令
     registerCommands(this, this.settings);
+    registerHtmlCommands(this);
 
     // 注册 Dock 栏工具箱
     registerDock(this);
@@ -103,6 +106,9 @@ export default class TableMaterPlugin extends Plugin {
     this.floatingToolbar = new FloatingToolbar(this);
     this.floatingToolbar.init();
 
+    this.htmlFloatingToolbar = new HtmlFloatingToolbar(this);
+    this.htmlFloatingToolbar.init();
+
     // 初始化智能粘贴
     this.smartPaste = new SmartPaste(this);
     this.smartPaste.init();
@@ -128,6 +134,11 @@ export default class TableMaterPlugin extends Plugin {
     if (this.floatingToolbar) {
       this.floatingToolbar.destroy();
       this.floatingToolbar = null;
+    }
+
+    if (this.htmlFloatingToolbar) {
+      this.htmlFloatingToolbar.destroy();
+      this.htmlFloatingToolbar = null;
     }
 
     // 销毁智能粘贴
@@ -198,6 +209,9 @@ export default class TableMaterPlugin extends Plugin {
     if (this.floatingToolbar) {
       (this.floatingToolbar as any).hide();
     }
+    if (this.htmlFloatingToolbar) {
+      (this.htmlFloatingToolbar as any).hide();
+    }
     if (this.dragReorder) {
       this.dragReorder.hideHandles();
     }
@@ -207,6 +221,9 @@ export default class TableMaterPlugin extends Plugin {
         await saveSettings(this, this.settings);
         if (this.floatingToolbar) {
           this.floatingToolbar.update();
+        }
+        if (this.htmlFloatingToolbar) {
+          this.htmlFloatingToolbar.update();
         }
         // 同步更新 Dock 侧栏开关状态
         const dockCheckbox = document.getElementById("at-toggle-floating-toolbar") as HTMLInputElement;

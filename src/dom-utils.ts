@@ -44,6 +44,38 @@ export function findTableBlock(node: Node | null): HTMLElement | null {
 }
 
 /**
+ * 从当前选区/光标向上查找最近的 NodeHTMLBlock 并且其内部包含 table
+ * 
+ * @param node - 起点 DOM 节点
+ * @returns 包含 block 和 table 的对象，或 null
+ */
+export function findHtmlTableBlock(node: Node | null): { block: HTMLElement; table: HTMLTableElement } | null {
+  if (!node) return null;
+
+  let current: Node | null = node;
+
+  while (current && current !== document.body) {
+    if (current instanceof HTMLElement) {
+      // 检查是否在 table 元素内部
+      if (current.tagName.toLowerCase() === "table") {
+        const table = current as HTMLTableElement;
+        // 向上找到块
+        let block: HTMLElement | null = table;
+        while (block && block !== document.body) {
+          if (block.dataset.type === "NodeHTMLBlock" && block.dataset.nodeId) {
+            return { block, table };
+          }
+          block = block.parentElement;
+        }
+      }
+    }
+    current = current.parentNode;
+  }
+
+  return null;
+}
+
+/**
  * 从 DOM Range 反推当前光标所在表格单元格的坐标
  * 
  * @param range - 当前选区

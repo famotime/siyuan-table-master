@@ -1,6 +1,6 @@
 import { getActiveEditor } from "siyuan";
 import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
-import { rangeToCellCoord, getCellFromRange, CellCoord, getTableColCount, getTableRowCount } from "./dom-utils";
+import { rangeToCellCoord, getCellFromRange, CellCoord, getTableColCount, getTableRowCount, findHtmlTableBlock } from "./dom-utils";
 import { TABLE_COMMANDS, executeCommand } from "./commands";
 import { SVG_ICONS } from "./dock";
 import { getTableClipboard, TableEditor } from "./table-editor";
@@ -126,6 +126,16 @@ export class FloatingToolbar {
     if (!inTable || !tableBlock) {
       this.hide();
       return;
+    }
+
+    // 新增：如果光标在 NodeHTMLBlock 里的 table 中，让 HTML 专属悬浮栏接管，原悬浮栏隐藏
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (findHtmlTableBlock(range.startContainer)) {
+        this.hide();
+        return;
+      }
     }
 
     // 拖选多个单元格计算时，不出现浮动工具栏
