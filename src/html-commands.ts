@@ -3,6 +3,7 @@ import { HtmlTableEditor } from "./html-table-editor";
 import { findHtmlTableBlock } from "./dom-utils";
 import { getActiveEditor, showMessage } from "siyuan";
 import { openHtmlDialogEditor } from "./html-dialog-editor";
+import { convertHtmlTableToMarkdown } from "./html-to-md";
 
 export interface HtmlTableCommand {
   id: string;
@@ -16,6 +17,10 @@ export const HTML_TABLE_COMMANDS: HtmlTableCommand[] = [
   { id: "html-open-dialog-editor", nameZh: "高级编辑", nameEn: "Advanced Editor", icon: "iconEdit", action: async (te, plugin) => {
     openHtmlDialogEditor(plugin as any, te);
     return false; // 不自动 flush，弹窗保存时自行 flush
+  }},
+  { id: "html-to-md", nameZh: "转MD", nameEn: "Convert to MD", icon: "html-to-md", action: async (te, plugin) => {
+    await convertHtmlTableToMarkdown(plugin, te.blockId);
+    return false; // 不需要通过 HtmlTableEditor flush 写回原 HTML 块，只向原块后插入新增的 Markdown 块
   }}
 ];
 
