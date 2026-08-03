@@ -68,7 +68,8 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
   background: var(--b3-theme-surface);
   border: 1px solid var(--b3-border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  margin-bottom: 20px;
+  margin-top: 20px;
+  margin-bottom: 0;
   transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
 
   &.at-active {
@@ -138,13 +139,13 @@ $easing-default: cubic-bezier(0.25, 0.8, 0.25, 1);
     }
   }
 
-  /* 当光标不在表格内 (Container 被禁用) 时，豁免“文转表”按钮，禁用其他所有编辑按钮 */
+  /* 当光标不在表格内 (Container 被禁用) 时，豁免“文转表”及“示例MD/示例HTML”创建按钮，禁用其他所有表格编辑按钮 */
   &.at-disabled {
     opacity: 1;
     pointer-events: auto;
     filter: none;
 
-    .at-btn-item:not(:has([data-cmd-id="text-to-table"])) {
+    .at-btn-item:not(:has([data-cmd-id="text-to-table"]), :has([data-cmd-id="create-sample-md"]), :has([data-cmd-id="create-sample-html"])) {
       opacity: 0.45;
       pointer-events: none;
       filter: grayscale(80%);

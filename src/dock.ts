@@ -37,7 +37,9 @@ export const SVG_ICONS: Record<string, string> = {
   "fit-content-width": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16" style="fill:none!important"/><path d="m16 8 4 4-4 4" style="fill:none!important"/><path d="m8 8-4 4 4 4" style="fill:none!important"/></svg>`,
   "text-to-table": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18" style="fill:none!important"/><path d="M3 15h18" style="fill:none!important"/><path d="M12 3v18" style="fill:none!important"/></svg>`,
   "export-csv": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" style="fill:none!important"/><polyline points="14 2 14 8 20 8" style="fill:none!important"/><path d="M8 13h2a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H8v-4z" style="fill:none!important"/><path d="M16 13h-2v4h2" style="fill:none!important"/></svg>`,
-  "export-xlsx": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" style="fill:none!important"/><polyline points="14 2 14 8 20 8" style="fill:none!important"/><path d="M8 13l4 4" style="fill:none!important"/><path d="M12 13l-4 4" style="fill:none!important"/><path d="M16 13v4" style="fill:none!important"/></svg>`
+  "export-xlsx": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" style="fill:none!important"/><polyline points="14 2 14 8 20 8" style="fill:none!important"/><path d="M8 13l4 4" style="fill:none!important"/><path d="M12 13l-4 4" style="fill:none!important"/><path d="M16 13v4" style="fill:none!important"/></svg>`,
+  "create-sample-md": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18M3 15h18M9 3v18" style="fill:none!important"/><path d="M14 12h4m-2-2v4" style="fill:none!important"/></svg>`,
+  "create-sample-html": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 9-3 3 3 3M14 9l3 3-3 3" style="fill:none!important"/><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18" style="fill:none!important"/></svg>`
 };
 
 // ═══════════════════════════════════════════════════
@@ -58,15 +60,18 @@ interface CommandGroup {
 }
 
 const COMMAND_GROUPS: CommandGroup[] = [
+  { title: "创建与导出", commandIds: ["create-sample-md", "create-sample-html", "empty-placeholder", "empty-placeholder", "text-to-table", "export-csv", "export-xlsx"] },
   { title: "格式与对齐", commandIds: ["left-align-column", "center-align-column", "right-align-column", "empty-placeholder", "format-table", "fit-content-width"] },
-  { title: "行列增删", commandIds: ["insert-row", "delete-row", "insert-column", "delete-column"] },
-  { title: "行列移动", commandIds: ["move-row-up", "move-row-down", "move-column-left", "move-column-right"] },
-  { title: "剪切与粘贴", commandIds: ["cut-row", "cut-column", "paste-row", "paste-column"] },
-  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "split-all-cells", "table-to-chart", "text-to-table", "export-csv", "export-xlsx"] },
+  { title: "行列操作", commandIds: [
+    "insert-row", "delete-row", "insert-column", "delete-column",
+    "move-row-up", "move-row-down", "move-column-left", "move-column-right",
+    "cut-row", "cut-column", "paste-row", "paste-column"
+  ] },
+  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "split-all-cells", "table-to-chart"] },
 ];
 
 const HTML_COMMAND_GROUP = {
-  title: "HTML 复杂表格",
+  title: "HTML 表格编辑",
   commandIds: ["html-open-dialog-editor"]
 };
 
@@ -293,13 +298,6 @@ export function registerDock(plugin: TableMaterPlugin) {
             </div>
           </div>
 
-          <div class="at-status-card">
-            <div class="at-status-header">
-              <span class="at-status-title">${plugin.i18n.dockStatus || "高级表格状态"}</span>
-              <span id="at-status-dot" class="at-status-dot"></span>
-            </div>
-            <div id="at-status-text" class="at-status-text">${plugin.i18n.noActiveTable || "未检测到聚焦表格"}</div>
-          </div>
           <div class="at-quick-settings">
             <div class="at-quick-setting-item">
               <span class="at-setting-label">${plugin.i18n.quickShowFloatingToolbar || "显示浮动工具栏"}</span>
@@ -329,6 +327,13 @@ export function registerDock(plugin: TableMaterPlugin) {
                 </div>
               </div>
             `).join("")}
+          </div>
+          <div class="at-status-card">
+            <div class="at-status-header">
+              <span class="at-status-title">${plugin.i18n.dockStatus || "高级表格状态"}</span>
+              <span id="at-status-dot" class="at-status-dot"></span>
+            </div>
+            <div id="at-status-text" class="at-status-text">${plugin.i18n.noActiveTable || "未检测到聚焦表格"}</div>
           </div>
           <div class="at-shortcut-panel">
             <div class="at-shortcut-header">${plugin.i18n.shortcutTitle || "快捷键指南"}</div>

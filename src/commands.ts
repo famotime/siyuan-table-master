@@ -13,6 +13,7 @@ import { getActiveEditor, showMessage, fetchSyncPost } from "siyuan";
 import { executeTextToTable } from "./text-to-table";
 import { executeTableToChart } from "./table-to-chart";
 import { exportToCSV, exportToXLSX } from "./table-export";
+import { createSampleMarkdownTable, createSampleHtmlTable } from "./sample-tables";
 
 /** 命令定义 */
 export interface TableCommand {
@@ -66,6 +67,9 @@ export const TABLE_COMMANDS: TableCommand[] = [
   { id: "column-sum", nameZh: "列求和", nameEn: "Column sum", action: te => te.columnSum() },
   { id: "split-all-cells", nameZh: "全拆分", nameEn: "Split all cells", action: te => te.splitAllCells() },
   { id: "table-to-chart", nameZh: "一键数据图表化", nameEn: "Convert table to chart", action: te => executeTableToChart(te) },
+  // 示例表格创建：action 占位符，实际由 executeCommand 中特判处理
+  { id: "create-sample-md", nameZh: "示例MD", nameEn: "Sample MD Table", action: async () => {} },
+  { id: "create-sample-html", nameZh: "示例HTML", nameEn: "Sample HTML Table", action: async () => {} },
   // 文本转表格：action 占位符，实际由 executeCommand 中特判处理
   { id: "text-to-table", nameZh: "文本转为表格", nameEn: "Convert text to table", action: async () => {} },
   // 宽度调整：action 占位符，实际由 executeCommand 中特判处理
@@ -83,8 +87,13 @@ export function registerCommands(
   settings: PluginSettings,
 ): void {
   for (const cmd of TABLE_COMMANDS) {
-    // 导出命令仅在 Dock 面板中显示按钮，不单独注册全局命令
-    if (cmd.id === "export-csv" || cmd.id === "export-xlsx") {
+    // 仅在 Dock 面板中显示按钮，不单独注册全局命令
+    if (
+      cmd.id === "export-csv" ||
+      cmd.id === "export-xlsx" ||
+      cmd.id === "create-sample-md" ||
+      cmd.id === "create-sample-html"
+    ) {
       continue;
     }
     plugin.addCommand({
@@ -115,6 +124,18 @@ export async function executeCommand(
     const protyle = getActiveEditor?.();
     if (!protyle?.protyle) {
       showMessage(i18n.errFocusEditor || "请先聚焦编辑器", 2000, "error");
+      return;
+    }
+
+    // 特判：创建示例 Markdown 表格命令
+    if (cmd.id === "create-sample-md") {
+      await createSampleMarkdownTable(i18n);
+      return;
+    }
+
+    // 特判：创建示例 HTML 复杂表格命令
+    if (cmd.id === "create-sample-html") {
+      await createSampleHtmlTable(i18n);
       return;
     }
 
