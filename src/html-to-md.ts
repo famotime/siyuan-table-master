@@ -290,13 +290,56 @@ export function tableToSiYuanProtyleNodeTableDom(table: HTMLTableElement): strin
     colgroup.appendChild(col);
   }
 
-  return `<div data-type="NodeTable" class="table">
-<div contenteditable="false">
-${newTable.outerHTML}
-<div class="protyle-action__table"><div class="table__resize"></div><div class="table__select"></div></div>
-</div>
-<div class="protyle-attr" contenteditable="false">​</div>
-</div>`;
+  // 6. 递归移除 <table> 内部结构元素中纯粹包含空白/换行符的 DOM Text 节点
+  removeEmptyTextNodes(newTable);
+
+  const blockId = generateBlockId();
+  const updated = getNowTimestamp();
+  const colgroupAttr = maxCols > 1 ? "|".repeat(maxCols - 1) : "";
+
+  return `<div data-node-id="${blockId}" data-type="NodeTable" class="table" updated="${updated}" colgroup="${colgroupAttr}"><div contenteditable="false">${newTable.outerHTML}<div class="protyle-action__table"><div class="table__resize"></div><div class="table__select"></div></div></div><div class="protyle-attr" contenteditable="false">​</div></div>`;
+}
+
+/**
+ * 递归清理 HTML 结构节点中多余的纯空白文本节点（避免产生多余空行与换行符）
+ */
+export function removeEmptyTextNodes(node: Node): void {
+  let child = node.firstChild;
+  while (child) {
+    const next = child.nextSibling;
+    if (child.nodeType === Node.TEXT_NODE && !child.textContent?.trim()) {
+      const parentTag = child.parentNode?.nodeName.toLowerCase();
+      if (parentTag && ["table", "thead", "tbody", "tr", "colgroup"].includes(parentTag)) {
+        child.remove();
+      }
+    } else if (child.nodeType === Node.ELEMENT_NODE) {
+      removeEmptyTextNodes(child);
+    }
+    child = next;
+  }
+}
+
+/**
+ * 生成合法的思源块 ID (14位时间戳 + '-' + 7位随机小写字母数字)
+ */
+export function generateBlockId(): string {
+  if (typeof window !== "undefined" && (window as any).Lute?.NewNodeID) {
+    return (window as any).Lute.NewNodeID();
+  }
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const randomStr = Math.random().toString(36).substring(2, 9).padEnd(7, "0");
+  return `${timestamp}-${randomStr}`;
+}
+
+/**
+ * 获取当前 14位时间戳 (YYYYMMDDHHmmss)
+ */
+export function getNowTimestamp(): string {
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
 export interface TableConversionResult {
@@ -329,8 +372,10 @@ export function htmlToNodeTable(html: string): TableConversionResult | null {
   if (hasMergedCells(table)) {
     const domData = tableToSiYuanProtyleNodeTableDom(table);
     if (captionText) {
-      const captionDom = `<div data-type="NodeParagraph" class="p"><div contenteditable="true" spellcheck="false">${escapeHtml(captionText)}</div><div class="protyle-attr" contenteditable="false">​</div></div>`;
-      result = { dataType: "dom", data: `${captionDom}\n${domData}`, captionText };
+      const captionBlockId = generateBlockId();
+      const updated = getNowTimestamp();
+      const captionDom = `<div data-node-id="${captionBlockId}" data-type="NodeParagraph" class="p" updated="${updated}"><div contenteditable="true" spellcheck="false">${escapeHtml(captionText)}</div><div class="protyle-attr" contenteditable="false">​</div></div>`;
+      result = { dataType: "dom", data: `${captionDom}${domData}`, captionText };
     } else {
       result = { dataType: "dom", data: domData };
     }

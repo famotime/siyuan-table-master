@@ -118,7 +118,7 @@ describe("html-to-md 单元测试", () => {
       expect(res?.data).not.toContain("<caption");
     });
 
-    it("含 <caption> 且带合并单元格的 HTML 表格：标题作为独立 NodeParagraph 块，表格作为独立 NodeTable 块", () => {
+    it("含 <caption> 且带合并单元格的 HTML 表格：标题作为独立 NodeParagraph 块，表格作为独立 NodeTable 块，且包含 data-node-id、updated、colgroup 属性", () => {
       const html = `
         <table>
           <caption>销售月报</caption>
@@ -137,6 +137,35 @@ describe("html-to-md 单元测试", () => {
       expect(res?.data).toContain('销售月报');
       expect(res?.data).toContain('data-type="NodeTable"');
       expect(res?.data).not.toContain("<caption");
+
+      // 验证包含块属性: data-node-id, updated, colgroup
+      expect(res?.data).toMatch(/<div data-node-id="\d{14}-[a-z0-9]{7}" data-type="NodeParagraph" class="p" updated="\d{14}">/);
+      expect(res?.data).toMatch(/<div data-node-id="\d{14}-[a-z0-9]{7}" data-type="NodeTable" class="table" updated="\d{14}" colgroup="\|">/);
+    });
+
+    it("复杂 6 列跨行跨列表格转换为带 colgroup='|||||' 的 NodeTable DOM 块", () => {
+      const html = `
+        <table>
+          <tbody>
+            <tr>
+              <td rowspan="2">区域</td>
+              <td colspan="2">第一季度</td>
+              <td colspan="2">第二季度</td>
+              <td rowspan="2">年度总计</td>
+            </tr>
+            <tr>
+              <td>销售额</td><td>完成率</td>
+              <td>销售额</td><td>完成率</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+      const res = htmlToNodeTable(html);
+      expect(res).not.toBeNull();
+      expect(res?.dataType).toBe("dom");
+      expect(res?.data).toMatch(/colgroup="\|\|\|\|\|"/);
+      expect(res?.data).toMatch(/data-node-id="\d{14}-[a-z0-9]{7}"/);
+      expect(res?.data).toMatch(/updated="\d{14}"/);
     });
   });
 });
