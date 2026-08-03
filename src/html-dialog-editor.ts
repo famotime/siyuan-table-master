@@ -367,6 +367,9 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       .at-toolbar.at-toolbar-global {
         border-bottom: 1px solid var(--b3-theme-surface-lighter);
         padding-bottom: 8px;
+        position: relative;
+        z-index: 10;
+        overflow: visible;
       }
       .at-body-container {
         display: flex;
@@ -388,7 +391,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         flex-direction: column;
         transition: width 0.2s ease;
         overflow-y: auto;
-        overflow-x: hidden;
+        overflow-x: visible;
         box-shadow: -2px 0 4px rgba(0,0,0,0.02);
       }
       .at-side-panel.collapsed {
@@ -496,20 +499,24 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       .at-btn:disabled {
         opacity: 0.35;
         cursor: not-allowed;
+        pointer-events: auto !important;
       }
       .at-btn.active {
         background: var(--b3-theme-primary);
         color: var(--b3-theme-on-primary);
         border-color: var(--b3-theme-primary);
       }
-      .at-lucide-icon {
+      .at-btn svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
         display: inline-block;
         vertical-align: middle;
-        flex-shrink: 0;
-        fill: none !important;
+      }
+      .at-lucide-icon {
+        fill: none;
       }
       .at-lucide-icon * {
-        fill: none !important;
         stroke: currentColor;
       }
       
@@ -523,15 +530,15 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         left: 50%;
         transform: translateX(-50%);
         margin-top: 6px;
-        background: rgba(15, 23, 42, 0.9);
+        background: rgba(15, 23, 42, 0.92);
         color: #ffffff;
         padding: 4px 8px;
         border-radius: 4px;
         font-size: 11px;
         white-space: nowrap;
         pointer-events: none;
-        z-index: 10000;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        z-index: 100000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         line-height: 1.2;
         font-weight: normal;
       }
@@ -544,9 +551,28 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         margin-top: 0px;
         border-width: 5px;
         border-style: solid;
-        border-color: transparent transparent rgba(15, 23, 42, 0.9) transparent;
+        border-color: transparent transparent rgba(15, 23, 42, 0.92) transparent;
         pointer-events: none;
-        z-index: 10000;
+        z-index: 100000;
+      }
+
+      /* 右侧栏按钮 Tooltip 弹出在按钮左边，避免被遮挡边界 */
+      .at-side-panel .at-btn[data-tooltip]:hover::after {
+        top: 50%;
+        left: auto;
+        right: 100%;
+        transform: translateY(-50%);
+        margin-top: 0;
+        margin-right: 8px;
+      }
+      .at-side-panel .at-btn[data-tooltip]:hover::before {
+        top: 50%;
+        left: auto;
+        right: 100%;
+        transform: translateY(-50%);
+        margin-top: 0;
+        margin-right: -2px;
+        border-color: transparent transparent transparent rgba(15, 23, 42, 0.92);
       }
 
       .at-adjust-box {
