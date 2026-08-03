@@ -609,6 +609,31 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         font-size: 11px;
         font-weight: 600;
       }
+      .at-adjust-input {
+        width: 32px;
+        height: 20px;
+        background: transparent;
+        border: none;
+        outline: none;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--b3-theme-on-background);
+        padding: 0 2px;
+        margin: 0;
+        border-radius: 2px;
+        transition: background 0.15s ease, box-shadow 0.15s ease;
+        -moz-appearance: textfield;
+      }
+      .at-adjust-input:hover, .at-adjust-input:focus {
+        background: var(--b3-theme-background);
+        box-shadow: inset 0 0 0 1px var(--b3-theme-primary);
+      }
+      .at-adjust-input::-webkit-outer-spin-button,
+      .at-adjust-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
       .at-table-scroll {
         flex: 1;
         overflow: auto;
@@ -715,7 +740,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       #at-colorPicker {
         position: absolute;
         display: none;
-        z-index: 1000;
+        z-index: 200000 !important;
         background: var(--b3-theme-surface);
         border: 1px solid var(--b3-theme-surface-lighter);
         border-radius: 6px;
@@ -863,22 +888,31 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
             <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局行高">${icons.lineHeight}</span>
             <div class="at-adjust-box">
               <div class="at-adjust-btn" id="at-lh-minus">${icons.minus}</div>
-              <div class="at-adjust-val" id="at-lh-val">1.4</div>
+              <input type="text" class="at-adjust-input" id="at-lh-val" value="1.4" data-tooltip="编辑全局行高" />
               <div class="at-adjust-btn" id="at-lh-plus">${icons.plus}</div>
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 2px; margin-left: 4px;">
-            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局边框">${icons.border}</span>
-            <button class="at-btn active" id="at-bw-01" data-tooltip="极细边框 0.1px">0.1</button>
-            <button class="at-btn" id="at-bw-05" data-tooltip="中等边框 0.5px">0.5</button>
-            <button class="at-btn" id="at-bw-1" data-tooltip="粗边框 1.0px">1.0</button>
+            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局边框(px)">${icons.border}</span>
+            <div class="at-adjust-box">
+              <div class="at-adjust-btn" id="at-bw-minus">${icons.minus}</div>
+              <input type="text" class="at-adjust-input" id="at-bw-val" value="0.1" data-tooltip="编辑全局边框(px)" />
+              <div class="at-adjust-btn" id="at-bw-plus">${icons.plus}</div>
+            </div>
           </div>
           <div style="display: flex; align-items: center; gap: 2px; margin-left: 4px;">
-            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局内边距">${icons.padding}</span>
-            <button class="at-btn" id="at-pad-2" data-tooltip="紧凑内边距 2px">2</button>
-            <button class="at-btn active" id="at-pad-4" data-tooltip="标准内边距 4px">4</button>
-            <button class="at-btn" id="at-pad-6" data-tooltip="宽松内边距 6px">6</button>
+            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局内边距(px)">${icons.padding}</span>
+            <div class="at-adjust-box">
+              <div class="at-adjust-btn" id="at-pad-minus">${icons.minus}</div>
+              <input type="text" class="at-adjust-input" id="at-pad-val" value="4" data-tooltip="编辑全局内边距(px)" />
+              <div class="at-adjust-btn" id="at-pad-plus">${icons.plus}</div>
+            </div>
           </div>
+          <div style="width: 1px; height: 14px; background: var(--b3-theme-surface-lighter); margin: 0 4px;"></div>
+          <button class="at-btn" id="at-btn-reset-globals" data-tooltip="重置默认行高(1.4)、边框(0.1px)与内边距(4px)">
+            ${icons.resetZoom}
+            <span style="font-size: 11px;">重置</span>
+          </button>
         </div>
       </div>
 
@@ -954,7 +988,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
                 <span style="font-size: 11px; opacity: 0.7; display: flex; align-items: center; gap: 2px;" data-tooltip="修改选中单元格字号">${icons.fontSize} 字号:</span>
                 <div class="at-adjust-box">
                   <div class="at-adjust-btn" id="at-fs-minus">${icons.minus}</div>
-                  <div class="at-adjust-val" id="at-fs-val">14</div>
+                  <input type="text" class="at-adjust-input" id="at-fs-val" value="14" data-tooltip="编辑字号(px)" />
                   <div class="at-adjust-btn" id="at-fs-plus">${icons.plus}</div>
                 </div>
               </div>
@@ -1199,12 +1233,10 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       });
     }
 
-    dialogEl.querySelectorAll(".at-btn[id^='at-bw-']").forEach((btn) => btn.classList.remove("active"));
-    const bwId = "at-bw-" + (borderWidth === 0.1 ? "01" : borderWidth === 0.5 ? "05" : "1");
-    dialogEl.querySelector("#" + bwId)?.classList.add("active");
-
-    dialogEl.querySelectorAll(".at-btn[id^='at-pad-']").forEach((btn) => btn.classList.remove("active"));
-    dialogEl.querySelector("#at-pad-" + paddingWidth)?.classList.add("active");
+    const bwValEl = dialogEl.querySelector("#at-bw-val") as HTMLInputElement | null;
+    const padValEl = dialogEl.querySelector("#at-pad-val") as HTMLInputElement | null;
+    if (bwValEl) bwValEl.value = String(borderWidth);
+    if (padValEl) padValEl.value = String(paddingWidth);
   }
 
   function pushHistory(preSnapshot?: Snapshot) {
@@ -1347,13 +1379,17 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       (td as HTMLElement).style.padding = paddingWidth + "px";
     });
 
-    const fsValEl = dialogEl.querySelector("#at-fs-val") as HTMLElement;
-    const lhValEl = dialogEl.querySelector("#at-lh-val") as HTMLElement;
-    if (fsValEl) fsValEl.innerText = String(fontSize);
-    if (lhValEl) lhValEl.innerText = String(lineHeight);
+    const fsValEl = dialogEl.querySelector("#at-fs-val") as HTMLInputElement | null;
+    const lhValEl = dialogEl.querySelector("#at-lh-val") as HTMLInputElement | null;
+    const bwValEl = dialogEl.querySelector("#at-bw-val") as HTMLInputElement | null;
+    const padValEl = dialogEl.querySelector("#at-pad-val") as HTMLInputElement | null;
+    if (fsValEl && document.activeElement !== fsValEl) fsValEl.value = String(fontSize);
+    if (lhValEl && document.activeElement !== lhValEl) lhValEl.value = String(lineHeight);
+    if (bwValEl && document.activeElement !== bwValEl) bwValEl.value = String(borderWidth);
+    if (padValEl && document.activeElement !== padValEl) padValEl.value = String(paddingWidth);
 
-    if (selectedCaption && fsValEl) {
-      fsValEl.innerText = String(captionStyle.fontSize);
+    if (selectedCaption && fsValEl && document.activeElement !== fsValEl) {
+      fsValEl.value = String(captionStyle.fontSize);
     }
   }
 
@@ -1408,8 +1444,8 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       captionEl.classList.add("selected-caption");
       if (statusText) statusText.innerText = "已选中标题 (Caption)";
       if (coordsText) coordsText.innerText = "标题";
-      const fsValEl = dialogEl.querySelector("#at-fs-val") as HTMLElement;
-      if (fsValEl) fsValEl.innerText = String(captionStyle.fontSize);
+      const fsValEl = dialogEl.querySelector("#at-fs-val") as HTMLInputElement | null;
+      if (fsValEl && document.activeElement !== fsValEl) fsValEl.value = String(captionStyle.fontSize);
       updateSidebarButtonsState();
       return;
     }
@@ -1442,8 +1478,8 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     const master = getMasterCell(minR, minC);
     if (master) {
       const displayFs = master.style.fs ? master.style.fs : fontSize;
-      const fsValEl = dialogEl.querySelector("#at-fs-val") as HTMLElement;
-      if (fsValEl) fsValEl.innerText = String(displayFs);
+      const fsValEl = dialogEl.querySelector("#at-fs-val") as HTMLInputElement | null;
+      if (fsValEl && document.activeElement !== fsValEl) fsValEl.value = String(displayFs);
     }
     updateSidebarButtonsState();
   }
@@ -1853,14 +1889,42 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     updateSelectionView();
   }
 
-  function adjustFontSize(delta: number) {
+  function setFontSize(val: number) {
+    let newSize = Math.round(val);
+    if (isNaN(newSize)) return;
+    if (newSize < 8) newSize = 8;
+    if (newSize > 120) newSize = 120;
+
     if (selectedCaption) {
       pushHistory();
-      let newSize = captionStyle.fontSize + delta;
-      if (newSize < 10) newSize = 10;
-      if (newSize > 72) newSize = 72;
       captionStyle.fontSize = newSize;
       renderTable();
+      updateSelectionView();
+      return;
+    }
+
+    const bounds = getSelectionBounds();
+    if (!bounds) {
+      showToast("请先选择单元格或点击标题");
+      const fsValEl = dialogEl.querySelector("#at-fs-val") as HTMLInputElement | null;
+      if (fsValEl) fsValEl.value = String(fontSize);
+      return;
+    }
+
+    pushHistory();
+    for (let r = bounds.minR; r <= bounds.maxR; r++) {
+      for (let c = bounds.minC; c <= bounds.maxC; c++) {
+        const cell = matrix[r][c];
+        cell.style.fs = newSize;
+      }
+    }
+    renderTable();
+    updateSelectionView();
+  }
+
+  function adjustFontSize(delta: number) {
+    if (selectedCaption) {
+      setFontSize(captionStyle.fontSize + delta);
       return;
     }
 
@@ -1870,31 +1934,26 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       return;
     }
 
-    pushHistory();
-    for (let r = bounds.minR; r <= bounds.maxR; r++) {
-      for (let c = bounds.minC; c <= bounds.maxC; c++) {
-        const cell = matrix[r][c];
-        let currentFs = cell.style.fs ? cell.style.fs : fontSize;
-        let newFs = currentFs + delta;
-        if (newFs < 10) newFs = 10;
-        if (newFs > 72) newFs = 72;
-        cell.style.fs = newFs;
-      }
-    }
-    renderTable();
-    updateSelectionView();
+    const master = getMasterCell(bounds.minR, bounds.minC);
+    const currentFs = master?.style.fs ? master.style.fs : fontSize;
+    setFontSize(currentFs + delta);
   }
 
-  function adjustLineHeight(delta: number) {
+  function setLineHeight(val: number) {
     if (selectedCaption) {
       showToast("行高仅适用于单元格");
+      const lhValEl = dialogEl.querySelector("#at-lh-val") as HTMLInputElement | null;
+      if (lhValEl) lhValEl.value = String(lineHeight);
       return;
     }
 
+    let newLh = Math.round(val * 10) / 10;
+    if (isNaN(newLh)) return;
+    if (newLh < 1.0) newLh = 1.0;
+    if (newLh > 5.0) newLh = 5.0;
+
     pushHistory();
-    lineHeight = Math.round((lineHeight + delta) * 10) / 10;
-    if (lineHeight < 1.0) lineHeight = 1.0;
-    if (lineHeight > 3.0) lineHeight = 3.0;
+    lineHeight = newLh;
 
     const masters = getSelectedMasterCells();
     if (masters.length > 0) {
@@ -1902,6 +1961,66 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     }
     renderTable();
     updateSelectionView();
+    updateGlobalStyles();
+  }
+
+  function adjustLineHeight(delta: number) {
+    setLineHeight(lineHeight + delta);
+  }
+
+  function setBorderWidth(val: number) {
+    let newBw = Math.round(val * 10) / 10;
+    if (isNaN(newBw)) return;
+    if (newBw < 0) newBw = 0;
+    if (newBw > 20) newBw = 20;
+
+    pushHistory();
+    borderWidth = newBw;
+    updateGlobalStyles();
+  }
+
+  function adjustBorderWidth(delta: number) {
+    if (delta > 0) {
+      if (borderWidth < 0.5) {
+        setBorderWidth(0.5);
+      } else {
+        setBorderWidth(Math.round((borderWidth + 0.5) * 2) / 2);
+      }
+    } else {
+      if (borderWidth <= 0.5 && borderWidth > 0.1) {
+        setBorderWidth(0.1);
+      } else if (borderWidth <= 0.1) {
+        setBorderWidth(0);
+      } else {
+        setBorderWidth(Math.round((borderWidth - 0.5) * 2) / 2);
+      }
+    }
+  }
+
+  function setPaddingWidth(val: number) {
+    let newPad = Math.round(val);
+    if (isNaN(newPad)) return;
+    if (newPad < 0) newPad = 0;
+    if (newPad > 50) newPad = 50;
+
+    pushHistory();
+    paddingWidth = newPad;
+    updateGlobalStyles();
+  }
+
+  function adjustPaddingWidth(delta: number) {
+    setPaddingWidth(paddingWidth + delta);
+  }
+
+  function resetGlobalParams() {
+    pushHistory();
+    lineHeight = 1.4;
+    borderWidth = 0.1;
+    paddingWidth = 4;
+    updateGlobalStyles();
+    renderTable();
+    updateSelectionView();
+    showToast("已重置默认行高(1.4)、边框(0.1px)与内边距(4px)");
   }
 
   function generateCleanHtml(): string {
@@ -2388,34 +2507,39 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     dialogEl.querySelector("#at-fs-plus")?.addEventListener("click", () => adjustFontSize(1));
     dialogEl.querySelector("#at-lh-minus")?.addEventListener("click", () => adjustLineHeight(-0.1));
     dialogEl.querySelector("#at-lh-plus")?.addEventListener("click", () => adjustLineHeight(0.1));
+    dialogEl.querySelector("#at-bw-minus")?.addEventListener("click", () => adjustBorderWidth(-0.1));
+    dialogEl.querySelector("#at-bw-plus")?.addEventListener("click", () => adjustBorderWidth(0.1));
+    dialogEl.querySelector("#at-pad-minus")?.addEventListener("click", () => adjustPaddingWidth(-1));
+    dialogEl.querySelector("#at-pad-plus")?.addEventListener("click", () => adjustPaddingWidth(1));
 
-    [
-      { id: "#at-bw-01", val: 0.1 },
-      { id: "#at-bw-05", val: 0.5 },
-      { id: "#at-bw-1", val: 1.0 },
-    ].forEach((item) => {
-      dialogEl.querySelector(item.id)?.addEventListener("click", () => {
-        pushHistory();
-        borderWidth = item.val;
-        dialogEl.querySelectorAll(".at-btn[id^='at-bw-']").forEach((b) => b.classList.remove("active"));
-        dialogEl.querySelector(item.id)?.classList.add("active");
-        updateGlobalStyles();
-      });
-    });
+    dialogEl.querySelector("#at-btn-reset-globals")?.addEventListener("click", resetGlobalParams);
 
-    [
-      { id: "#at-pad-2", val: 2 },
-      { id: "#at-pad-4", val: 4 },
-      { id: "#at-pad-6", val: 6 },
-    ].forEach((item) => {
-      dialogEl.querySelector(item.id)?.addEventListener("click", () => {
-        pushHistory();
-        paddingWidth = item.val;
-        dialogEl.querySelectorAll(".at-btn[id^='at-pad-']").forEach((b) => b.classList.remove("active"));
-        dialogEl.querySelector(item.id)?.classList.add("active");
-        updateGlobalStyles();
+    const setupNumericInput = (id: string, getValue: () => number, setValue: (v: number) => void) => {
+      const inputEl = dialogEl.querySelector(id) as HTMLInputElement | null;
+      if (!inputEl) return;
+      const commit = () => {
+        const parsed = parseFloat(inputEl.value);
+        if (isNaN(parsed)) {
+          inputEl.value = String(getValue());
+        } else {
+          setValue(parsed);
+        }
+      };
+      inputEl.addEventListener("change", commit);
+      inputEl.addEventListener("blur", commit);
+      inputEl.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") {
+          inputEl.blur();
+        }
       });
-    });
+      inputEl.addEventListener("keyup", (e) => e.stopPropagation());
+    };
+
+    setupNumericInput("#at-lh-val", () => lineHeight, setLineHeight);
+    setupNumericInput("#at-bw-val", () => borderWidth, setBorderWidth);
+    setupNumericInput("#at-pad-val", () => paddingWidth, setPaddingWidth);
+    setupNumericInput("#at-fs-val", () => selectedCaption ? captionStyle.fontSize : (getMasterCell(getSelectionBounds()?.minR ?? 0, getSelectionBounds()?.minC ?? 0)?.style.fs || fontSize), setFontSize);
 
     dialogEl.querySelector("#at-btn-copy")?.addEventListener("click", () => {
       const code = generateCleanHtml();
