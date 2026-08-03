@@ -11,3 +11,5 @@
 
 export { escapeHtml, getCellCoordFromTable } from "../dom-utils";
 export { parseLines, isBoxDrawingTable, gridToMarkdown } from "../text-to-table-utils";
+export { icons } from "./icons";
+

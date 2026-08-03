@@ -1,6 +1,8 @@
 import { Dialog, showMessage } from "siyuan";
 import { HtmlTableEditor } from "./html-table-editor";
 import type TableMaterPlugin from "./index";
+import { icons } from "./utils/icons";
+
 
 interface CellStyle {
   bg?: string;
@@ -344,47 +346,126 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       .at-dialog-root {
         display: flex;
         flex-direction: column;
-        height: 75vh;
-        max-height: 800px;
+        height: 82vh;
+        max-height: 860px;
         background: var(--b3-theme-background);
         color: var(--b3-theme-on-background);
         font-family: var(--b3-font-family);
         position: relative;
         user-select: none;
+        border-radius: 8px;
+        overflow: hidden;
       }
       .at-toolbar {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
+        align-items: center;
+        gap: 8px;
         padding: 8px 12px;
         background: var(--b3-theme-surface);
+      }
+      .at-toolbar.at-toolbar-global {
         border-bottom: 1px solid var(--b3-theme-surface-lighter);
-        align-items: center;
+        padding-bottom: 8px;
       }
-      .at-btn-group {
+      .at-body-container {
         display: flex;
-        gap: 2px;
-        align-items: center;
-        padding-right: 6px;
-        border-right: 1px solid var(--b3-theme-surface-lighter);
+        flex: 1;
+        overflow: hidden;
+        position: relative;
       }
-      .at-btn-group:last-child {
+      .at-side-panel-wrapper {
+        position: relative;
+        height: 100%;
+        display: flex;
+        flex-shrink: 0;
+      }
+      .at-side-panel {
+        width: 160px;
+        background: var(--b3-theme-surface);
+        border-left: 1px solid var(--b3-theme-surface-lighter);
+        display: flex;
+        flex-direction: column;
+        transition: width 0.2s ease;
+        overflow-y: auto;
+        overflow-x: hidden;
+        box-shadow: -2px 0 4px rgba(0,0,0,0.02);
+      }
+      .at-side-panel.collapsed {
+        width: 0;
+        border-left: none;
+      }
+      .at-panel-toggle {
+        position: absolute;
+        left: -12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 12px;
+        height: 48px;
+        background: var(--b3-theme-surface);
+        border: 1px solid var(--b3-theme-surface-lighter);
         border-right: none;
+        border-radius: 4px 0 0 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 100;
+        transition: background 0.15s;
+        box-shadow: -2px 0 4px rgba(0,0,0,0.02);
       }
-      .at-btn {
+      .at-panel-toggle:hover {
+        background: var(--b3-theme-primary-light);
+        color: var(--b3-theme-primary);
+      }
+      .at-panel-section {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--b3-theme-surface-lighter);
+        min-width: 160px;
+        box-sizing: border-box;
+      }
+      .at-panel-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--b3-theme-on-surface);
+        opacity: 0.6;
+        margin-bottom: 8px;
+        user-select: none;
+      }
+      .at-panel-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+      .at-panel-grid .at-btn {
+        width: 100%;
+      }
+      .at-toolbar-section {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 6px;
         background: var(--b3-theme-background);
         border: 1px solid var(--b3-theme-surface-lighter);
+        border-radius: 6px;
+        position: relative;
+      }
+      .at-btn {
+        background: transparent;
+        border: 1px solid transparent;
         color: var(--b3-theme-on-background);
-        padding: 3px 8px;
+        padding: 4px 6px;
         border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
         transition: all 0.15s ease;
         display: inline-flex;
         align-items: center;
-        gap: 2px;
+        justify-content: center;
+        gap: 4px;
         height: 26px;
         box-sizing: border-box;
+        position: relative;
       }
       .at-btn:hover:not(:disabled) {
         border-color: var(--b3-theme-primary);
@@ -392,7 +473,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         background: var(--b3-theme-primary-light);
       }
       .at-btn:disabled {
-        opacity: 0.4;
+        opacity: 0.35;
         cursor: not-allowed;
       }
       .at-btn.active {
@@ -400,55 +481,113 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         color: var(--b3-theme-on-primary);
         border-color: var(--b3-theme-primary);
       }
+      .at-lucide-icon {
+        display: inline-block;
+        vertical-align: middle;
+        flex-shrink: 0;
+        fill: none !important;
+      }
+      .at-lucide-icon * {
+        fill: none !important;
+        stroke: currentColor;
+      }
+      
+      .at-btn[data-tooltip] {
+        position: relative;
+      }
+      .at-btn[data-tooltip]:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-top: 6px;
+        background: rgba(15, 23, 42, 0.9);
+        color: #ffffff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        line-height: 1.2;
+        font-weight: normal;
+      }
+      .at-btn[data-tooltip]:hover::before {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-top: 0px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: transparent transparent rgba(15, 23, 42, 0.9) transparent;
+        pointer-events: none;
+        z-index: 10000;
+      }
+
       .at-adjust-box {
         display: flex;
         align-items: center;
-        background: var(--b3-theme-background);
+        background: var(--b3-theme-surface);
         border: 1px solid var(--b3-theme-surface-lighter);
         border-radius: 4px;
-        height: 26px;
+        height: 24px;
         padding: 0 2px;
       }
       .at-adjust-btn {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
+        font-size: 12px;
         cursor: pointer;
         border-radius: 3px;
       }
       .at-adjust-btn:hover {
-        background: var(--b3-theme-surface);
+        background: var(--b3-theme-primary-light);
         color: var(--b3-theme-primary);
       }
       .at-adjust-val {
-        min-width: 24px;
+        min-width: 22px;
         text-align: center;
-        font-size: 12px;
-        font-weight: bold;
+        font-size: 11px;
+        font-weight: 600;
       }
       .at-table-scroll {
         flex: 1;
         overflow: auto;
-        padding: 16px;
+        padding: 24px;
         position: relative;
         background: var(--b3-theme-background);
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        background-image: radial-gradient(var(--b3-theme-surface-lighter) 1px, transparent 1px);
+        background-size: 16px 16px;
       }
       #at-tableCenterWrapper {
         text-align: center;
         min-height: 100%;
+        transform-origin: top center;
+        transition: transform 0.15s ease-out;
+        display: inline-block;
       }
       table.at-editor-table {
         margin: 10px auto;
         border-collapse: collapse;
         table-layout: auto;
         background: var(--b3-theme-surface);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        border-radius: 4px;
       }
       table.at-editor-table caption {
         text-align: center;
-        padding: 6px;
+        padding: 8px;
+        font-weight: 600;
         color: var(--b3-theme-on-background);
         background: var(--b3-theme-surface);
         border: 1px solid var(--b3-theme-surface-lighter);
@@ -483,15 +622,44 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         outline: none;
       }
       .at-status-bar {
-        height: 28px;
+        height: 32px;
         background: var(--b3-theme-surface);
         border-top: 1px solid var(--b3-theme-surface-lighter);
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 12px;
+        padding: 0 14px;
         font-size: 12px;
         color: var(--b3-theme-on-surface);
+        user-select: none;
+      }
+      .at-status-section {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .at-status-badge {
+        background: var(--b3-theme-background);
+        border: 1px solid var(--b3-theme-surface-lighter);
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        color: var(--b3-theme-on-surface);
+      }
+      .at-zoom-ctrl {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--b3-theme-background);
+        border: 1px solid var(--b3-theme-surface-lighter);
+        border-radius: 4px;
+        padding: 2px 6px;
+      }
+      .at-zoom-slider {
+        width: 80px;
+        height: 4px;
+        cursor: pointer;
+        accent-color: var(--b3-theme-primary);
       }
       #at-colorPicker {
         position: absolute;
@@ -501,7 +669,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         border: 1px solid var(--b3-theme-surface-lighter);
         border-radius: 6px;
         padding: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.18);
       }
       .at-c-grid {
         display: grid;
@@ -511,23 +679,30 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       .at-c-swatch {
         width: 22px;
         height: 22px;
-        border-radius: 3px;
+        border-radius: 4px;
         cursor: pointer;
-        border: 1px solid rgba(0,0,0,0.2);
+        border: 1px solid rgba(0,0,0,0.15);
+        transition: transform 0.1s ease;
       }
       .at-c-swatch:hover {
-        transform: scale(1.1);
+        transform: scale(1.15);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       }
       .at-c-swatch-deselect {
         grid-column: span 5;
-        margin-top: 4px;
-        font-size: 12px;
+        margin-top: 6px;
+        font-size: 11px;
         text-align: center;
-        padding: 3px;
+        padding: 4px;
         background: var(--b3-theme-background);
         border: 1px solid var(--b3-theme-surface-lighter);
-        border-radius: 3px;
+        border-radius: 4px;
         cursor: pointer;
+        transition: background 0.15s;
+      }
+      .at-c-swatch-deselect:hover {
+        background: var(--b3-theme-primary-light);
+        color: var(--b3-theme-primary);
       }
       #at-contextMenu {
         position: fixed;
@@ -537,15 +712,18 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         border: 1px solid var(--b3-theme-surface-lighter);
         border-radius: 6px;
         padding: 4px 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-        min-width: 150px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+        min-width: 160px;
       }
 
       .at-menu-item {
-        padding: 6px 12px;
+        padding: 6px 14px;
         font-size: 12px;
         cursor: pointer;
         color: var(--b3-theme-on-background);
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
       .at-menu-item:hover:not(.disabled) {
         background: var(--b3-theme-primary-light);
@@ -574,8 +752,8 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         max-width: 600px;
         background: var(--b3-theme-surface);
         border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        padding: 18px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -586,7 +764,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         background: var(--b3-theme-background);
         color: var(--b3-theme-on-background);
         border: 1px solid var(--b3-theme-surface-lighter);
-        border-radius: 4px;
+        border-radius: 6px;
         padding: 8px;
         font-family: monospace;
         font-size: 12px;
@@ -595,18 +773,19 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       }
       .at-toast {
         position: absolute;
-        bottom: 40px;
+        bottom: 44px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0,0,0,0.8);
+        background: rgba(15, 23, 42, 0.9);
         color: #fff;
-        padding: 6px 16px;
+        padding: 6px 18px;
         border-radius: 20px;
         font-size: 12px;
         z-index: 2000;
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
       }
       .at-toast.show {
         opacity: 1;
@@ -614,90 +793,131 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     </style>
 
     <div class="at-dialog-root">
-      <!-- 工具栏 -->
-      <div class="at-toolbar">
-        <div class="at-btn-group">
-          <button class="at-btn" id="at-btn-import" style="color: var(--b3-theme-error);">导入代码</button>
-          <button class="at-btn" id="at-btn-copy">复制代码</button>
+      <!-- 商业软件分组工具栏 - 第一层：全局操作区 -->
+      <div class="at-toolbar at-toolbar-global">
+        <!-- 全局：基础与历史 -->
+        <div class="at-toolbar-section">
+          <button class="at-btn" id="at-btn-import" data-tooltip="导入 HTML / Markdown 代码" style="color: var(--b3-theme-error);">${icons.import}</button>
+          <button class="at-btn" id="at-btn-copy" data-tooltip="复制当前表格 HTML 代码">${icons.copy}</button>
+          <button class="at-btn" id="at-btn-caption" data-tooltip="显示/隐藏表格标题">${icons.caption}</button>
+          <div style="width: 1px; height: 14px; background: var(--b3-theme-surface-lighter); margin: 0 4px;"></div>
+          <button class="at-btn" id="at-btn-undo" data-tooltip="撤销上一步操作 (Ctrl+Z)">${icons.undo}</button>
+          <button class="at-btn" id="at-btn-redo" data-tooltip="重做撤销的操作 (Ctrl+Y)">${icons.redo}</button>
         </div>
-        <div class="at-btn-group">
-          <button class="at-btn" id="at-btn-undo" title="撤销 (Ctrl+Z)">↩ 撤销</button>
-          <button class="at-btn" id="at-btn-redo" title="重做 (Ctrl+Y)">↪ 重做</button>
-          <button class="at-btn" id="at-btn-select-all">全选</button>
-        </div>
-        <div class="at-btn-group">
-          <button class="at-btn" id="at-btn-caption">+ 题</button>
-          <button class="at-btn" id="at-btn-add-row">+ 行</button>
-          <button class="at-btn" id="at-btn-add-col">+ 列</button>
-        </div>
-        <div class="at-btn-group">
-          <button class="at-btn" id="at-btn-merge">合并</button>
-          <button class="at-btn" id="at-btn-split">拆分</button>
-        </div>
-        <div class="at-btn-group">
-          <button class="at-btn" id="at-btn-h-left">左</button>
-          <button class="at-btn" id="at-btn-h-center">中</button>
-          <button class="at-btn" id="at-btn-h-right">右</button>
-        </div>
-        <div class="at-btn-group">
-          <button class="at-btn" id="at-btn-v-top">上</button>
-          <button class="at-btn" id="at-btn-v-middle">中</button>
-          <button class="at-btn" id="at-btn-v-bottom">下</button>
-        </div>
-        <div class="at-btn-group">
-          <button class="at-btn" id="at-btn-bg-color">格底色</button>
-          <button class="at-btn" id="at-btn-text-color">字面色</button>
-          <button class="at-btn" id="at-btn-text-bg">字底色</button>
-          <button class="at-btn" id="at-btn-clear">清除</button>
-        </div>
-        <div class="at-btn-group">
-          <span style="font-size: 11px; color: var(--b3-theme-on-surface);">字号:</span>
-          <div class="at-adjust-box">
-            <div class="at-adjust-btn" id="at-fs-minus">−</div>
-            <div class="at-adjust-val" id="at-fs-val">14</div>
-            <div class="at-adjust-btn" id="at-fs-plus">+</div>
+
+        <!-- 全局：表格尺寸参数 -->
+        <div class="at-toolbar-section">
+          <div style="display: flex; align-items: center; gap: 2px;">
+            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局字号">${icons.fontSize}</span>
+            <div class="at-adjust-box">
+              <div class="at-adjust-btn" id="at-fs-minus">${icons.minus}</div>
+              <div class="at-adjust-val" id="at-fs-val">14</div>
+              <div class="at-adjust-btn" id="at-fs-plus">${icons.plus}</div>
+            </div>
           </div>
-        </div>
-        <div class="at-btn-group">
-          <span style="font-size: 11px; color: var(--b3-theme-on-surface);">行高:</span>
-          <div class="at-adjust-box">
-            <div class="at-adjust-btn" id="at-lh-minus">−</div>
-            <div class="at-adjust-val" id="at-lh-val">1.4</div>
-            <div class="at-adjust-btn" id="at-lh-plus">+</div>
+          <div style="display: flex; align-items: center; gap: 2px; margin-left: 4px;">
+            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局行高">${icons.lineHeight}</span>
+            <div class="at-adjust-box">
+              <div class="at-adjust-btn" id="at-lh-minus">${icons.minus}</div>
+              <div class="at-adjust-val" id="at-lh-val">1.4</div>
+              <div class="at-adjust-btn" id="at-lh-plus">${icons.plus}</div>
+            </div>
           </div>
-        </div>
-        <div class="at-btn-group">
-          <span style="font-size: 11px; color: var(--b3-theme-on-surface);">线宽:</span>
-          <button class="at-btn active" id="at-bw-01">0.1</button>
-          <button class="at-btn" id="at-bw-05">0.5</button>
-          <button class="at-btn" id="at-bw-1">1.0</button>
-        </div>
-        <div class="at-btn-group">
-          <span style="font-size: 11px; color: var(--b3-theme-on-surface);">边距:</span>
-          <button class="at-btn" id="at-pad-2">2</button>
-          <button class="at-btn active" id="at-pad-4">4</button>
-          <button class="at-btn" id="at-pad-6">6</button>
+          <div style="display: flex; align-items: center; gap: 2px; margin-left: 4px;">
+            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局边框">${icons.border}</span>
+            <button class="at-btn active" id="at-bw-01" data-tooltip="极细边框 0.1px">0.1</button>
+            <button class="at-btn" id="at-bw-05" data-tooltip="中等边框 0.5px">0.5</button>
+            <button class="at-btn" id="at-bw-1" data-tooltip="粗边框 1.0px">1.0</button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 2px; margin-left: 4px;">
+            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局内边距">${icons.padding}</span>
+            <button class="at-btn" id="at-pad-2" data-tooltip="紧凑内边距 2px">2</button>
+            <button class="at-btn active" id="at-pad-4" data-tooltip="标准内边距 4px">4</button>
+            <button class="at-btn" id="at-pad-6" data-tooltip="宽松内边距 6px">6</button>
+          </div>
         </div>
       </div>
 
-      <!-- 表格内容滚动容器 -->
-      <div class="at-table-scroll">
-        <div id="at-tableCenterWrapper">
-          <table class="at-editor-table" id="at-main-table">
-            <tbody id="at-tbody"></tbody>
-          </table>
+      <div class="at-body-container">
+        <!-- 表格内容滚动与画布容器 -->
+        <div class="at-table-scroll" id="at-table-scroll-container">
+          <div id="at-tableCenterWrapper">
+            <table class="at-editor-table" id="at-main-table">
+              <tbody id="at-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="at-side-panel-wrapper">
+          <div class="at-panel-toggle" id="at-panel-toggle" data-tooltip="收缩/展开侧面板">
+            ${icons.chevronRight}
+          </div>
+
+          <!-- 商业软件分组工具栏 - 第二侧边面板：单元格操作区 -->
+          <div class="at-side-panel" id="at-side-panel">
+            <!-- 单元格结构 -->
+            <div class="at-panel-section">
+              <div class="at-panel-title">单元格操作</div>
+              <div class="at-panel-grid" style="margin-bottom: 6px;">
+                <button class="at-btn" id="at-btn-select-all" data-tooltip="选择表格所有单元格">${icons.selectAll}</button>
+                <button class="at-btn" id="at-btn-add-row" data-tooltip="在下方添加新数据行">${icons.addRow}</button>
+                <button class="at-btn" id="at-btn-add-col" data-tooltip="在右侧添加新数据列">${icons.addCol}</button>
+              </div>
+              <div class="at-panel-grid">
+                <button class="at-btn" id="at-btn-merge" data-tooltip="合并选中的多格">${icons.merge}</button>
+                <button class="at-btn" id="at-btn-split" data-tooltip="拆分选中的合并单元格">${icons.split}</button>
+              </div>
+            </div>
+
+            <!-- 排版对齐 -->
+            <div class="at-panel-section">
+              <div class="at-panel-title">排版对齐</div>
+              <div class="at-panel-grid" style="margin-bottom: 6px;">
+                <button class="at-btn" id="at-btn-h-left" data-tooltip="水平居左">${icons.alignLeft}</button>
+                <button class="at-btn" id="at-btn-h-center" data-tooltip="水平居中">${icons.alignCenter}</button>
+                <button class="at-btn" id="at-btn-h-right" data-tooltip="水平居右">${icons.alignRight}</button>
+              </div>
+              <div class="at-panel-grid">
+                <button class="at-btn" id="at-btn-v-top" data-tooltip="垂直居顶">${icons.alignTop}</button>
+                <button class="at-btn" id="at-btn-v-middle" data-tooltip="垂直居中">${icons.alignMiddle}</button>
+                <button class="at-btn" id="at-btn-v-bottom" data-tooltip="垂直居底">${icons.alignBottom}</button>
+              </div>
+            </div>
+
+            <!-- 单元格样式 -->
+            <div class="at-panel-section">
+              <div class="at-panel-title">样式与颜色</div>
+              <div class="at-panel-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <button class="at-btn" id="at-btn-bg-color" data-tooltip="设置单元格背景颜色">${icons.bgColor}</button>
+                <button class="at-btn" id="at-btn-text-color" data-tooltip="设置单元格文字颜色">${icons.textColor}</button>
+                <button class="at-btn" id="at-btn-text-bg" data-tooltip="设置文字高亮背景">${icons.textBg}</button>
+                <button class="at-btn" id="at-btn-clear" data-tooltip="清除选中单元格样式格式">${icons.clear}</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- 底部状态栏与操作按钮 -->
+      <!-- 底部专业状态栏 -->
       <div class="at-status-bar">
-        <div>
-          <span id="at-status-text">拖拽框选单元格</span>
-          <span id="at-coords-text" style="margin-left: 12px; opacity: 0.7;">-</span>
+        <div class="at-status-section">
+          <span class="at-status-badge" id="at-status-text">拖拽框选单元格</span>
+          <span id="at-coords-text" style="opacity: 0.7;">-</span>
         </div>
-        <div style="display: flex; gap: 8px;">
+
+        <div class="at-status-section">
+          <div class="at-zoom-ctrl">
+            <button class="at-btn" id="at-btn-zoom-out" data-tooltip="缩小画布 (50%-150%)" style="height: 20px; min-width: 20px; padding: 0;">${icons.zoomOut}</button>
+            <input type="range" id="at-zoom-slider" class="at-zoom-slider" min="50" max="150" value="100" step="5" />
+            <button class="at-btn" id="at-btn-zoom-in" data-tooltip="放大画布 (50%-150%)" style="height: 20px; min-width: 20px; padding: 0;">${icons.zoomIn}</button>
+            <span id="at-zoom-val" style="min-width: 36px; text-align: center; font-size: 11px; font-weight: 600;">100%</span>
+            <button class="at-btn" id="at-btn-zoom-reset" data-tooltip="重置缩放与贴合" style="height: 20px; min-width: 20px; padding: 0 4px;">${icons.resetZoom}</button>
+          </div>
+        </div>
+
+        <div class="at-status-section">
           <button class="b3-button b3-button--cancel" id="at-btn-dialog-cancel">取消</button>
-          <button class="b3-button b3-button--text" id="at-btn-dialog-save">保存更新</button>
+          <button class="b3-button b3-button--primary" id="at-btn-dialog-save" style="background-color: var(--b3-theme-primary); color: var(--b3-theme-on-primary);">保存更新</button>
         </div>
       </div>
 
@@ -706,15 +926,15 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
 
       <!-- 右键菜单 -->
       <div id="at-contextMenu">
-        <div class="at-menu-item" data-action="merge">合并单元格</div>
-        <div class="at-menu-item" data-action="split">拆分单元格</div>
-        <div class="at-menu-item" data-action="alignCenter">水平垂直居中</div>
-        <div class="at-menu-item" data-action="clearStyle">清除样式格式</div>
+        <div class="at-menu-item" data-action="merge">${icons.merge} 合并单元格</div>
+        <div class="at-menu-item" data-action="split">${icons.split} 拆分单元格</div>
+        <div class="at-menu-item" data-action="alignCenter">${icons.alignCenter} 水平垂直居中</div>
+        <div class="at-menu-item" data-action="clearStyle">${icons.clear} 清除样式格式</div>
         <div class="at-menu-divider"></div>
-        <div class="at-menu-item" data-action="insertColLeft">左侧插入列</div>
-        <div class="at-menu-item" data-action="insertColRight">右侧插入列</div>
-        <div class="at-menu-item" data-action="insertRowAbove">上方插入行</div>
-        <div class="at-menu-item" data-action="insertRowBelow">下方插入行</div>
+        <div class="at-menu-item" data-action="insertColLeft">${icons.addCol} 左侧插入列</div>
+        <div class="at-menu-item" data-action="insertColRight">${icons.addCol} 右侧插入列</div>
+        <div class="at-menu-item" data-action="insertRowAbove">${icons.addRow} 上方插入行</div>
+        <div class="at-menu-item" data-action="insertRowBelow">${icons.addRow} 下方插入行</div>
         <div class="at-menu-divider"></div>
         <div class="at-menu-item" data-action="deleteRow">删除当前行</div>
         <div class="at-menu-item" data-action="deleteCol">删除当前列</div>
@@ -724,14 +944,13 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         <div class="at-menu-item" data-action="moveColLeft">列左移</div>
         <div class="at-menu-item" data-action="moveColRight">列右移</div>
         <div class="at-menu-divider"></div>
-        <div class="at-menu-item" data-action="copyCellContent">复制单元格文本</div>
+        <div class="at-menu-item" data-action="copyCellContent">${icons.copy} 复制单元格文本</div>
       </div>
-
 
       <!-- 导入弹窗 -->
       <div id="at-importModal">
         <div class="at-modal-box">
-          <div style="font-size: 14px; font-weight: bold;">导入表格代码（支持 HTML / Markdown）</div>
+          <div style="font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 6px;">${icons.import} 导入表格代码（支持 HTML / Markdown）</div>
           <div style="font-size: 12px; opacity: 0.8;">支持导入表格标题 (Caption) 及单元格数据；Markdown 表格会自动转换为 HTML 后导入。</div>
           <textarea id="at-importCode" class="at-modal-textarea" placeholder="粘贴 <table>...</table> 或 | Markdown | 表格 | 代码..."></textarea>
           <div style="display: flex; justify-content: flex-end; gap: 8px;">
@@ -748,7 +967,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
   const dialog = new Dialog({
     title: "高级 HTML 表格编辑器",
     content: dialogHtml,
-    width: "960px",
+    width: "92vw",
   });
 
   const dialogEl = dialog.element;
@@ -764,6 +983,47 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     toastEl.classList.add("show");
     setTimeout(() => toastEl.classList.remove("show"), 1800);
   }
+
+  let currentZoom = 100;
+  const tableCenterWrapper = dialogEl.querySelector("#at-tableCenterWrapper") as HTMLElement;
+  const panelToggle = dialogEl.querySelector("#at-panel-toggle") as HTMLElement;
+  const sidePanel = dialogEl.querySelector("#at-side-panel") as HTMLElement;
+  panelToggle.addEventListener("click", () => {
+    sidePanel.classList.toggle("collapsed");
+    panelToggle.innerHTML = sidePanel.classList.contains("collapsed") ? icons.chevronLeft : icons.chevronRight;
+  });
+
+  const zoomSlider = dialogEl.querySelector("#at-zoom-slider") as HTMLInputElement;
+  const zoomVal = dialogEl.querySelector("#at-zoom-val") as HTMLElement;
+  const btnZoomOut = dialogEl.querySelector("#at-btn-zoom-out") as HTMLElement;
+  const btnZoomIn = dialogEl.querySelector("#at-btn-zoom-in") as HTMLElement;
+  const btnZoomReset = dialogEl.querySelector("#at-btn-zoom-reset") as HTMLElement;
+
+  function updateZoom(newZoom: number) {
+    currentZoom = Math.min(150, Math.max(50, newZoom));
+    if (tableCenterWrapper) {
+      tableCenterWrapper.style.transform = `scale(${currentZoom / 100})`;
+    }
+    if (zoomSlider) zoomSlider.value = String(currentZoom);
+    if (zoomVal) zoomVal.innerText = `${currentZoom}%`;
+  }
+
+  if (zoomSlider) {
+    zoomSlider.addEventListener("input", (e) => {
+      const val = parseInt((e.target as HTMLInputElement).value, 10);
+      if (Number.isFinite(val)) updateZoom(val);
+    });
+  }
+  if (btnZoomOut) {
+    btnZoomOut.addEventListener("click", () => updateZoom(currentZoom - 10));
+  }
+  if (btnZoomIn) {
+    btnZoomIn.addEventListener("click", () => updateZoom(currentZoom + 10));
+  }
+  if (btnZoomReset) {
+    btnZoomReset.addEventListener("click", () => updateZoom(100));
+  }
+
 
   function getMatrixColumnCount(): number {
     return matrix.reduce((max, row) => Math.max(max, row.length), 0);
@@ -1775,34 +2035,47 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
 
     const pickerEl = dialogEl.querySelector("#at-colorPicker") as HTMLElement;
 
+    let activeColorBtn: HTMLElement | null = null;
+    function positionColorPicker(btn: HTMLElement) {
+      if (pickerEl.style.display === "block" && activeColorBtn === btn) {
+        pickerEl.style.display = "none";
+        activeColorBtn = null;
+        return;
+      }
+      activeColorBtn = btn;
+      
+      const rect = btn.getBoundingClientRect();
+      const rootEl = dialogEl.querySelector(".at-dialog-root") as HTMLElement;
+      const rootRect = rootEl.getBoundingClientRect();
+      
+      let left = rect.left - rootRect.left;
+      if (left + 160 > rootRect.width) {
+        left = rootRect.width - 160;
+      }
+      
+      let top = rect.bottom - rootRect.top + 4;
+      if (top + 150 > rootRect.height) {
+        top = rect.top - rootRect.top - 150 - 4;
+      }
+      
+      pickerEl.style.left = left + "px";
+      pickerEl.style.top = top + "px";
+      pickerEl.style.display = "block";
+    }
+
     dialogEl.querySelector("#at-btn-bg-color")?.addEventListener("click", (e) => {
       colorTarget = "background";
-      const btn = e.currentTarget as HTMLElement;
-      const rect = btn.getBoundingClientRect();
-      const rootRect = dialogEl.getBoundingClientRect();
-      pickerEl.style.left = rect.left - rootRect.left + "px";
-      pickerEl.style.top = rect.bottom - rootRect.top + 4 + "px";
-      pickerEl.style.display = pickerEl.style.display === "block" ? "none" : "block";
+      positionColorPicker(e.currentTarget as HTMLElement);
     });
 
     dialogEl.querySelector("#at-btn-text-color")?.addEventListener("click", (e) => {
       colorTarget = "color";
-      const btn = e.currentTarget as HTMLElement;
-      const rect = btn.getBoundingClientRect();
-      const rootRect = dialogEl.getBoundingClientRect();
-      pickerEl.style.left = rect.left - rootRect.left + "px";
-      pickerEl.style.top = rect.bottom - rootRect.top + 4 + "px";
-      pickerEl.style.display = pickerEl.style.display === "block" ? "none" : "block";
+      positionColorPicker(e.currentTarget as HTMLElement);
     });
 
     dialogEl.querySelector("#at-btn-text-bg")?.addEventListener("click", (e) => {
       colorTarget = "textBackground";
-      const btn = e.currentTarget as HTMLElement;
-      const rect = btn.getBoundingClientRect();
-      const rootRect = dialogEl.getBoundingClientRect();
-      pickerEl.style.left = rect.left - rootRect.left + "px";
-      pickerEl.style.top = rect.bottom - rootRect.top + 4 + "px";
-      pickerEl.style.display = pickerEl.style.display === "block" ? "none" : "block";
+      positionColorPicker(e.currentTarget as HTMLElement);
     });
 
     dialogEl.querySelector("#at-btn-clear")?.addEventListener("click", () => {
