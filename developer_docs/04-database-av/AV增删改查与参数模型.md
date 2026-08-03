@@ -1,65 +1,84 @@
 # AV 增删改查与参数模型
 
-- 适用版本：SiYuan `v3.5.7`
-- 最后核对：2026-02-21
-- 稳定性：stable（含迁移项）
+- 适用版本：SiYuan `v3.7.3`
+- 最后核对：2026-08-02
+- 稳定性：mixed（16 个公开端点 + 若干 internal 批量接口）
 - 权威来源：
+  - <https://github.com/siyuan-note/siyuan/blob/master/docs/API.zh-CN.md>
   - <https://github.com/siyuan-note/siyuan/blob/master/kernel/api/router.go>
-  - <https://github.com/siyuan-note/siyuan/issues/15310#issuecomment-3079412833>
-  - <https://github.com/siyuan-community/siyuan-developer-docs/tree/main>
 
-## 1. AV 常用接口
+## 1. v3.7.3 的公开 API 边界
 
-- 查询视图：`/api/av/renderAttributeView`
-- 添加绑定块：`/api/av/addAttributeViewBlocks`
-- 添加非绑定块并带值：`/api/av/appendAttributeViewDetachedBlocksWithValues`
-- 单项设置值：`/api/av/setAttributeViewBlockAttr`
-- 批量设置值：`/api/av/batchSetAttributeViewBlockAttrs`
-- 删除行：`/api/av/removeAttributeViewBlocks`
+以下 16 个 AV 路由已进入官方 `docs/API.zh-CN.md`，可按 stable 使用：
 
-## 2. 新增行的两种路径
+| 分类 | 端点 |
+|---|---|
+| 渲染/查询 | `renderAttributeView`、`getAttributeView`、`getAttributeViewPrimaryKeyValues`、`searchAttributeView` |
+| 单元格 | `setAttributeViewBlockAttr` |
+| 条目 | `addAttributeViewBlocks`、`removeAttributeViewBlocks` |
+| 布局/分组 | `changeAttrViewLayout`、`setAttrViewGroup` |
+| 过滤/排序 | `getAttributeViewFilterSort`、`setAttrViewFilters`、`setAttrViewSorts` |
+| 字段 | `addAttributeViewKey`、`removeAttributeViewKey`、`sortAttributeViewKey`、`sortAttributeViewViewKey` |
 
-### A. 非绑定块（一次写值）
+完整参数见：[官方 API 快照](../03-kernel-api/official/API_zh_CN.md)。
 
-用 `appendAttributeViewDetachedBlocksWithValues`，适合直接录入结构化数据。
+## 2. 常用 internal 接口
 
-### B. 绑定块（推荐两段式）
+下列能力仍只在 `router.go` 中可见，不属于公开承诺：
 
-1. `addAttributeViewBlocks` 绑定块
-2. `batchSetAttributeViewBlockAttrs` 批量写列值
+- `/api/av/appendAttributeViewDetachedBlocksWithValues`
+- `/api/av/batchSetAttributeViewBlockAttrs`
+- `/api/av/getAttributeViewKeysByAvID`
+- `/api/av/createAttributeViewItem`
+- `/api/av/getAttributeViewBacklinks`
 
-## 3. 查询模型
+使用这些接口必须提高 `minAppVersion`、做能力探测和失败降级，不要在文档或 SDK 中标为 stable。
 
-`renderAttributeView` 的返回结构会随视图类型变化（表格/看板/画廊），读取时建议统一适配：
+## 3. 新增行的两种路径
 
-- 优先识别 `viewType`
-- 兼容 `rows`/`cards`/分组结构
-- 列信息使用返回的 `columns` 或 `fields`
+### A. 绑定块（优先公开 API）
 
-### 3.1 视图结构差异（简表）
+1. 使用 `/api/av/addAttributeViewBlocks` 绑定块。
+2. 使用 `/api/av/setAttributeViewBlockAttr` 逐项写值。
 
-|视图类型|行数据字段|列数据字段|分组字段|
+这条路径全部使用公开 API，兼容性最好。大量单元格写入时需要控制并发并处理部分失败。
+
+### B. 非绑定块或批量写入（internal）
+
+`appendAttributeViewDetachedBlocksWithValues` 和 `batchSetAttributeViewBlockAttrs` 可以减少请求次数，但仍属于 internal。适合受控环境，不适合无版本门槛的通用插件。
+
+## 4. 查询模型
+
+`renderAttributeView` 的返回结构会随视图类型（表格、看板、画廊）和分组状态变化：
+
+- 优先识别 `viewType`。
+- 兼容 `rows`、`cards` 和分组结构。
+- 列信息可能位于 `columns` 或 `fields`。
+- 不要把某个版本的内部返回对象原样持久化。
+
+| 视图类型 | 常见行字段 | 常见列字段 | 分组字段 |
 |---|---|---|---|
-|`table`|`rows`|`columns`|`groups`|
-|`gallery`|`cards`|`fields`|`groups`|
+| `table` | `rows` | `columns` | `groups` |
+| `gallery` | `cards` | `fields` | `groups` |
+| `kanban` | 按分组/卡片解析 | `fields` | `groups` |
 
-## 4. 批量写值示例
+## 5. 单项写值示例（公开 API）
 
-```json
-{
-  "avID": "20250716235026-51p7441",
-  "values": [
-    {
-      "keyID": "20250716235026-njmx362",
-      "itemID": "20250716235124-6qqlnpw",
-      "value": { "block": { "content": "Test" } }
-    }
-  ]
-}
+```ts
+await requestApi("/api/av/setAttributeViewBlockAttr", {
+  avID: "20250716235026-51p7441",
+  keyID: "20250716235026-njmx362",
+  itemID: "20250716235124-6qqlnpw",
+  value: { block: { content: "Test" } },
+});
 ```
 
-## 5. 本章如何使用
+具体值结构随字段类型变化，必须使用官方文档中的参数模型，不要把文本字段结构套用于日期、数字、多选或资源字段。
 
-- 做数据库 CRUD 功能时，先确定“绑定块/非绑定块”模式
-- 新建多行多列时优先批量接口，减少请求次数
-- 不同视图类型统一走解析适配层，不要把解析写死在业务里
+## 6. 实践建议
+
+- 先确定“绑定块/非绑定块”模式，再设计数据模型。
+- 通用插件优先使用 16 个公开端点；internal 接口封装在单独适配层。
+- 批量写入要记录成功项与失败项，避免全量重试造成重复数据。
+- 数据库视图切换、分组和过滤会改变返回形态，统一走归一化解析层。
+- 发布前在目标最低版本和最新正式版各验证一次。

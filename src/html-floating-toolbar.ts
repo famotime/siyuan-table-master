@@ -199,14 +199,7 @@ export class HtmlFloatingToolbar {
     this.buttonsWrapper.innerHTML = "";
 
     const cmdIds = [
-      "html-insert-row-above",
-      "html-insert-row-below",
-      "html-insert-col-left",
-      "html-insert-col-right",
-      "html-merge-cells",
-      "html-split-cell",
-      "html-delete-row",
-      "html-delete-col"
+      "html-open-dialog-editor"
     ];
 
     cmdIds.forEach((cmdId) => {
@@ -239,7 +232,7 @@ export class HtmlFloatingToolbar {
         if (this.executeTimeoutId) clearTimeout(this.executeTimeoutId);
 
         try {
-          await executeHtmlCommand(cmd, this.plugin.i18n);
+          await executeHtmlCommand(cmd, this.plugin, this.plugin.i18n);
         } finally {
           this.executeTimeoutId = setTimeout(() => {
             this.isExecuting = false;

@@ -1,113 +1,179 @@
 # 官方 API 全量索引（按模块）
 
-- 适用版本：SiYuan `v3.5.7`
-- 官方仓库同步到：`siyuan-note/siyuan@master` + Release `v3.5.7`（2026-02-14）
-- 最后核对：2026-02-21
-- 稳定性：public-index
+- 适用版本：SiYuan `v3.7.3`
+- 官方仓库同步到：`siyuan-note/siyuan@master` + Release `v3.7.3`（2026-07-21）
+- 最后核对：2026-08-02
+- 稳定性：stable（仅列入官方 `docs/API.zh-CN.md` 的端点）
 - 权威来源：
-  - <https://github.com/siyuan-note/siyuan/blob/master/API_zh_CN.md>
+  - <https://github.com/siyuan-note/siyuan/blob/master/docs/API.zh-CN.md>
+  - 本地快照：`../03-kernel-api/official/API_zh_CN.md`
 
-说明：
-- 本页是“索引层”，不复制官方长示例。
-- 端点详情与参数示例请直接跳官方 `API_zh_CN.md`。
-- 主文档层（`01`~`06`）只保留插件高频接口与实践说明。
+## 使用说明
 
-## 1. 规范
+本索引由官方 API 文档逐项核对生成，共 **67 个唯一公开端点**。请求规范、参数和返回值以官方快照为准；`router.go` 中没有出现在该快照的路由一律按 internal 处理。
 
-- 参数和返回值规范
-- 鉴权规范（`Authorization: Token xxx`）
+## 模块统计
 
-## 2. 笔记本（notebook）
+| 模块 | 端点数 |
+|---|---:|
+| 笔记本 | 8 |
+| 导出 | 2 |
+| 块 | 11 |
+| 模板 | 2 |
+| 属性 | 2 |
+| 数据库 | 16 |
+| 通知 | 2 |
+| 网络 | 1 |
+| 文档 | 11 |
+| 文件 | 5 |
+| 系统 | 3 |
+| 转换 | 1 |
+| 资源文件 | 1 |
+| SQL | 2 |
 
-- `/api/notebook/lsNotebooks`
-- `/api/notebook/openNotebook`
-- `/api/notebook/closeNotebook`
-- `/api/notebook/renameNotebook`
-- `/api/notebook/createNotebook`
-- `/api/notebook/removeNotebook`
-- `/api/notebook/getNotebookConf`
-- `/api/notebook/setNotebookConf`
+## 笔记本
 
-## 3. 文档（filetree）
+| 能力 | 端点 |
+|---|---|
+| 列出笔记本 | `/api/notebook/lsNotebooks` |
+| 打开笔记本 | `/api/notebook/openNotebook` |
+| 关闭笔记本 | `/api/notebook/closeNotebook` |
+| 重命名笔记本 | `/api/notebook/renameNotebook` |
+| 创建笔记本 | `/api/notebook/createNotebook` |
+| 删除笔记本 | `/api/notebook/removeNotebook` |
+| 获取笔记本配置 | `/api/notebook/getNotebookConf` |
+| 保存笔记本配置 | `/api/notebook/setNotebookConf` |
 
-- `/api/filetree/createDocWithMd`
-- `/api/filetree/renameDoc`
-- `/api/filetree/renameDocByID`
-- `/api/filetree/removeDoc`
-- `/api/filetree/removeDocByID`
-- `/api/filetree/moveDocs`
-- `/api/filetree/moveDocsByID`
-- `/api/filetree/getHPathByPath`
-- `/api/filetree/getHPathByID`
-- `/api/filetree/getPathByID`
-- `/api/filetree/getIDsByHPath`
+## 导出
 
-## 4. 资源（asset）
+| 能力 | 端点 |
+|---|---|
+| 导出 Markdown 文本 | `/api/export/exportMdContent` |
+| 导出文件与目录 | `/api/export/exportResources` |
 
-- `/api/asset/upload`
+## 块
 
-## 5. 块（block）
+| 能力 | 端点 |
+|---|---|
+| 插入块 | `/api/block/insertBlock` |
+| 插入前置子块 | `/api/block/prependBlock` |
+| 插入后置子块 | `/api/block/appendBlock` |
+| 更新块 | `/api/block/updateBlock` |
+| 删除块 | `/api/block/deleteBlock` |
+| 移动块 | `/api/block/moveBlock` |
+| 折叠块 | `/api/block/foldBlock` |
+| 展开块 | `/api/block/unfoldBlock` |
+| 获取块 kramdown 源码 | `/api/block/getBlockKramdown` |
+| 获取子块 | `/api/block/getChildBlocks` |
+| 转移块引用 | `/api/block/transferBlockRef` |
 
-- `/api/block/insertBlock`
-- `/api/block/prependBlock`
-- `/api/block/appendBlock`
-- `/api/block/updateBlock`
-- `/api/block/deleteBlock`
-- `/api/block/moveBlock`
-- `/api/block/foldBlock`
-- `/api/block/unfoldBlock`
-- `/api/block/getBlockKramdown`
-- `/api/block/getChildBlocks`
-- `/api/block/transferBlockRef`
+## 模板
 
-## 6. 属性（attr）
+| 能力 | 端点 |
+|---|---|
+| 渲染模板 | `/api/template/render` |
+| 渲染 Sprig | `/api/template/renderSprig` |
 
-- `/api/attr/setBlockAttrs`
-- `/api/attr/getBlockAttrs`
+## 属性
 
-## 7. SQL（query/sqlite）
+| 能力 | 端点 |
+|---|---|
+| 设置块属性 | `/api/attr/setBlockAttrs` |
+| 获取块属性 | `/api/attr/getBlockAttrs` |
 
-- `/api/query/sql`
-- `/api/sqlite/flushTransaction`
+## 数据库
 
-## 8. 模板（template）
+| 能力 | 端点 |
+|---|---|
+| 渲染 | `/api/av/renderAttributeView` |
+| 获取 | `/api/av/getAttributeView` |
+| 获取主键值 | `/api/av/getAttributeViewPrimaryKeyValues` |
+| 搜索 | `/api/av/searchAttributeView` |
+| 设置单元格值 | `/api/av/setAttributeViewBlockAttr` |
+| 添加条目 | `/api/av/addAttributeViewBlocks` |
+| 移除条目 | `/api/av/removeAttributeViewBlocks` |
+| 切换布局 | `/api/av/changeAttrViewLayout` |
+| 设置分组 | `/api/av/setAttrViewGroup` |
+| 获取过滤与排序 | `/api/av/getAttributeViewFilterSort` |
+| 设置过滤 | `/api/av/setAttrViewFilters` |
+| 设置排序 | `/api/av/setAttrViewSorts` |
+| 添加字段 | `/api/av/addAttributeViewKey` |
+| 移除字段 | `/api/av/removeAttributeViewKey` |
+| 设置全局字段排序 | `/api/av/sortAttributeViewKey` |
+| 设置视图内字段排序 | `/api/av/sortAttributeViewViewKey` |
 
-- `/api/template/render`
-- `/api/template/renderSprig`
+## 通知
 
-## 9. 文件（file）
+| 能力 | 端点 |
+|---|---|
+| 推送消息 | `/api/notification/pushMsg` |
+| 推送报错消息 | `/api/notification/pushErrMsg` |
 
-- `/api/file/getFile`
-- `/api/file/putFile`
-- `/api/file/removeFile`
-- `/api/file/renameFile`
-- `/api/file/readDir`
+## 网络
 
-## 10. 导出（export）
+| 能力 | 端点 |
+|---|---|
+| 正向代理 | `/api/network/forwardProxy` |
 
-- `/api/export/exportMdContent`
-- `/api/export/exportResources`
+## 文档
 
-## 11. 转换（convert）
+| 能力 | 端点 |
+|---|---|
+| 通过 Markdown 创建文档 | `/api/filetree/createDocWithMd` |
+| 重命名文档 | `/api/filetree/renameDoc` |
+| 重命名文档 | `/api/filetree/renameDocByID` |
+| 删除文档 | `/api/filetree/removeDoc` |
+| 删除文档 | `/api/filetree/removeDocByID` |
+| 移动文档 | `/api/filetree/moveDocs` |
+| 移动文档 | `/api/filetree/moveDocsByID` |
+| 根据路径获取人类可读路径 | `/api/filetree/getHPathByPath` |
+| 根据 ID 获取人类可读路径 | `/api/filetree/getHPathByID` |
+| 根据 ID 获取存储路径 | `/api/filetree/getPathByID` |
+| 根据人类可读路径获取 IDs | `/api/filetree/getIDsByHPath` |
 
-- `/api/convert/pandoc`
+## 文件
 
-## 12. 通知（notification）
+| 能力 | 端点 |
+|---|---|
+| 获取文件 | `/api/file/getFile` |
+| 写入文件 | `/api/file/putFile` |
+| 删除文件 | `/api/file/removeFile` |
+| 重命名文件 | `/api/file/renameFile` |
+| 列出文件 | `/api/file/readDir` |
 
-- `/api/notification/pushMsg`
-- `/api/notification/pushErrMsg`
+## 系统
 
-## 13. 网络（network）
+| 能力 | 端点 |
+|---|---|
+| 获取启动进度 | `/api/system/bootProgress` |
+| 获取系统版本 | `/api/system/version` |
+| 获取系统当前时间 | `/api/system/currentTime` |
 
-- `/api/network/forwardProxy`
+## 转换
 
-## 14. 系统（system）
+| 能力 | 端点 |
+|---|---|
+| Pandoc | `/api/convert/pandoc` |
 
-- `/api/system/bootProgress`
-- `/api/system/version`
-- `/api/system/currentTime`
+## 资源文件
 
-## 15. 与主文档映射
+| 能力 | 端点 |
+|---|---|
+| 上传资源文件 | `/api/asset/upload` |
 
-- 调用规范与高频场景：`reference/03-kernel-api/公开API导航.md`
-- AV 实战：`reference/04-database-av/AV增删改查与参数模型.md`
+## SQL
+
+| 能力 | 端点 |
+|---|---|
+| 执行 SQL 查询 | `/api/query/sql` |
+| 提交事务 | `/api/sqlite/flushTransaction` |
+
+## 重点变化
+
+v3.7.3 的公开文档将数据库（AV）能力正式列为 16 个端点，覆盖渲染、查询、条目、字段、布局、分组、过滤和排序。旧版索引将 AV 视为未公开能力的说法已失效。
+
+相关文档：
+
+- [公开 API 导航](../03-kernel-api/公开API导航.md)
+- [AV 参数模型](../04-database-av/AV增删改查与参数模型.md)
+- [router 路由变更与风险索引](router路由变更与风险索引.md)

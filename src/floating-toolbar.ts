@@ -144,7 +144,6 @@ export class FloatingToolbar {
       return;
     }
 
-    const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) {
       this.hide();
       return;

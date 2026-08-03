@@ -29,6 +29,7 @@ import {
   getTableRowCount,
   getTableColCount,
   highlightActiveRowAndCol,
+  findHtmlTableBlock,
 } from "./dom-utils";
 import {
   parseTableKramdown,
@@ -572,6 +573,15 @@ export function isCursorInTable(protyle: Protyle): {
         blockId: tableBlock.dataset.nodeId || null,
       };
     }
+
+    const htmlTableInfo = findHtmlTableBlock(range.startContainer);
+    if (htmlTableInfo) {
+      return {
+        inTable: true,
+        tableBlock: htmlTableInfo.block,
+        blockId: htmlTableInfo.block.dataset.nodeId || null,
+      };
+    }
   }
 
   // —— 策略 2：selection 丢失时（如点击 Dock 按钮），扫描 wysiwyg DOM 兜底 ——
@@ -579,16 +589,28 @@ export function isCursorInTable(protyle: Protyle): {
   try {
     const wysiwygEl = (protyle as any)?.wysiwyg?.element as HTMLElement | undefined;
     if (wysiwygEl) {
-      // 先找含 .protyle-wysiwyg--select 类的表格块（思源聚焦块的标记）
-      const focusedTable = wysiwygEl.querySelector(
-        '[data-type="NodeTable"].protyle-wysiwyg--select, [data-type="NodeTable"][select="true"]'
+      // 找含 select 类的表格块或 HTML 块
+      const focusedBlock = wysiwygEl.querySelector(
+        '[data-type="NodeTable"].protyle-wysiwyg--select, [data-type="NodeTable"][select="true"], [data-type="NodeHTMLBlock"].protyle-wysiwyg--select, [data-type="NodeHTMLBlock"][select="true"]'
       ) as HTMLElement | null;
-      if (focusedTable) {
-        return {
-          inTable: true,
-          tableBlock: focusedTable,
-          blockId: focusedTable.dataset.nodeId || null,
-        };
+      
+      if (focusedBlock) {
+        if (focusedBlock.dataset.type === "NodeTable") {
+          return {
+            inTable: true,
+            tableBlock: focusedBlock,
+            blockId: focusedBlock.dataset.nodeId || null,
+          };
+        } else if (focusedBlock.dataset.type === "NodeHTMLBlock") {
+          const htmlInfo = findHtmlTableBlock(focusedBlock);
+          if (htmlInfo) {
+            return {
+              inTable: true,
+              tableBlock: htmlInfo.block,
+              blockId: htmlInfo.block.dataset.nodeId || null,
+            };
+          }
+        }
       }
     }
   } catch (_e) {

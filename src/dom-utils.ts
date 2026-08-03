@@ -56,20 +56,33 @@ export function findHtmlTableBlock(node: Node | null): { block: HTMLElement; tab
 
   while (current && current !== document.body) {
     if (current instanceof HTMLElement) {
-      // 检查是否在 table 元素内部
+      // 1. 如果当前节点是 NodeHTMLBlock
+      if (current.dataset?.type === "NodeHTMLBlock" && current.dataset?.nodeId) {
+        const protyleHtml = current.querySelector("protyle-html");
+        if (protyleHtml && protyleHtml.shadowRoot) {
+           const table = protyleHtml.shadowRoot.querySelector("table");
+           if (table) return { block: current, table: table as HTMLTableElement };
+        }
+        // 兼容没有 shadowRoot 的情况
+        const table = current.querySelector("table");
+        if (table) return { block: current, table: table as HTMLTableElement };
+      }
+
+      // 2. 如果当前节点在 table 内部
       if (current.tagName.toLowerCase() === "table") {
         const table = current as HTMLTableElement;
         // 向上找到块
-        let block: HTMLElement | null = table;
+        let block: Node | null = table;
         while (block && block !== document.body) {
-          if (block.dataset.type === "NodeHTMLBlock" && block.dataset.nodeId) {
+          if (block instanceof HTMLElement && block.dataset?.type === "NodeHTMLBlock" && block.dataset?.nodeId) {
             return { block, table };
           }
-          block = block.parentElement;
+          block = block.parentNode || (block instanceof ShadowRoot ? (block as any).host : null);
         }
       }
     }
-    current = current.parentNode;
+    // 跨越 shadow dom 边界向上
+    current = current.parentNode || (current instanceof ShadowRoot ? (current as any).host : null);
   }
 
   return null;

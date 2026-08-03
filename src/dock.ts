@@ -1,7 +1,7 @@
 import { getActiveEditor, showMessage } from "siyuan";
 import { isCursorInTable } from "./siyuan-text-editor";
 import { TABLE_COMMANDS, executeCommand, TableCommand } from "./commands";
-import { rangeToCellCoord, CellCoord, findTableBlock } from "./dom-utils";
+import { rangeToCellCoord, CellCoord, findTableBlock, findHtmlTableBlock } from "./dom-utils";
 import { saveSettings } from "./settings";
 import { HTML_TABLE_COMMANDS, executeHtmlCommand } from "./html-commands";
 
@@ -67,10 +67,8 @@ const COMMAND_GROUPS: CommandGroup[] = [
 
 const HTML_COMMAND_GROUP = {
   title: "HTML 复杂表格",
-  commandIds: ["html-merge-cells", "html-split-cell", "html-insert-row-above", "html-insert-row-below", "html-insert-col-left", "html-insert-col-right", "html-delete-row", "html-delete-col"]
+  commandIds: ["html-open-dialog-editor"]
 };
-
-const HTML_COLORS = ["#f8d7da", "#d4edda", "#fff3cd", "#d1ecf1", "#e2e3e5", "#e8daef", "#fcf3cf", "#d6eaf8"];
 
 /** 计算 DOM 表格的大小 */
 function getTableSize(tableBlock: HTMLElement): { rows: number; cols: number } {
@@ -104,6 +102,7 @@ function setDockUIState(
   active: boolean,
   rows = 0,
   cols = 0,
+  isHtmlTable = false,
 ): void {
   const { statusCardEl, statusDotEl, statusTextEl, buttonGridContainer, tooltipBarEl } = elements;
   if (active) {
@@ -125,6 +124,25 @@ function setDockUIState(
         .replace("${rows}", String(rows))
         .replace("${cols}", String(cols));
     }
+
+    const buttons = buttonGridContainer?.querySelectorAll<HTMLButtonElement>(".at-btn");
+    buttons?.forEach(btn => {
+      const cmdId = btn.getAttribute("data-cmd-id");
+      if (cmdId) {
+        const isHtmlCmd = cmdId.startsWith("html-");
+        const shouldEnable = isHtmlTable ? isHtmlCmd : !isHtmlCmd;
+        if (shouldEnable) {
+          btn.disabled = false;
+          btn.style.opacity = "1";
+          btn.style.cursor = "pointer";
+        } else {
+          btn.disabled = true;
+          btn.style.opacity = "0.3";
+          btn.style.cursor = "not-allowed";
+        }
+      }
+    });
+
   } else {
     statusCardEl?.classList.remove("at-active");
     if (statusDotEl) {
@@ -136,6 +154,13 @@ function setDockUIState(
     if (tooltipBarEl && !(tooltipBarEl.innerText.startsWith("提示：") || tooltipBarEl.innerText.startsWith("Tip:"))) {
       tooltipBarEl.innerText = plugin.i18n.dockTipDefault || "提示：将光标移动至表格中开始编辑。按住 Alt + 鼠标拖选可多选计算。";
     }
+
+    const buttons = buttonGridContainer?.querySelectorAll<HTMLButtonElement>(".at-btn");
+    buttons?.forEach(btn => {
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      btn.style.cursor = "pointer";
+    });
   }
 }
 
@@ -154,7 +179,8 @@ function updateDockStatus(
   // 如果 Dock 连续操作中，仅更新 Dock UI，不再重复调用高亮渲染
   if (dockOperationActive && lastActiveCell) {
     const size = getTableSize(lastActiveCell.tableBlock);
-    setDockUIState(plugin, elements, dockElement, true, size.rows, size.cols);
+    const isHtmlTable = lastActiveCell.tableBlock?.dataset?.type === "NodeHTMLBlock";
+    setDockUIState(plugin, elements, dockElement, true, size.rows, size.cols, isHtmlTable);
     return;
   }
 
@@ -167,7 +193,6 @@ function updateDockStatus(
     const range = sel.getRangeAt(0);
     tableBlock = findTableBlock(range.startContainer);
     if (!tableBlock) {
-       const { findHtmlTableBlock } = require("./dom-utils");
        const htmlTableInfo = findHtmlTableBlock(range.startContainer);
        if (htmlTableInfo) {
          tableBlock = htmlTableInfo.block;
@@ -201,7 +226,8 @@ function updateDockStatus(
       }
     }
     const size = getTableSize(tableBlock);
-    setDockUIState(plugin, elements, dockElement, true, size.rows, size.cols);
+    const isHtmlTable = tableBlock?.dataset?.type === "NodeHTMLBlock";
+    setDockUIState(plugin, elements, dockElement, true, size.rows, size.cols, isHtmlTable);
   } else {
     // 惰性失焦检测
     if (sel && sel.rangeCount > 0) {
@@ -301,11 +327,6 @@ export function registerDock(plugin: TableMaterPlugin) {
                     return `<div class="at-btn-item"><button class="at-btn ariaLabel" data-cmd-id="${cmdId}" aria-label="${plugin.i18n[cmdId] || cmd.nameZh}"><span class="at-btn-icon">${iconSvg}</span></button><span class="at-btn-label">${plugin.i18n["kw-" + cmdId] || cmd.nameZh}</span></div>`;
                   }).join("")}
                 </div>
-                ${group.title === "HTML 复杂表格" ? `
-                <div class="at-group-title" style="margin-top: 8px;">背景色预设</div>
-                <div class="at-btn-grid" style="grid-template-columns: repeat(8, 1fr); gap: 4px;">
-                  ${HTML_COLORS.map(color => `<button class="at-btn at-color-btn" data-color="${color}" aria-label="设置背景色 ${color}" style="background-color: ${color}; height: 20px; border-radius: 4px; border: 1px solid var(--b3-theme-surface-lighter);"></button>`).join("")}
-                </div>` : ''}
               </div>
             `).join("")}
           </div>
@@ -388,14 +409,13 @@ export function registerDock(plugin: TableMaterPlugin) {
       const buttons = this.element.querySelectorAll(".at-btn");
       buttons.forEach((btn: HTMLButtonElement) => {
         const cmdId = btn.getAttribute("data-cmd-id");
-        const colorVal = btn.getAttribute("data-color");
         
         let cmd = null;
         if (cmdId) {
           cmd = TABLE_COMMANDS.find(c => c.id === cmdId) || HTML_TABLE_COMMANDS.find(c => c.id === cmdId);
         }
         
-        if (!cmd && !colorVal) return;
+        if (!cmd) return;
 
         // 让对应的 label 的点击也转发给 btn
         const label = btn.nextElementSibling as HTMLElement;
@@ -460,13 +480,10 @@ export function registerDock(plugin: TableMaterPlugin) {
           try {
             if (cmd) {
               if (cmdId && cmdId.startsWith("html-")) {
-                 await executeHtmlCommand(cmd, plugin.i18n);
+                 await executeHtmlCommand(cmd, plugin, plugin.i18n);
               } else {
                  await executeCommand(cmd, plugin.settings, preset, plugin.i18n);
               }
-            } else if (colorVal) {
-              const { executeHtmlColorCommand } = require("./html-commands");
-              await executeHtmlColorCommand(colorVal, plugin.i18n);
             }
           } finally {
             if (plugin.floatingToolbar) {
@@ -508,8 +525,6 @@ export function registerDock(plugin: TableMaterPlugin) {
             if (cmd) {
               const name = plugin.i18n[cmd.id] || cmd.nameZh;
               elements.tooltipBarEl.innerText = `${name} (${cmd.nameEn})`;
-            } else if (colorVal) {
-              elements.tooltipBarEl.innerText = `设置背景色 ${colorVal}`;
             }
           }
         });
