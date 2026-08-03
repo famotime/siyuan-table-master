@@ -617,9 +617,8 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         cursor: pointer;
       }
       table.at-editor-table caption.selected-caption {
-        outline: 2px solid var(--b3-theme-primary);
-        outline-offset: -2px;
-        background: var(--b3-theme-primary-light) !important;
+        box-shadow: inset 0 0 0 2px var(--b3-theme-primary), inset 0 0 0 9999px rgba(35, 134, 238, 0.18);
+        outline: none;
       }
       table.at-editor-table td {
         border: var(--at-bw, 0.1px) solid var(--b3-theme-surface-lighter);
@@ -631,13 +630,12 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         box-sizing: border-box;
       }
       table.at-editor-table td.selected-cell {
-        background: var(--b3-theme-primary-light) !important;
-        outline: 1.5px solid var(--b3-theme-primary);
-        outline-offset: -1.5px;
+        box-shadow: inset 0 0 0 2px var(--b3-theme-primary), inset 0 0 0 9999px rgba(35, 134, 238, 0.18);
+        outline: none;
       }
       table.at-editor-table td.col-resizing {
         border-right: 2px solid var(--b3-theme-primary) !important;
-        background: var(--b3-theme-primary-light) !important;
+        box-shadow: inset 0 0 0 9999px rgba(35, 134, 238, 0.18);
       }
       .cell-content {
         min-height: 1.2em;
