@@ -556,23 +556,20 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         z-index: 100000;
       }
 
-      /* 右侧栏按钮 Tooltip 弹出在按钮左边，避免被遮挡边界 */
-      .at-side-panel .at-btn[data-tooltip]:hover::after {
-        top: 50%;
-        left: auto;
-        right: 100%;
-        transform: translateY(-50%);
-        margin-top: 0;
-        margin-right: 8px;
+      .at-panel-section {
+        margin-bottom: 12px;
+        position: relative;
+        z-index: 1;
+        overflow: visible;
       }
-      .at-side-panel .at-btn[data-tooltip]:hover::before {
-        top: 50%;
-        left: auto;
-        right: 100%;
-        transform: translateY(-50%);
-        margin-top: 0;
-        margin-right: -2px;
-        border-color: transparent transparent transparent rgba(15, 23, 42, 0.92);
+      .at-btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 6px;
+        position: relative;
+        z-index: 1;
+        overflow: visible;
       }
 
       .at-adjust-box {
@@ -843,7 +840,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       <div class="at-toolbar at-toolbar-global">
         <!-- 全局：基础与历史 -->
         <div class="at-toolbar-section">
-          <button class="at-btn" id="at-btn-import" data-tooltip="导入 HTML / Markdown 代码" style="color: var(--b3-theme-error);">${icons.import}</button>
+          <button class="at-btn" id="at-btn-import" data-tooltip="导入 HTML / Markdown 代码">${icons.import}</button>
           <button class="at-btn" id="at-btn-copy" data-tooltip="复制当前表格 HTML 代码">${icons.copy}</button>
           <button class="at-btn" id="at-btn-caption" data-tooltip="显示/隐藏表格标题">${icons.caption}</button>
           <button class="at-btn" id="at-btn-select-all" data-tooltip="选择表格所有单元格">${icons.selectAll}</button>
@@ -1335,12 +1332,11 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
   function updateGlobalStyles() {
     table.style.setProperty("--at-bw", borderWidth + "px");
     table.style.setProperty("--at-pad", paddingWidth + "px");
-    table.style.borderWidth = borderWidth + "px";
+    table.style.border = `${borderWidth}px solid var(--b3-theme-surface-lighter)`;
     const tds = table.querySelectorAll("td");
     tds.forEach((td) => {
-      (td as HTMLElement).style.borderWidth = borderWidth + "px";
-      (td as HTMLElement).style.borderColor = "var(--b3-theme-surface-lighter)";
-      (td as HTMLElement).style.borderStyle = "solid";
+      (td as HTMLElement).style.border = `${borderWidth}px solid var(--b3-theme-surface-lighter)`;
+      (td as HTMLElement).style.padding = paddingWidth + "px";
     });
 
     const fsValEl = dialogEl.querySelector("#at-fs-val") as HTMLElement;
