@@ -68,4 +68,18 @@ export class HtmlTableEditor {
   public getTable(): HTMLTableElement | null {
       return this.tableElement;
   }
+
+  public async saveHtmlTable(newTableHtml: string): Promise<void> {
+    if (this.tableElement) {
+      this.tableElement.outerHTML = newTableHtml;
+      if (this.domDocument) {
+        this.tableElement = this.domDocument.querySelector("table");
+      }
+    } else if (this.domDocument) {
+      this.domDocument.body.innerHTML = newTableHtml;
+      this.tableElement = this.domDocument.querySelector("table");
+    }
+    await this.flush();
+  }
 }
+

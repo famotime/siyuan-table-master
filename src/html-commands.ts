@@ -13,7 +13,7 @@ export interface HtmlTableCommand {
 }
 
 export const HTML_TABLE_COMMANDS: HtmlTableCommand[] = [
-  { id: "html-open-dialog-editor", nameZh: "打开高级编辑器", nameEn: "Open Advanced Editor", icon: "iconEdit", action: async (te, plugin) => {
+  { id: "html-open-dialog-editor", nameZh: "高级编辑", nameEn: "Advanced Editor", icon: "iconEdit", action: async (te, plugin) => {
     openHtmlDialogEditor(plugin as any, te);
     return false; // 不自动 flush，弹窗保存时自行 flush
   }}
