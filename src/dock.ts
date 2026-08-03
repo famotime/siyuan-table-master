@@ -41,7 +41,8 @@ export const SVG_ICONS: Record<string, string> = {
   "create-sample-md": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M7 16V8l5 5 5-5v8" style="fill:none!important"/></svg>`,
   "create-sample-html": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" style="fill:none!important"/><path d="M3 9h18" style="fill:none!important"/><path d="M6 13v4M6 15h2.5M8.5 13v4M10.5 13h3M12 13v4M15.5 13v4h2.5" style="fill:none!important"/></svg>`,
   "html-open-dialog-editor": `<svg class="at-svg-fill" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="m21.7 13.35l-1 1l-2.05-2.05l1-1c.21-.22.56-.22.77 0l1.28 1.28c.22.21.22.56 0 .77M12 18.94l6.07-6.06l2.05 2.05L14.06 21H12zM4 2h14a2 2 0 0 1 2 2v4.17L16.17 12H12v4.17L10.17 18H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m0 4v4h6V6zm8 0v4h6V6zm-8 6v4h6v-4z"/></svg>`,
-  "html-to-md": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" style="fill:none!important"/><path d="M7 15V9l3 3 3-3v6" style="fill:none!important"/><path d="M17 9v6" style="fill:none!important"/><path d="M15 12h4" style="fill:none!important"/></svg>`
+  "html-to-md": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" style="fill:none!important"/><path d="M7 15V9l3 3 3-3v6" style="fill:none!important"/><path d="M17 9v6" style="fill:none!important"/><path d="M15 12h4" style="fill:none!important"/></svg>`,
+  "table-to-db": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3" style="fill:none!important"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" style="fill:none!important"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" style="fill:none!important"/></svg>`
 };
 
 // ═══════════════════════════════════════════════════
@@ -69,7 +70,7 @@ const COMMAND_GROUPS: CommandGroup[] = [
     "move-row-up", "move-row-down", "move-column-left", "move-column-right",
     "cut-row", "cut-column", "paste-row", "paste-column"
   ] },
-  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "split-all-cells", "table-to-chart"] },
+  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "split-all-cells", "table-to-chart", "table-to-db"] },
 ];
 
 const HTML_COMMAND_GROUP = {

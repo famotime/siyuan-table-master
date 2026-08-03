@@ -15,6 +15,8 @@ import { executeTableToChart } from "./table-to-chart";
 import { exportToCSV, exportToXLSX } from "./table-export";
 import { createSampleMarkdownTable, createSampleHtmlTable } from "./sample-tables";
 
+import { showTableToDbDialog } from "./table-to-db-dialog";
+
 /** 命令定义 */
 export interface TableCommand {
   id: string;
@@ -62,11 +64,12 @@ export const TABLE_COMMANDS: TableCommand[] = [
     const err = await te.pasteColumn();
     if (err) showMessage(err, 3000, "error");
   }},
-  // ── 求和计算 ──
+  // ── 求和计算与转数据库 ──
   { id: "row-sum", nameZh: "行求和", nameEn: "Row sum", action: te => te.rowSum() },
   { id: "column-sum", nameZh: "列求和", nameEn: "Column sum", action: te => te.columnSum() },
   { id: "split-all-cells", nameZh: "全拆分", nameEn: "Split all cells", action: te => te.splitAllCells() },
   { id: "table-to-chart", nameZh: "一键数据图表化", nameEn: "Convert table to chart", action: te => executeTableToChart(te) },
+  { id: "table-to-db", nameZh: "转数据库", nameEn: "Convert to Database", action: async () => {} },
   // 示例表格创建：action 占位符，实际由 executeCommand 中特判处理
   { id: "create-sample-md", nameZh: "示例MD", nameEn: "Sample MD Table", action: async () => {} },
   { id: "create-sample-html", nameZh: "示例HTML", nameEn: "Sample HTML Table", action: async () => {} },
@@ -92,7 +95,8 @@ export function registerCommands(
       cmd.id === "export-csv" ||
       cmd.id === "export-xlsx" ||
       cmd.id === "create-sample-md" ||
-      cmd.id === "create-sample-html"
+      cmd.id === "create-sample-html" ||
+      cmd.id === "table-to-db"
     ) {
       continue;
     }
@@ -228,6 +232,42 @@ export async function executeCommand(
       return;
     }
 
+    // 特判：转数据库 (table-to-db) 命令
+    if (cmd.id === "table-to-db") {
+      let tableBlock = preset?.tableBlock || null;
+      let blockId = preset?.blockId || null;
+
+      if (blockId) {
+        const latestEl = document.querySelector(`[data-node-id="${blockId}"]`) as HTMLElement;
+        if (latestEl) {
+          tableBlock = latestEl;
+        }
+      }
+
+      if (!tableBlock || !blockId) {
+        const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
+        if (!inTable || !tb || !bid) {
+          showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
+          return;
+        }
+        tableBlock = tb;
+        blockId = bid;
+      }
+
+      const ctx = new SiyuanTextEditor({
+        protyle: protyle.protyle,
+        tableBlockEl: tableBlock,
+        blockId,
+        fixCJKWidth: settings.fixCJKWidth,
+      });
+      await ctx.reload();
+      const lines = ctx.getTableLines();
+
+      const { headers, rows } = parseMarkdownTableLines(lines);
+      showTableToDbDialog(blockId, headers, rows, i18n);
+      return;
+    }
+
     // 优先使用缓存的表格上下文
     let tableBlock = preset?.tableBlock || null;
     let blockId = preset?.blockId || null;
@@ -267,3 +307,24 @@ export async function executeCommand(
     showMessage(`${i18n.errOperationFailed || "操作失败"}: ${i18n[cmd.id] || cmd.nameZh}`, 3000, "error");
   }
 }
+
+/**
+ * 解析 Markdown 表格行数组为表头与数据行数组
+ */
+function parseMarkdownTableLines(lines: string[]): { headers: string[]; rows: string[][] } {
+  if (lines.length < 2) return { headers: [], rows: [] };
+  const parseLine = (line: string) => {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) return [];
+    return trimmed.slice(1, -1).split("|").map(cell => cell.trim());
+  };
+  const headers = parseLine(lines[0]);
+  const rows: string[][] = [];
+  for (let i = 2; i < lines.length; i++) {
+    if (lines[i].trim()) {
+      rows.push(parseLine(lines[i]));
+    }
+  }
+  return { headers, rows };
+}
+
