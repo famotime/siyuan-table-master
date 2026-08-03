@@ -556,11 +556,17 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         z-index: 100000;
       }
 
+      .at-btn:hover {
+        z-index: 9999 !important;
+      }
+
       .at-panel-section {
         margin-bottom: 12px;
         position: relative;
-        z-index: 1;
         overflow: visible;
+      }
+      .at-panel-section:hover {
+        z-index: 9999 !important;
       }
       .at-btn-row {
         display: flex;
@@ -568,8 +574,10 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         gap: 5px;
         margin-bottom: 6px;
         position: relative;
-        z-index: 1;
         overflow: visible;
+      }
+      .at-btn-row:hover {
+        z-index: 9999 !important;
       }
 
       .at-adjust-box {
