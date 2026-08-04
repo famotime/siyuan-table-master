@@ -401,8 +401,8 @@ export class TableEditor {
 
     const lineIdx = coord.row === 0 ? 0 : coord.row + 1;
     const cells = this.ctx.getRowCellsAt(lineIdx);
-    const { sum, skipped } = sumCells(cells.slice(0, coord.col));
-    cells[coord.col] = String(sum);
+    const { formattedSum, skipped } = sumCells(cells.slice(0, coord.col));
+    cells[coord.col] = formattedSum;
     this.ctx.setRowCellsAt(lineIdx, cells);
     await this.ctx.flush();
 
@@ -424,8 +424,8 @@ export class TableEditor {
     if (!coord) return;
 
     const colCells = this.ctx.getColCells(coord.col);
-    const { sum, skipped } = sumCells(colCells.slice(1, coord.row));
-    colCells[coord.row] = String(sum);
+    const { formattedSum, skipped } = sumCells(colCells.slice(1, coord.row));
+    colCells[coord.row] = formattedSum;
     this.ctx.setColCells(coord.col, colCells);
     await this.ctx.flush();
 
@@ -693,19 +693,43 @@ function getHtmlSpan(attributes: string, name: "colspan" | "rowspan"): number {
   return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
-/** 对一组单元格文本求和，跳过非数字且非空的单元格 */
-function sumCells(cells: string[]): { sum: number; skipped: string[] } {
+export interface SumCellsResult {
+  sum: number;
+  formattedSum: string;
+  skipped: string[];
+}
+
+/** 对一组单元格文本求和，跳过非数字且非空的单元格（支持千分位数字如 4,500） */
+export function sumCells(cells: string[]): SumCellsResult {
   let sum = 0;
+  let anyComma = false;
   const skipped: string[] = [];
+
   for (const cell of cells) {
     const pureText = getPureCellText(cell);
     if (pureText === "") continue;
-    const val = Number(pureText);
-    if (isNaN(val)) {
+
+    const hasComma = pureText.includes(",");
+    const cleanText = pureText.replace(/,/g, "");
+    const val = Number(cleanText);
+
+    if (isNaN(val) || cleanText === "") {
       skipped.push(pureText);
     } else {
       sum += val;
+      if (hasComma) {
+        anyComma = true;
+      }
     }
   }
-  return { sum, skipped };
+
+  const cleanSum = Number(sum.toFixed(10));
+  let formattedSum: string;
+  if (anyComma) {
+    formattedSum = new Intl.NumberFormat("en-US", { maximumFractionDigits: 10 }).format(cleanSum);
+  } else {
+    formattedSum = String(cleanSum);
+  }
+
+  return { sum: cleanSum, formattedSum, skipped };
 }
