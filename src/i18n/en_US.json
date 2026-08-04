@@ -11,6 +11,8 @@
   "enableQuickCalcDesc": "When enabled, hold Alt and drag to select cells, and statistical summaries (Sum, Average, Count) will display at the bottom",
   "enableDragReorder": "Enable Drag & Drop Row/Column Reordering",
   "enableDragReorderDesc": "When enabled, Row/Column drag handles will appear near the active cell, allowing direct rearrangement by dragging",
+  "enableLog": "Enable Console Logging",
+  "enableLogDesc": "When enabled, plugin runtime logs and error messages will be printed in the developer console",
 
   "next-cell": "Next Cell",
   "previous-cell": "Previous Cell",

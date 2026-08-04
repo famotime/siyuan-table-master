@@ -1,4 +1,5 @@
 import { fetchSyncPost, showMessage } from "siyuan";
+import { logger } from "./logger";
 
 /**
  * 转义 HTML 特殊字符
@@ -436,7 +437,7 @@ export function convertHtmlTableToMarkdown(plugin: any, blockId: string): Promis
         showMessage(i18n.errOperationFailed || "插入表格块失败", 3000, "error");
       }
     } catch (err) {
-      console.error("[siyuan-table-mater] convertHtmlTableToMarkdown failed:", err);
+      logger.error("[siyuan-table-mater] convertHtmlTableToMarkdown failed:", err);
       showMessage(i18n.errOperationFailed || "转换过程出错", 3000, "error");
     }
   })();

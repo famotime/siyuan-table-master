@@ -7,6 +7,7 @@
 
 import { getActiveEditor, fetchSyncPost, showMessage, Dialog } from "siyuan";
 import { parseLines, isBoxDrawingTable, escapeHtml, gridToMarkdown } from "./text-to-table-utils";
+import { logger } from "./logger";
 
 /**
  * 执行文本转换为表格：获取当前选区 → 读取 kramdown → 弹出配置对话框
@@ -70,7 +71,7 @@ export async function executeTextToTable(i18n: any = {}): Promise<void> {
 
     showTextToTableDialog(blockId, rawLines, i18n);
   } catch (err) {
-    console.error("[siyuan-table-mater] executeTextToTable failed:", err);
+    logger.error("[siyuan-table-mater] executeTextToTable failed:", err);
   }
 }
 
@@ -216,7 +217,7 @@ function showTextToTableDialog(blockId: string, rawLines: string[], i18n: any): 
         2000
       );
     } catch (err) {
-      console.error("[siyuan-table-mater] convert to table failed:", err);
+      logger.error("[siyuan-table-mater] convert to table failed:", err);
       showMessage(i18n.pasteImportFailed || "转换表格失败", 3000, "error");
     }
   });

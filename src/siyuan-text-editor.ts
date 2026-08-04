@@ -21,6 +21,7 @@ import {
   Range,
   ITextEditor,
 } from "@tgrosinger/md-advanced-tables";
+import { logger } from "./logger";
 import {
   CellCoord,
   findTableBlock,
@@ -124,7 +125,7 @@ export class SiyuanTextEditor implements ITextEditor {
       // 从 DOM 读取当前光标位置并映射到行模型坐标
       this._syncCursorFromDOM();
     } catch (err) {
-      console.error("[siyuan-table-mater] reload failed:", err);
+      logger.error("[siyuan-table-mater] reload failed:", err);
     }
   }
 
@@ -211,7 +212,7 @@ export class SiyuanTextEditor implements ITextEditor {
       this._rawKramdownOverride = null;
       this._dirty = false;
     } catch (err) {
-      console.error("[siyuan-table-mater] flush failed:", err);
+      logger.error("[siyuan-table-mater] flush failed:", err);
     }
   }
 

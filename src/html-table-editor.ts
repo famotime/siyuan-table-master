@@ -1,4 +1,5 @@
 import { fetchSyncPost } from "siyuan";
+import { logger } from "./logger";
 
 export interface HtmlTableEditorOptions {
   blockId: string;
@@ -38,7 +39,7 @@ export class HtmlTableEditor {
       this.domDocument = parser.parseFromString(this.rawHtml, "text/html");
       this.tableElement = this.domDocument.querySelector("table");
     } catch (err) {
-      console.error("[siyuan-table-mater] HtmlTableEditor reload failed:", err);
+      logger.error("[siyuan-table-mater] HtmlTableEditor reload failed:", err);
     }
   }
 
@@ -59,7 +60,7 @@ export class HtmlTableEditor {
 
       this.rawHtml = newHtml;
     } catch (err) {
-      console.error("[siyuan-table-mater] HtmlTableEditor flush failed:", err);
+      logger.error("[siyuan-table-mater] HtmlTableEditor flush failed:", err);
     }
   }
 

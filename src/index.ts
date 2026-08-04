@@ -9,6 +9,7 @@ import { Plugin, showMessage, Setting, getActiveEditor } from "siyuan";
 import "@/index.scss";
 import { registerCommands, TABLE_COMMANDS, executeCommand } from "./commands";
 import { clearSettings, loadSettings, saveSettings, defaultSettings, PluginSettings } from "./settings";
+import { setLogEnabled } from "./logger";
 import { registerDock } from "./dock";
 import { FloatingToolbar } from "./floating-toolbar";
 import { HtmlFloatingToolbar } from "./html-floating-toolbar";
@@ -73,6 +74,7 @@ export default class TableMaterPlugin extends Plugin {
     // 加载设置
     this.settings = await loadSettings(this);
     await saveSettings(this, this.settings);
+    setLogEnabled(this.settings.enableLog);
     this.updateStickyHeaderClass();
 
     // 注册命令
@@ -219,6 +221,7 @@ export default class TableMaterPlugin extends Plugin {
     const setting = new Setting({
       confirmCallback: async () => {
         await saveSettings(this, this.settings);
+        setLogEnabled(this.settings.enableLog);
         if (this.floatingToolbar) {
           this.floatingToolbar.update();
         }
@@ -239,6 +242,7 @@ export default class TableMaterPlugin extends Plugin {
       { key: "enableQuickCalc", i18nTitleKey: "enableQuickCalc", defaultTitle: "启用框选单元格即时计算", i18nDescKey: "enableQuickCalcDesc", defaultDesc: "开启后，在表格中按住 Alt 键拖动框选数值单元格，将在底部显示求和、平均值、计数等即时统计信息" },
       { key: "enableDragReorder", i18nTitleKey: "enableDragReorder", defaultTitle: "启用拖拽行列重排", i18nDescKey: "enableDragReorderDesc", defaultDesc: "开启后，在表格内将显示行与列的拖拽手柄，可通过鼠标拖动直接调整行列顺序" },
       { key: "fixCJKWidth", i18nTitleKey: "fixCJKWidth", defaultTitle: "CJK 字符宽度校正", i18nDescKey: "fixCJKWidthDesc", defaultDesc: "对中文、日文、韩文等双字节字符进行宽度估算，以实现排版对齐效果" },
+      { key: "enableLog", i18nTitleKey: "enableLog", defaultTitle: "控制台日志打印", i18nDescKey: "enableLogDesc", defaultDesc: "开启后，将在浏览器开发者工具控制台中输出插件运行日志与错误信息" },
     ];
 
     for (const item of TOGGLES) {

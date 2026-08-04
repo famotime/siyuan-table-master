@@ -7,6 +7,7 @@
 
 import { Dialog, fetchSyncPost, showMessage } from "siyuan";
 import { TableDbData, ColumnMeta, DbFieldType, parseTableDataForDb } from "./table-to-db-utils";
+import { logger } from "./logger";
 
 /** 字段类型可选项列表 */
 const FIELD_TYPE_OPTIONS: { type: DbFieldType; labelZh: string; labelEn: string }[] = [
@@ -261,7 +262,7 @@ async function createAttributeViewDatabase(
       const blockInfo = await fetchSyncPost("/api/block/getBlockInfo", { id: tableBlockId });
       rootID = blockInfo?.data?.rootID || blockInfo?.rootID || "";
     } catch (e) {
-      console.warn("[siyuan-table-master] getBlockInfo notice:", e);
+      logger.warn("[siyuan-table-master] getBlockInfo notice:", e);
     }
 
     // 5. 触发思源编辑器与属性视图即时热刷新（解决需手动刷新文档问题）
@@ -269,7 +270,7 @@ async function createAttributeViewDatabase(
       try {
         await fetchSyncPost("/api/ui/reloadProtyle", { id: rootID });
       } catch (e) {
-        console.warn("[siyuan-table-master] reloadProtyle notice:", e);
+        logger.warn("[siyuan-table-master] reloadProtyle notice:", e);
       }
     }
     try {
@@ -278,7 +279,7 @@ async function createAttributeViewDatabase(
 
     showMessage(i18n.tableToDbSuccess || "已成功将 Markdown 表格转换为数据库！", 3000, "info");
   } catch (err) {
-    console.error("[siyuan-table-master] createAttributeViewDatabase failed:", err);
+    logger.error("[siyuan-table-master] createAttributeViewDatabase failed:", err);
     showMessage(i18n.errOperationFailed || "创建数据库失败", 3000, "error");
   }
 }

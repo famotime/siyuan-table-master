@@ -13,6 +13,7 @@ import { getActiveEditor, showMessage, fetchSyncPost } from "siyuan";
 import { executeTextToTable } from "./text-to-table";
 import { executeTableToChart } from "./table-to-chart";
 import { exportToCSV, exportToXLSX } from "./table-export";
+import { logger } from "./logger";
 import { createSampleMarkdownTable, createSampleHtmlTable } from "./sample-tables";
 
 import { showTableToDbDialog } from "./table-to-db-dialog";
@@ -303,7 +304,7 @@ export async function executeCommand(
 
     await cmd.action(te);
   } catch (err) {
-    console.error(`[siyuan-table-mater] command ${cmd.id} failed:`, err);
+    logger.error(`[siyuan-table-mater] command ${cmd.id} failed:`, err);
     showMessage(`${i18n.errOperationFailed || "操作失败"}: ${i18n[cmd.id] || cmd.nameZh}`, 3000, "error");
   }
 }

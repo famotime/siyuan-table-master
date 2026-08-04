@@ -19,6 +19,8 @@ export interface PluginSettings {
   enableQuickCalc: boolean;
   /** 是否启用拖拽行列重排 */
   enableDragReorder: boolean;
+  /** 是否启用控制台日志打印 */
+  enableLog: boolean;
 }
 
 export const defaultSettings: PluginSettings = {
@@ -29,6 +31,7 @@ export const defaultSettings: PluginSettings = {
   enableSmartPaste: true,
   enableQuickCalc: true,
   enableDragReorder: true,
+  enableLog: false,
 };
 
 export const SETTINGS_KEY = "config";

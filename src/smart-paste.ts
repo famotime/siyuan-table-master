@@ -3,6 +3,7 @@ import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
 import { rangeToCellCoord, highlightActiveRowAndCol } from "./dom-utils";
 import type TableMaterPlugin from "./index";
 import { splitTableRow } from "./table-model";
+import { logger } from "./logger";
 
 export class SmartPaste {
   private plugin: TableMaterPlugin;
@@ -76,7 +77,7 @@ export class SmartPaste {
 
         await editorCtx.flush();
       } catch (err) {
-        console.error("[siyuan-table-mater] smart paste into table failed:", err);
+        logger.error("[siyuan-table-mater] smart paste into table failed:", err);
         showMessage(this.plugin.i18n.pasteFillFailed, 3000, "error");
       }
     } else {
@@ -94,7 +95,7 @@ export class SmartPaste {
             data: markdownTable,
           });
         } catch (err) {
-          console.error("[siyuan-table-mater] smart paste text-to-table failed:", err);
+          logger.error("[siyuan-table-mater] smart paste text-to-table failed:", err);
           showMessage(this.plugin.i18n.pasteImportFailed, 3000, "error");
         }
       }

@@ -11,6 +11,8 @@
   "enableQuickCalcDesc": "开启后，在表格中按住 Alt 键拖动框选数值单元格，将在底部显示求和、平均值、计数等即时统计信息",
   "enableDragReorder": "启用拖拽行列重排",
   "enableDragReorderDesc": "开启后，在表格内将显示行与列的拖拽手柄，可通过鼠标拖动直接调整行列顺序",
+  "enableLog": "控制台日志打印",
+  "enableLogDesc": "开启后，将在浏览器开发者工具控制台中输出插件运行日志与错误信息",
 
   "next-cell": "下一单元格",
   "previous-cell": "上一单元格",

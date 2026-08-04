@@ -2,6 +2,7 @@ import { Dialog, showMessage } from "siyuan";
 import { HtmlTableEditor } from "./html-table-editor";
 import type TableMaterPlugin from "./index";
 import { icons } from "./utils/icons";
+import { logger } from "./logger";
 
 
 interface CellStyle {
@@ -2707,7 +2708,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         showMessage("HTML 表格保存更新成功！");
         dialog.destroy();
       } catch (err) {
-        console.error("Save HTML Table failed:", err);
+        logger.error("Save HTML Table failed:", err);
         showMessage("保存更新失败，请重试");
       }
     });

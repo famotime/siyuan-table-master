@@ -1,4 +1,5 @@
 import { getActiveEditor, showMessage, fetchSyncPost } from "siyuan";
+import { logger } from "./logger";
 
 export const SAMPLE_MARKDOWN_TABLE = `| 项目名称 | 状态 | 负责人 | 预算 (元) |
 | :--- | :---: | :---: | ---: |
@@ -131,7 +132,7 @@ async function insertSampleTable(tableContent: string, successMsg: string, i18n:
       showMessage(i18n.errOperationFailed || "创建示例表格失败", 3000, "error");
     }
   } catch (err) {
-    console.error("[siyuan-table-mater] insertSampleTable failed:", err);
+    logger.error("[siyuan-table-mater] insertSampleTable failed:", err);
     showMessage(i18n.errOperationFailed || "创建示例表格失败", 3000, "error");
   }
 }

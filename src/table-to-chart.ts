@@ -2,6 +2,7 @@ import { Dialog, showMessage, fetchSyncPost } from "siyuan";
 import { TableEditor } from "./table-editor";
 import { isSeparatorLine } from "./table-model";
 import { sanitizeValue } from "./text-to-table-utils";
+import { logger } from "./logger";
 
 /**
  * 执行“一键数据图表化”：读取表格数据 → 弹出配置 Dialog → 生成 ECharts 块并插入下方
@@ -38,7 +39,7 @@ export async function executeTableToChart(te: TableEditor): Promise<void> {
     // 3. 弹出配置 Dialog
     showChartConfigDialog(te.ctx.blockId, headers, dataRows, te.i18n);
   } catch (err) {
-    console.error("[siyuan-table-mater] executeTableToChart failed:", err);
+    logger.error("[siyuan-table-mater] executeTableToChart failed:", err);
     showMessage(te.i18n.errChartReadFailed || "读取表格数据失败", 3000, "error");
   }
 }
@@ -242,11 +243,11 @@ function showChartConfigDialog(
       if (res && res.code === 0) {
         // 图表生成成功，静默插入
       } else {
-        console.error("[siyuan-table-mater] insertBlock error:", res);
+        logger.error("[siyuan-table-mater] insertBlock error:", res);
         showMessage(i18n.errChartInsertFailed, 3000, "error");
       }
     } catch (err) {
-      console.error("[siyuan-table-mater] insertBlock failed:", err);
+      logger.error("[siyuan-table-mater] insertBlock failed:", err);
       showMessage(i18n.errOperationFailed || "生成图表失败", 3000, "error");
     }
   });

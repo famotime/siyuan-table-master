@@ -3,6 +3,7 @@ import { findTableBlock, getCellFromRange, getCellCoordFromTable } from "./dom-u
 import { SiyuanTextEditor } from "./siyuan-text-editor";
 import { splitTableRow } from "./table-model";
 import type TableMaterPlugin from "./index";
+import { logger } from "./logger";
 
 export class DragReorder {
   private plugin: TableMaterPlugin;
@@ -470,7 +471,7 @@ export class DragReorder {
         await editorCtx.flush();
       }
     } catch (err) {
-      console.error("[siyuan-table-mater] row drag-reorder failed:", err);
+      logger.error("[siyuan-table-mater] row drag-reorder failed:", err);
     }
   }
 
@@ -511,7 +512,7 @@ export class DragReorder {
       editorCtx.markDirty();
       await editorCtx.flush();
     } catch (err) {
-      console.error("[siyuan-table-mater] col drag-reorder failed:", err);
+      logger.error("[siyuan-table-mater] col drag-reorder failed:", err);
     }
   }
 }

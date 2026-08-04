@@ -4,6 +4,7 @@ import { findHtmlTableBlock } from "./dom-utils";
 import { getActiveEditor, showMessage } from "siyuan";
 import { openHtmlDialogEditor } from "./html-dialog-editor";
 import { convertHtmlTableToMarkdown } from "./html-to-md";
+import { logger } from "./logger";
 
 export interface HtmlTableCommand {
   id: string;
@@ -79,7 +80,7 @@ export async function executeHtmlCommand(
     }
     
   } catch (err) {
-    console.error(`[siyuan-table-mater] html command ${cmd.id} failed:`, err);
+    logger.error(`[siyuan-table-mater] html command ${cmd.id} failed:`, err);
     showMessage(`${i18n.errOperationFailed || "操作失败"}: ${i18n[cmd.id] || cmd.nameZh}`, 3000, "error");
   }
 }
