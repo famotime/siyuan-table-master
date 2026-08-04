@@ -50,4 +50,25 @@ describe("sumCells 千分位数字求和", () => {
     expect(res.formattedSum).toBe("5,500");
     expect(res.skipped).toEqual([]);
   });
+
+  it("解析百分数求和（如 92%、65.15%），结果保留百分比格式", () => {
+    const res = sumCells(["92%", "65.15%"]);
+    expect(res.sum).toBe(1.5715);
+    expect(res.formattedSum).toBe("157.15%");
+    expect(res.skipped).toEqual([]);
+  });
+
+  it("支持带千分位与百分号的数字求数（如 1,200% 与 92%）", () => {
+    const res = sumCells(["1,200%", "92%"]);
+    expect(res.sum).toBe(12.92);
+    expect(res.formattedSum).toBe("1,292%");
+    expect(res.skipped).toEqual([]);
+  });
+
+  it("处理带 IAL 标签的百分数单元格", () => {
+    const res = sumCells(["92%{: colspan=\"1\"}", "50%"]);
+    expect(res.sum).toBe(1.42);
+    expect(res.formattedSum).toBe("142%");
+    expect(res.skipped).toEqual([]);
+  });
 });

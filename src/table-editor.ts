@@ -699,33 +699,55 @@ export interface SumCellsResult {
   skipped: string[];
 }
 
-/** 对一组单元格文本求和，跳过非数字且非空的单元格（支持千分位数字如 4,500） */
+/** 对一组单元格文本求和，跳过非数字且非空的单元格（支持千分位与百分数如 4,500、92%） */
 export function sumCells(cells: string[]): SumCellsResult {
   let sum = 0;
   let anyComma = false;
+  let percentCount = 0;
+  let numCount = 0;
   const skipped: string[] = [];
 
   for (const cell of cells) {
-    const pureText = getPureCellText(cell);
+    let pureText = getPureCellText(cell);
     if (pureText === "") continue;
+
+    let hasPercent = false;
+    if (pureText.endsWith("%")) {
+      hasPercent = true;
+      pureText = pureText.slice(0, -1).trim();
+    }
 
     const hasComma = pureText.includes(",");
     const cleanText = pureText.replace(/,/g, "");
-    const val = Number(cleanText);
+    const rawVal = Number(cleanText);
 
-    if (isNaN(val) || cleanText === "") {
-      skipped.push(pureText);
+    if (isNaN(rawVal) || cleanText === "") {
+      skipped.push(getPureCellText(cell));
     } else {
+      const val = hasPercent ? rawVal / 100 : rawVal;
       sum += val;
+      numCount++;
+      if (hasPercent) {
+        percentCount++;
+      }
       if (hasComma) {
         anyComma = true;
       }
     }
   }
 
+  const allPercent = numCount > 0 && percentCount === numCount;
   const cleanSum = Number(sum.toFixed(10));
   let formattedSum: string;
-  if (anyComma) {
+
+  if (allPercent) {
+    const valPercent = Number((cleanSum * 100).toFixed(10));
+    if (anyComma) {
+      formattedSum = new Intl.NumberFormat("en-US", { maximumFractionDigits: 10 }).format(valPercent) + "%";
+    } else {
+      formattedSum = String(valPercent) + "%";
+    }
+  } else if (anyComma) {
     formattedSum = new Intl.NumberFormat("en-US", { maximumFractionDigits: 10 }).format(cleanSum);
   } else {
     formattedSum = String(cleanSum);
