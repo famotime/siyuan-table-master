@@ -139,6 +139,11 @@ export class FloatingToolbar {
     }
 
     // 拖选多个单元格计算时，不出现浮动工具栏
+    const tableControl = (activeEditor?.protyle?.wysiwyg as any)?.tableControl;
+    if (tableControl?.selection && tableControl.getSelectedCells?.()?.length > 1) {
+      this.hide();
+      return;
+    }
     if (tableBlock.querySelector(".at-selected-cell")) {
       this.hide();
       return;

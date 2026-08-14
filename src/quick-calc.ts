@@ -4,9 +4,7 @@ import type TableMaterPlugin from "./index";
 
 export class QuickCalc {
   private plugin: TableMaterPlugin;
-  private isSelecting = false;
   private isMouseDown = false;
-  private wasSelecting = false;
   private startCoord: { row: number; col: number } | null = null;
   private tableBlock: HTMLElement | null = null;
   private calcBar: HTMLElement | null = null;
@@ -23,7 +21,6 @@ export class QuickCalc {
   }
 
   init() {
-    // 监听全局鼠标事件以实现跨单元格框选
     document.addEventListener("mousedown", this.onMouseDownRef, true);
     document.addEventListener("mousemove", this.onMouseMoveRef, true);
     document.addEventListener("mouseup", this.onMouseUpRef, true);
@@ -40,15 +37,48 @@ export class QuickCalc {
     this.clearSelection();
   }
 
+  /** 获取当前思源原生 tableControl 选中的单元格集合 */
+  private getNativeSelectedCells(): { cells: HTMLTableCellElement[]; tableBlock: HTMLElement | null } | null {
+    const activeEditor = getActiveEditor();
+    if (!activeEditor?.protyle) return null;
+
+    const tableControl = (activeEditor.protyle.wysiwyg as any)?.tableControl;
+    if (tableControl?.selection && typeof tableControl.getSelectedCells === "function") {
+      const cells = tableControl.getSelectedCells() as HTMLTableCellElement[];
+      if (cells && cells.length > 0) {
+        const tableBlock = (tableControl.selection.node as HTMLElement) || findTableBlock(cells[0]);
+        return { cells, tableBlock };
+      }
+    }
+    return null;
+  }
+
   private onMouseDown(e: MouseEvent) {
     if (!this.plugin.settings.enableQuickCalc) return;
 
-    const activeEditor = getActiveEditor();
-    if (!activeEditor?.protyle) return;
+    // 1. 如果是右键点击 (e.button === 2)，绝对不执行任何清除或拦截，让思源原生表格控制器的 contextmenu 正常处理
+    if (e.button === 2) {
+      return;
+    }
+
+    // 2. 如果不是鼠标左键 (e.button === 0)，不启动新的拖拽选区
+    if (e.button !== 0) return;
 
     const target = e.target as HTMLElement;
+
+    // 点击在菜单或计算条上不处理
+    if (target.closest(".b3-menu") || target.closest(".at-quick-calc-bar")) {
+      return;
+    }
+
     const cell = target.closest("td, th") as HTMLTableCellElement | null;
-    if (!cell) return;
+    if (!cell) {
+      // 点击在表格外且非右键菜单/计算条，隐藏计算条
+      if (this.calcBar) {
+        this.clearSelection();
+      }
+      return;
+    }
 
     const block = findTableBlock(cell);
     if (!block) return;
@@ -56,25 +86,9 @@ export class QuickCalc {
     const coord = getCellCoordFromTable(cell, block);
     if (!coord) return;
 
-    // 如果先前已经有了多选状态，且本次又在表格中按下，先清除上一次的多选
-    if (this.tableBlock) {
-      this.clearSelection();
-    }
-
     this.isMouseDown = true;
     this.startCoord = coord;
     this.tableBlock = block;
-
-    // 如果按住了 Alt 键，则直接启动框选，并拦截默认事件
-    if (e.altKey) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      this.isSelecting = true;
-      this.clearSelectionHighLight(block);
-      cell.classList.add("at-selected-cell");
-      this.updateStats();
-    }
   }
 
   private onMouseMove(e: MouseEvent) {
@@ -90,36 +104,8 @@ export class QuickCalc {
     const currentCoord = getCellCoordFromTable(cell, block);
     if (!currentCoord) return;
 
-    // 尚未触发框选模式时，如果跨单元格拖拽，自动激活框选模式
-    if (!this.isSelecting) {
-      const isCrossCell = this.startCoord.row !== currentCoord.row || this.startCoord.col !== currentCoord.col;
-      if (isCrossCell) {
-        this.isSelecting = true;
-        // 清除浏览器临时文本选区，防止蓝色底色选区干扰
-        window.getSelection()?.removeAllRanges();
-        this.clearSelectionHighLight(block);
-
-        // 高亮起点单元格
-        const table = block.querySelector("table");
-        if (table) {
-          const rows = Array.from(table.querySelectorAll("tr"));
-          const startTr = rows[this.startCoord.row];
-          if (startTr) {
-            const startCells = Array.from(startTr.querySelectorAll("td, th"));
-            const startCell = startCells[this.startCoord.col];
-            if (startCell) {
-              startCell.classList.add("at-selected-cell");
-            }
-          }
-        }
-      }
-    }
-
-    // 处于框选模式下，拦截默认事件并更新高亮矩形和即时计算条
-    if (this.isSelecting) {
-      e.preventDefault();
-      e.stopPropagation();
-
+    const isCrossCell = this.startCoord.row !== currentCoord.row || this.startCoord.col !== currentCoord.col;
+    if (isCrossCell || e.altKey) {
       const minRow = Math.min(this.startCoord.row, currentCoord.row);
       const maxRow = Math.max(this.startCoord.row, currentCoord.row);
       const minCol = Math.min(this.startCoord.col, currentCoord.col);
@@ -129,29 +115,44 @@ export class QuickCalc {
       if (!table) return;
 
       const rows = Array.from(table.querySelectorAll("tr"));
+      const selectedCells: HTMLTableCellElement[] = [];
+
       rows.forEach((tr, rIdx) => {
-        const cells = Array.from(tr.querySelectorAll("td, th"));
-        cells.forEach((td, cIdx) => {
-          if (rIdx >= minRow && rIdx <= maxRow && cIdx >= minCol && cIdx <= maxCol) {
-            td.classList.add("at-selected-cell");
-          } else {
-            td.classList.remove("at-selected-cell");
-          }
-        });
+        if (rIdx >= minRow && rIdx <= maxRow) {
+          const cells = Array.from(tr.querySelectorAll("td, th")) as HTMLTableCellElement[];
+          cells.forEach((td, cIdx) => {
+            if (cIdx >= minCol && cIdx <= maxCol) {
+              selectedCells.push(td);
+            }
+          });
+        }
       });
 
-      this.updateStats();
+      if (selectedCells.length > 1) {
+        this.updateStatsByCells(selectedCells, block, {
+          minRow,
+          maxRow,
+          minCol,
+          maxCol,
+        });
+      }
     }
   }
 
-  private onMouseUp(e: MouseEvent) {
-    this.wasSelecting = this.isSelecting;
-    if (this.isSelecting) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  private onMouseUp(_e: MouseEvent) {
     this.isMouseDown = false;
-    this.isSelecting = false;
+    this.startCoord = null;
+
+    // 延时检测思源原生 tableControl 是否完成了多选
+    setTimeout(() => {
+      const native = this.getNativeSelectedCells();
+      if (native && native.cells.length > 1) {
+        this.tableBlock = native.tableBlock;
+        this.updateStatsByCells(native.cells, native.tableBlock);
+      } else if (!this.calcBar) {
+        this.clearSelection();
+      }
+    }, 60);
   }
 
   private onKeyDown(e: KeyboardEvent) {
@@ -160,51 +161,42 @@ export class QuickCalc {
       return;
     }
 
-    // 如果当前有多选计算状态，按下任意普通键（排除修饰键）均清除多选，以支持方向键或输入直接收起高亮
-    if (this.tableBlock && !["Alt", "Control", "Shift", "Meta"].includes(e.key)) {
+    // 如果当前有计算条，按下任意普通键（排除修饰键）均清除
+    if (this.calcBar && !["Alt", "Control", "Shift", "Meta"].includes(e.key)) {
       this.clearSelection();
     }
   }
 
   private onDocClick(e: MouseEvent) {
-    if (this.wasSelecting) {
-      e.preventDefault();
-      e.stopPropagation();
-      this.wasSelecting = false;
+    const target = e.target as HTMLElement;
+    // 如果点击在思源右键菜单、计算条或思源原生表格控制手柄上，不清除多选
+    if (target.closest(".b3-menu") || target.closest(".at-quick-calc-bar") || target.closest(".protyle-table-control")) {
       return;
     }
 
-    // 用户点击了已选框外的其它任意区域（非高亮单元格），清除多选状态
-    const target = e.target as HTMLElement;
-    const cell = target.closest("td, th");
-    if (!cell || !cell.classList.contains("at-selected-cell")) {
-      this.clearSelection();
+    const native = this.getNativeSelectedCells();
+    if (!native || native.cells.length <= 1) {
+      const cell = target.closest("td, th");
+      if (!cell) {
+        this.clearSelection();
+      }
     }
   }
 
-  /** 清除多选状态 */
+  /** 清除快捷计算状态 */
   private clearSelection() {
     this.isMouseDown = false;
-    this.isSelecting = false;
     this.startCoord = null;
-    if (this.tableBlock) {
-      this.clearSelectionHighLight(this.tableBlock);
-      this.tableBlock = null;
-    }
+    this.tableBlock = null;
     this.hideCalcBar();
   }
 
-  /** 清除表格内所有单元格的框选高亮 */
-  private clearSelectionHighLight(block: HTMLElement) {
-    const cells = block.querySelectorAll("td.at-selected-cell, th.at-selected-cell");
-    cells.forEach(c => c.classList.remove("at-selected-cell"));
-  }
-
-  /** 重新计算并刷新计算条数据 */
-  private updateStats() {
-    if (!this.tableBlock) return;
-
-    const selectedCells = Array.from(this.tableBlock.querySelectorAll("td.at-selected-cell, th.at-selected-cell"));
+  /** 根据单元格列表重新计算并刷新计算条数据 */
+  private updateStatsByCells(
+    selectedCells: HTMLTableCellElement[],
+    tableBlock: HTMLElement | null,
+    rangeCoords?: { minRow: number; maxRow: number; minCol: number; maxCol: number }
+  ) {
     if (selectedCells.length === 0) {
       this.hideCalcBar();
       return;
@@ -216,16 +208,20 @@ export class QuickCalc {
     let percentCount = 0;
     let commaCount = 0;
 
-    let minRow = Infinity, maxRow = -Infinity;
-    let minCol = Infinity, maxCol = -Infinity;
+    let minRow = rangeCoords?.minRow ?? Infinity;
+    let maxRow = rangeCoords?.maxRow ?? -Infinity;
+    let minCol = rangeCoords?.minCol ?? Infinity;
+    let maxCol = rangeCoords?.maxCol ?? -Infinity;
 
     selectedCells.forEach(cell => {
-      const coord = getCellCoordFromTable(cell as HTMLTableCellElement, this.tableBlock!);
-      if (coord) {
-        minRow = Math.min(minRow, coord.row);
-        maxRow = Math.max(maxRow, coord.row);
-        minCol = Math.min(minCol, coord.col);
-        maxCol = Math.max(maxCol, coord.col);
+      if (!rangeCoords && tableBlock) {
+        const coord = getCellCoordFromTable(cell, tableBlock);
+        if (coord) {
+          minRow = Math.min(minRow, coord.row);
+          maxRow = Math.max(maxRow, coord.row);
+          minCol = Math.min(minCol, coord.col);
+          maxCol = Math.max(maxCol, coord.col);
+        }
       }
 
       const text = cell.textContent ?? "";
@@ -261,7 +257,7 @@ export class QuickCalc {
         statusDot.classList.add("at-pulse");
       }
 
-      const rangeStr = minRow !== Infinity ? `R${minRow + 1}C${minCol + 1}:R${maxRow + 1}C${maxCol + 1}` : "-";
+      const rangeStr = (minRow !== Infinity && minRow !== -Infinity && maxRow !== -Infinity) ? `R${minRow + 1}C${minCol + 1}:R${maxRow + 1}C${maxCol + 1}` : "-";
 
       dockStatusText.innerHTML = `
         <div class="at-dock-calc-title">${this.plugin.i18n.quickCalcSelected || "已选中多单元格"}</div>
@@ -332,8 +328,6 @@ export class QuickCalc {
         bar.remove();
       }, 200);
     }
-    // 隐藏/移除时，向系统分发 selectionchange 事件，迫使 Dock 状态面板自动更新以恢复常规的编辑信息
-    document.dispatchEvent(new Event("selectionchange"));
   }
 
   private parseNumber(text: string): { value: number; hasPercent: boolean; hasComma: boolean } | null {
@@ -378,3 +372,4 @@ export class QuickCalc {
     return Number(value.toFixed(4)).toString();
   }
 }
+
