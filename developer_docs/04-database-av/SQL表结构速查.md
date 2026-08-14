@@ -1,10 +1,10 @@
 # SQL 表结构速查
 
-- 适用版本：SiYuan `v3.7.3`
-- 最后核对：2026-08-02
+- 适用版本：SiYuan `v3.5.7`
+- 最后核对：2026-02-21
 - 稳定性：stable（查询）/ caution（写入）
 - 权威来源：
-  - <https://github.com/siyuan-note/siyuan/blob/master/docs/API.zh-CN.md>
+  - <https://github.com/siyuan-note/siyuan/blob/master/API_zh_CN.md>
   - <https://github.com/siyuan-community/siyuan-developer-docs/tree/main/docs/zh-Hans/reference/database>
 
 ## 1. 常用表
@@ -15,7 +15,7 @@
 - `assets`：资源文件索引
 - `spans`：行内元素索引
 
-详表与字段语义见：`../04-database-av/数据库表与字段详解.md`
+详表与字段语义见：`reference/04-database-av/数据库表与字段详解.md`
 
 ## 2. blocks 核心字段
 

@@ -1,12 +1,12 @@
 # 块类型详表 - Node 与 DB 映射
 
-- 适用版本：SiYuan `v3.7.3`
-- 官方仓库同步到：`siyuan-note/siyuan@master` + Release `v3.7.3`（2026-07-21）
-- 最后核对：2026-08-02
+- 适用版本：SiYuan `v3.5.7`
+- 官方仓库同步到：`siyuan-note/siyuan@master` + Release `v3.5.7`（2026-02-14）
+- 最后核对：2026-02-21
 - 稳定性：stable
 - 权威来源：
   - <https://github.com/siyuan-community/siyuan-developer-docs/tree/main/docs/zh-Hans/reference/block>
-  - <https://github.com/siyuan-note/siyuan/blob/master/docs/API.zh-CN.md>
+  - <https://github.com/siyuan-note/siyuan/blob/master/API_zh_CN.md>
 
 ## 1. 映射说明
 

@@ -1,11 +1,11 @@
 # siyuan-sdk 使用边界与示例
 
-- 适用版本：SiYuan `v3.7.3`
-- 最后核对：2026-08-02
+- 适用版本：SiYuan `v3.5.7`
+- 最后核对：2026-02-21
 - 稳定性：stable（以官方仓库为准）
 - 权威来源：
   - <https://github.com/siyuan-community/siyuan-developer-docs/tree/main/docs/zh-Hans/reference/community>
-  - <https://github.com/siyuan-note/siyuan/blob/master/docs/API.zh-CN.md>
+  - <https://github.com/siyuan-note/siyuan/blob/master/API_zh_CN.md>
 
 ## 1. 什么时候用 SDK
 
@@ -43,3 +43,4 @@ export async function requestApi<T>(url: string, body?: any): Promise<T> {
 - 先决定调用层是否需要 SDK，再决定接入方式
 - 不要在同一项目并行维护多套请求风格
 - SDK 升级时优先回归“错误处理”和“鉴权”
+
