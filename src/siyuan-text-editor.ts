@@ -31,6 +31,7 @@ import {
   getTableColCount,
   highlightActiveRowAndCol,
   findHtmlTableBlock,
+  getSelectedTableRange,
 } from "./dom-utils";
 import {
   parseTableKramdown,
@@ -59,6 +60,10 @@ export interface SiyuanTextEditorOptions {
   fixCJKWidth?: boolean;
   /** 预设单元格坐标，防止点击 Dock 按钮后选区丢失 */
   presetCellCoord?: CellCoord | null;
+  /** 选中的行索引集合（DOM 0-indexed，用于批量操作） */
+  selectedRows?: number[] | null;
+  /** 选中的列索引集合（DOM 0-indexed，用于批量操作） */
+  selectedCols?: number[] | null;
 }
 
 export class SiyuanTextEditor implements ITextEditor {
@@ -67,6 +72,8 @@ export class SiyuanTextEditor implements ITextEditor {
   public readonly blockId: string;
   private fixCJKWidth: boolean;
   private presetCellCoord: CellCoord | null;
+  private _selectedRows: number[] | null = null;
+  private _selectedCols: number[] | null = null;
 
   // ── 内存行模型 ──
   private _lines: string[] = [];
@@ -86,6 +93,8 @@ export class SiyuanTextEditor implements ITextEditor {
     this.blockId = options.blockId;
     this.fixCJKWidth = options.fixCJKWidth ?? true;
     this.presetCellCoord = options.presetCellCoord ?? null;
+    this._selectedRows = options.selectedRows ? [...options.selectedRows] : null;
+    this._selectedCols = options.selectedCols ? [...options.selectedCols] : null;
   }
 
   /**
@@ -317,6 +326,37 @@ export class SiyuanTextEditor implements ITextEditor {
       );
       this._cursor = new Point(row, approxCol);
     }
+
+    // 检查并同步多选选区
+    if (!this._selectedRows || !this._selectedCols) {
+      const range = getSelectedTableRange(this.tableBlockEl, this.protyle?.wysiwyg);
+      if (range) {
+        if (!this._selectedRows && range.rows.length > 0) {
+          this._selectedRows = range.rows;
+        }
+        if (!this._selectedCols && range.cols.length > 0) {
+          this._selectedCols = range.cols;
+        }
+      }
+    }
+
+    // 如果处于多选状态，基准坐标纠正为选区左上角。
+    // 即使外部传入了 presetCellCoord，多选时也以选区左上角为准，
+    // 避免窗口选区焦点落在右下角时把批量删除/移动误判为仅作用于最后一行/列。
+    if (this._selectedRows && this._selectedRows.length > 0 && this._selectedCols && this._selectedCols.length > 0) {
+      const isMultiSelection = this._selectedRows.length > 1 || this._selectedCols.length > 1;
+      if (!this.presetCellCoord || isMultiSelection) {
+        const topRow = this._selectedRows[0];
+        const leftCol = this._selectedCols[0];
+        this._initialCellCoord = { row: topRow, col: leftCol };
+        const { row, approxCol } = domCoordToRowModelIndex(
+          topRow,
+          leftCol,
+          this._lines,
+        );
+        this._cursor = new Point(row, approxCol);
+      }
+    }
   }
 
   /**
@@ -384,6 +424,37 @@ export class SiyuanTextEditor implements ITextEditor {
    */
   getCursorDomCoord(): CellCoord | null {
     return this._initialCellCoord;
+  }
+
+  /** 获取当前选中的行索引列表（DOM 0-indexed） */
+  getSelectedRows(): number[] | null {
+    return this._selectedRows ? [...this._selectedRows] : null;
+  }
+
+  /** 获取当前选中的列索引列表（DOM 0-indexed） */
+  getSelectedCols(): number[] | null {
+    return this._selectedCols ? [...this._selectedCols] : null;
+  }
+
+  /** 设置预设单元格坐标并重置光标 */
+  setPresetCellCoord(coord: CellCoord | null): void {
+    this.presetCellCoord = coord;
+    if (coord) {
+      const { row, approxCol } = domCoordToRowModelIndex(
+        coord.row,
+        coord.col,
+        this._lines,
+      );
+      this._cursor = new Point(row, approxCol);
+      this._cursorUpdatedByCore = false;
+    }
+  }
+
+  /** 设置当前行模型数组，自动标记 dirty */
+  setTableLines(lines: string[]): void {
+    this._lines = [...lines];
+    this._rawKramdownOverride = null;
+    this._dirty = true;
   }
 
   /**

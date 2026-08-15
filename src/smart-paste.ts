@@ -1,6 +1,6 @@
 import { getActiveEditor, fetchSyncPost, showMessage } from "siyuan";
 import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
-import { rangeToCellCoord, highlightActiveRowAndCol } from "./dom-utils";
+import { rangeToCellCoord, highlightActiveRowAndCol, getSelectedTableRange } from "./dom-utils";
 import type TableMaterPlugin from "./index";
 import { splitTableRow } from "./table-model";
 import { logger } from "./logger";
@@ -59,7 +59,11 @@ export class SmartPaste {
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) return;
       const range = sel.getRangeAt(0);
-      const coord = rangeToCellCoord(range, tableBlock);
+      let coord = rangeToCellCoord(range, tableBlock);
+      const selRange = getSelectedTableRange(tableBlock, activeEditor.protyle?.wysiwyg);
+      if (selRange && selRange.rows.length > 0 && selRange.cols.length > 0) {
+        coord = { row: selRange.rows[0], col: selRange.cols[0] };
+      }
       if (!coord) return;
 
       try {

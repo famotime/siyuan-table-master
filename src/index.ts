@@ -10,7 +10,7 @@ import "@/index.scss";
 import { registerCommands, TABLE_COMMANDS, executeCommand } from "./commands";
 import { clearSettings, loadSettings, saveSettings, defaultSettings, PluginSettings } from "./settings";
 import { setLogEnabled } from "./logger";
-import { registerDock } from "./dock";
+import { registerDock, getLastActiveCell } from "./dock";
 import { FloatingToolbar } from "./floating-toolbar";
 import { HtmlFloatingToolbar } from "./html-floating-toolbar";
 import { registerHtmlCommands } from "./html-commands";
@@ -18,7 +18,7 @@ import { SmartPaste } from "./smart-paste";
 import { QuickCalc } from "./quick-calc";
 import { DragReorder } from "./drag-reorder";
 import { isCursorInTable } from "./siyuan-text-editor";
-import { findTableBlock, rangeToCellCoord, highlightActiveRowAndCol } from "./dom-utils";
+import { findTableBlock, rangeToCellCoord, highlightActiveRowAndCol, getSelectedTableRange } from "./dom-utils";
 
 // ── 设置面板工具 ——
 
@@ -289,9 +289,33 @@ export default class TableMaterPlugin extends Plugin {
           }
         }
 
-        if (inTable && tableBlock && coord) {
-          // 当前在表格内且获取到坐标，应用高亮
-          highlightActiveRowAndCol(tableBlock, coord);
+        if (inTable && tableBlock) {
+          const activeCell = getLastActiveCell();
+          if (activeCell && activeCell.tableBlock === tableBlock && (
+            (activeCell.selectedRows && activeCell.selectedRows.length > 1) ||
+            (activeCell.selectedCols && activeCell.selectedCols.length > 1)
+          )) {
+            highlightActiveRowAndCol(null, null);
+            return;
+          }
+
+          const activeEditor = getActiveEditor();
+          const selRange = getSelectedTableRange(tableBlock, activeEditor?.protyle?.wysiwyg);
+          const isMultiSelected = selRange && (
+            selRange.rows.length > 1 || 
+            selRange.cols.length > 1 || 
+            tableBlock.querySelectorAll("td.protyle-wysiwyg--select, th.protyle-wysiwyg--select, td.protyle-table-control__select, th.protyle-table-control__select, td[data-select], th[data-select], .at-selected-cell").length > 1
+          );
+
+          if (isMultiSelected) {
+            highlightActiveRowAndCol(null, null);
+            return;
+          }
+
+          if (coord) {
+            // 当前在表格内且获取到坐标，应用高亮
+            highlightActiveRowAndCol(tableBlock, coord);
+          }
         } else {
           // 惰性失焦检测：如果光标完全移出当前表格块，清除高亮样式
           if (sel && sel.rangeCount > 0) {

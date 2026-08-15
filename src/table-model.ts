@@ -311,3 +311,122 @@ export function fixCJKSeparatorWidth(tableLines: string[]): string[] {
 
   return result;
 }
+
+/**
+ * 批量删除表格指定的 DOM 行（0-indexed，0 为表头）。
+ * 
+ * 规则：
+ * 1. 表头行（DOM row 0）不允许作为普通行删除。如果仅选中表头行，返回 error: "cannot_delete_header"。
+ * 2. 如果选区包含表头行以及数据行，则只删除选中的数据行，保留表头行。
+ * 3. 若所有数据行均被删除，保留一行空数据行以保证 Markdown 表格结构合法。
+ * 4. 自动保留 CJK 宽度校正与格式。
+ * 
+ * @param tableLines - 表格行数组（行 0 = 表头，行 1 = 分隔行，行 2+ = 数据行）
+ * @param domRowsToDelete - 待删除的 DOM 行索引数组（0-indexed）
+ * @returns 处理结果对象
+ */
+export function deleteTableRows(
+  tableLines: string[],
+  domRowsToDelete: number[],
+): { lines: string[]; deletedCount: number; error?: "cannot_delete_header" } {
+  if (tableLines.length < 2) {
+    return { lines: [...tableLines], deletedCount: 0 };
+  }
+
+  const uniqueDomRows = Array.from(new Set(domRowsToDelete));
+  // 过滤出真正的数据行 (DOM 行号 >= 1)
+  const dataDomRows = uniqueDomRows.filter(r => r >= 1);
+
+  // 如果待删除列表里只有表头行 (0)，且没有数据行
+  if (dataDomRows.length === 0 && uniqueDomRows.includes(0)) {
+    return { lines: [...tableLines], deletedCount: 0, error: "cannot_delete_header" };
+  }
+
+  if (dataDomRows.length === 0) {
+    return { lines: [...tableLines], deletedCount: 0 };
+  }
+
+  // DOM 行号 r 对应 tableLines 的行索引 r + 1 (因为行 1 是分隔行)
+  const lineIndicesToDelete = new Set(
+    dataDomRows
+      .map(r => r + 1)
+      .filter(idx => idx >= 2 && idx < tableLines.length)
+  );
+
+  if (lineIndicesToDelete.size === 0) {
+    return { lines: [...tableLines], deletedCount: 0 };
+  }
+
+  let newLines = tableLines.filter((_, idx) => !lineIndicesToDelete.has(idx));
+
+  // 如果所有数据行都被删除了（只剩表头和分隔行），自动补一行空数据行保持表格合法性
+  if (newLines.length === 2) {
+    const colCount = getColumnCount(newLines);
+    const emptyCells = Array.from({ length: colCount }, () => "");
+    newLines.push(`| ${emptyCells.join(" | ")} |`);
+  }
+
+  // 做一次 CJK 宽度校正
+  newLines = fixCJKSeparatorWidth(newLines);
+
+  return {
+    lines: newLines,
+    deletedCount: lineIndicesToDelete.size,
+  };
+}
+
+/**
+ * 批量删除表格指定的 DOM 列（0-indexed，0 为第一列）。
+ * 
+ * 规则：
+ * 1. 表格至少需要保留一列。若待删除列数 >= 总列数，返回 error: "cannot_delete_all_columns"。
+ * 2. 依次过滤每行（包含表头、分隔行、所有数据行）中对应列的单元格。
+ * 3. 自动保留 CJK 宽度校正与格式。
+ * 
+ * @param tableLines - 表格行数组
+ * @param domColsToDelete - 待删除的 DOM 列索引数组（0-indexed）
+ * @returns 处理结果对象
+ */
+export function deleteTableColumns(
+  tableLines: string[],
+  domColsToDelete: number[],
+): { lines: string[]; deletedCount: number; error?: "cannot_delete_all_columns" } {
+  if (tableLines.length === 0) {
+    return { lines: [...tableLines], deletedCount: 0 };
+  }
+
+  const totalCols = getColumnCount(tableLines);
+  if (totalCols === 0) {
+    return { lines: [...tableLines], deletedCount: 0 };
+  }
+
+  const validCols = new Set(
+    domColsToDelete.filter(c => c >= 0 && c < totalCols)
+  );
+
+  if (validCols.size === 0) {
+    return { lines: [...tableLines], deletedCount: 0 };
+  }
+
+  if (validCols.size >= totalCols) {
+    return { lines: [...tableLines], deletedCount: 0, error: "cannot_delete_all_columns" };
+  }
+
+  let newLines = tableLines.map(line => {
+    if (!line.trim().startsWith("|")) return line;
+    const isSep = isSeparatorLine(line);
+    const cells = splitTableRow(line);
+    const filteredCells = cells.filter((_, colIdx) => !validCols.has(colIdx));
+    if (isSep) {
+      return `|${filteredCells.map(c => ` ${c.trim()} `).join("|")}|`;
+    }
+    return `| ${filteredCells.join(" | ")} |`;
+  });
+
+  newLines = fixCJKSeparatorWidth(newLines);
+
+  return {
+    lines: newLines,
+    deletedCount: validCols.size,
+  };
+}

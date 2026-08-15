@@ -184,5 +184,7 @@
   "shortcutMoveColLeft": "Move Focused Col Left",
   "shortcutMoveColRight": "Move Focused Col Right",
   "shortcutDeleteCol": "Delete Focused Column",
-  "shortcutDeleteRow": "Delete Focused Row"
+  "shortcutDeleteRow": "Delete Focused Row",
+  "cannotDeleteHeader": "Cannot delete the header row",
+  "cannotDeleteAllColumns": "Table must retain at least one column"
 }

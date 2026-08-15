@@ -17,7 +17,7 @@ import { showMessage } from "siyuan";
 import { SiyuanTextEditor } from "./siyuan-text-editor";
 import { showPasteConfirmDialog } from "./confirm-dialog";
 import type { PluginSettings } from "./settings";
-import { splitTableRow, isSeparatorLine } from "./table-model";
+import { splitTableRow, isSeparatorLine, deleteTableRows, deleteTableColumns } from "./table-model";
 
 /** 模块级剪贴板（会话内持久） */
 interface TableClipboard {
@@ -112,14 +112,69 @@ export class TableEditor {
     await this.ctx.flush();
   }
 
-  async deleteColumn(): Promise<void> {
+  async deleteColumn(selectedCols?: number[]): Promise<void> {
     await this.ctx.reload();
+
+    const cols = selectedCols && selectedCols.length > 0 
+      ? selectedCols 
+      : this.ctx.getSelectedCols();
+
+    // 如果指定了选区列或检测到了选区列
+    if (cols && cols.length >= 1) {
+      const lines = this.ctx.getTableLines();
+      const res = deleteTableColumns(lines, cols);
+      if (res.error === "cannot_delete_all_columns") {
+        showMessage(this.i18n.cannotDeleteAllColumns || "表格至少需要保留一列", 2000, "info");
+        return;
+      }
+      if (res.deletedCount > 0) {
+        this.ctx.setTableLines(res.lines);
+        const currentCoord = this.ctx.getCursorDomCoord();
+        const minDeletedCol = Math.min(...cols);
+        const remainingCols = splitTableRow(res.lines[0]).length;
+        const targetCol = Math.min(minDeletedCol, remainingCols - 1);
+        if (currentCoord) {
+          this.ctx.setPresetCellCoord({ row: currentCoord.row, col: Math.max(0, targetCol) });
+        }
+        await this.ctx.flush();
+        return;
+      }
+    }
+
     this.mte.deleteColumn(this.opts());
     await this.ctx.flush();
   }
 
-  async deleteRow(): Promise<void> {
+  async deleteRow(selectedRows?: number[]): Promise<void> {
     await this.ctx.reload();
+
+    const rows = selectedRows && selectedRows.length > 0 
+      ? selectedRows 
+      : this.ctx.getSelectedRows();
+
+    // 如果指定了选区行或检测到了选区行
+    if (rows && rows.length >= 1) {
+      const lines = this.ctx.getTableLines();
+      const res = deleteTableRows(lines, rows);
+      if (res.error === "cannot_delete_header") {
+        showMessage(this.i18n.cannotDeleteHeader || "无法删除表头行", 2000, "info");
+        return;
+      }
+      if (res.deletedCount > 0) {
+        this.ctx.setTableLines(res.lines);
+        const currentCoord = this.ctx.getCursorDomCoord();
+        const validRows = rows.filter(r => r >= 1);
+        const minDeletedRow = validRows.length > 0 ? Math.min(...validRows) : 1;
+        const totalDomRows = res.lines.length - 1;
+        const targetRow = Math.min(minDeletedRow, totalDomRows - 1);
+        if (currentCoord) {
+          this.ctx.setPresetCellCoord({ row: Math.max(0, targetRow), col: currentCoord.col });
+        }
+        await this.ctx.flush();
+        return;
+      }
+    }
+
     this.mte.deleteRow(this.opts());
     await this.ctx.flush();
   }

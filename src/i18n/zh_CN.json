@@ -184,5 +184,7 @@
   "shortcutMoveColLeft": "向左移动整列",
   "shortcutMoveColRight": "向右移动整列",
   "shortcutDeleteCol": "删除当前整列",
-  "shortcutDeleteRow": "删除当前整行"
+  "shortcutDeleteRow": "删除当前整行",
+  "cannotDeleteHeader": "无法删除表头行",
+  "cannotDeleteAllColumns": "表格至少需要保留一列"
 }

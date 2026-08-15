@@ -1,5 +1,6 @@
 import { getActiveEditor } from "siyuan";
-import { findTableBlock, getCellCoordFromTable } from "./dom-utils";
+import { findTableBlock, getCellCoordFromTable, highlightActiveRowAndCol } from "./dom-utils";
+import { updateLastActiveCell } from "./dock";
 import type TableMaterPlugin from "./index";
 
 export class QuickCalc {
@@ -53,6 +54,8 @@ export class QuickCalc {
     return null;
   }
 
+  private isCrossCellDrag = false;
+
   private onMouseDown(e: MouseEvent) {
     if (!this.plugin.settings.enableQuickCalc) return;
 
@@ -87,6 +90,7 @@ export class QuickCalc {
     if (!coord) return;
 
     this.isMouseDown = true;
+    this.isCrossCellDrag = false;
     this.startCoord = coord;
     this.tableBlock = block;
   }
@@ -106,6 +110,7 @@ export class QuickCalc {
 
     const isCrossCell = this.startCoord.row !== currentCoord.row || this.startCoord.col !== currentCoord.col;
     if (isCrossCell || e.altKey) {
+      this.isCrossCellDrag = true;
       const minRow = Math.min(this.startCoord.row, currentCoord.row);
       const maxRow = Math.max(this.startCoord.row, currentCoord.row);
       const minCol = Math.min(this.startCoord.col, currentCoord.col);
@@ -142,6 +147,12 @@ export class QuickCalc {
   private onMouseUp(_e: MouseEvent) {
     this.isMouseDown = false;
     this.startCoord = null;
+
+    // 如果刚才发生了跨单元格拖选，保持选区与统计条，不自动清除
+    if (this.isCrossCellDrag) {
+      highlightActiveRowAndCol(null, null);
+      return;
+    }
 
     // 延时检测思源原生 tableControl 是否完成了多选
     setTimeout(() => {
@@ -186,6 +197,7 @@ export class QuickCalc {
   /** 清除快捷计算状态 */
   private clearSelection() {
     this.isMouseDown = false;
+    this.isCrossCellDrag = false;
     this.startCoord = null;
     this.tableBlock = null;
     this.hideCalcBar();
@@ -245,6 +257,24 @@ export class QuickCalc {
     const avgStr = numCount > 0 ? this.formatResult(average, allPercent, anyComma) : "-";
 
     this.showCalcBar(count, numCount, sumStr, avgStr);
+
+    // 立即清除单单元格的十字高亮与焦点框
+    highlightActiveRowAndCol(null, null);
+
+    if (tableBlock && minRow !== Infinity && minRow !== -Infinity && maxRow !== -Infinity) {
+      const selRows: number[] = [];
+      for (let r = minRow; r <= maxRow; r++) selRows.push(r);
+      const selCols: number[] = [];
+      for (let c = minCol; c <= maxCol; c++) selCols.push(c);
+
+      updateLastActiveCell({
+        blockId: tableBlock.dataset.nodeId || "",
+        coord: { row: minRow, col: minCol },
+        tableBlock,
+        selectedRows: selRows,
+        selectedCols: selCols,
+      });
+    }
 
     // 联动同步更新右侧 Dock 栏状态卡片内容
     const dockStatusText = document.querySelector("#at-status-text") as HTMLElement;

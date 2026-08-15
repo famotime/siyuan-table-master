@@ -5,6 +5,8 @@
  * 所有函数都是纯 DOM 操作，不依赖内核 API。
  */
 
+import { getActiveEditor } from "siyuan";
+
 /** 表格单元格坐标（行列从 0 开始，不含分隔行） */
 export interface CellCoord {
   /** 行号（0 = 表头，1 = 第一行数据...），不含分隔行 */
@@ -286,6 +288,29 @@ export function highlightActiveRowAndCol(
   const table = tableBlock.querySelector("table");
   if (!table) return;
 
+  // 如果当前处于多选单元格状态，不显示单单元格焦点高亮，避免遮挡原生多选或在光标折叠处（如右下角）出现误导性蓝框
+  const multiSelected = tableBlock.querySelectorAll(
+    "td.protyle-wysiwyg--select, th.protyle-wysiwyg--select, " +
+    "td.protyle-table-control__select, th.protyle-table-control__select, " +
+    "td.table-control__select, th.table-control__select, " +
+    "td[data-select], th[data-select], td[select], th[select], " +
+    ".at-selected-cell, td.selected, th.selected"
+  );
+  if (multiSelected.length > 1) {
+    styleEl.innerHTML = "";
+    return;
+  }
+
+  let activeEditor: any = null;
+  try {
+    activeEditor = getActiveEditor();
+  } catch (_) {}
+  const selRange = getSelectedTableRange(tableBlock, activeEditor?.protyle?.wysiwyg);
+  if (selRange && (selRange.rows.length > 1 || selRange.cols.length > 1)) {
+    styleEl.innerHTML = "";
+    return;
+  }
+
   const rows = table.querySelectorAll("tr");
   if (coord.row < 0 || coord.row >= rows.length) return;
 
@@ -348,23 +373,164 @@ export function escapeHtml(str: string): string {
  * @returns 坐标或 null（不在表格内）
  */
 export function getCellCoordFromTable(
-  cell: HTMLTableCellElement,
+  cell: Element,
   tableBlock: HTMLElement,
 ): { row: number; col: number } | null {
   const table = tableBlock.querySelector("table");
   if (!table) return null;
 
-  const rows = Array.from(table.querySelectorAll("tr"));
-  const tr = cell.parentElement as HTMLTableRowElement;
+  const targetCell = (cell.closest ? cell.closest("td, th") : cell) as HTMLTableCellElement | null;
+  if (!targetCell) return null;
+
+  const tr = targetCell.closest("tr") as HTMLTableRowElement | null;
   if (!tr) return null;
 
+  const rows = Array.from(table.querySelectorAll("tr"));
   const rowIdx = rows.indexOf(tr);
   if (rowIdx === -1) return null;
 
   const cells = Array.from(tr.querySelectorAll("td, th"));
-  const colIdx = cells.indexOf(cell);
+  const colIdx = cells.indexOf(targetCell);
   if (colIdx === -1) return null;
 
   return { row: rowIdx, col: colIdx };
 }
 
+/** 表格选区行列范围 */
+export interface SelectedTableRange {
+  rows: number[];
+  cols: number[];
+}
+
+/**
+ * 获取表格当前选中的行和列范围。
+ * 综合检测：
+ * 1. 思源原生 wysiwyg.tableControl 实例状态
+ * 2. DOM 中已选中的单元格 class 与属性 (protyle-table-control__select, protyle-wysiwyg--select, data-select, at-selected-cell)
+ * 3. window.getSelection() 跨单元格选区
+ */
+export function getSelectedTableRange(
+  tableBlock: HTMLElement,
+  protyleWysiwyg?: any
+): SelectedTableRange | null {
+  const rowsSet = new Set<number>();
+  const colsSet = new Set<number>();
+
+  const addCoord = (coord: { row: number; col: number } | null | undefined) => {
+    if (!coord) return;
+    if (Number.isInteger(coord.row) && coord.row >= 0) rowsSet.add(coord.row);
+    if (Number.isInteger(coord.col) && coord.col >= 0) colsSet.add(coord.col);
+  };
+
+  const addCell = (c: any) => {
+    if (!c) return;
+    addCoord(getCellCoordFromTable(c, tableBlock));
+  };
+
+  const addCellList = (list: any) => {
+    if (!list || typeof list.length !== "number") return;
+    for (let i = 0; i < list.length; i++) addCell(list[i]);
+  };
+
+  const addRowRange = (a: any, b: any) => {
+    if (!Number.isInteger(a) || !Number.isInteger(b)) return;
+    const min = Math.min(a, b);
+    const max = Math.max(a, b);
+    for (let r = min; r <= max; r++) rowsSet.add(r);
+  };
+
+  const addColRange = (a: any, b: any) => {
+    if (!Number.isInteger(a) || !Number.isInteger(b)) return;
+    const min = Math.min(a, b);
+    const max = Math.max(a, b);
+    for (let c = min; c <= max; c++) colsSet.add(c);
+  };
+
+  const addRect = (start: { row: number; col: number }, end: { row: number; col: number }) => {
+    addRowRange(start.row, end.row);
+    addColRange(start.col, end.col);
+  };
+
+  let activeEditor: any = null;
+  try {
+    activeEditor = getActiveEditor();
+  } catch (_) {}
+  const wysiwyg = protyleWysiwyg || activeEditor?.protyle?.wysiwyg;
+  const tableControl = (wysiwyg as any)?.tableControl;
+
+  // 1. 思源原生 tableControl：把所有可能暴露选区的字段都合并，避免只取到最后落点单元格。
+  if (tableControl) {
+    try {
+      if (typeof tableControl.getSelectedCells === "function") {
+        addCellList(tableControl.getSelectedCells());
+      }
+      addCellList(tableControl.selectedCells);
+
+      if (tableControl.selection) {
+        const selObj = tableControl.selection;
+        addCellList(selObj.cellElements);
+        addCellList(selObj.cells);
+
+        if (selObj.startCell && selObj.endCell) {
+          const startCoord = getCellCoordFromTable(selObj.startCell, tableBlock);
+          const endCoord = getCellCoordFromTable(selObj.endCell, tableBlock);
+          if (startCoord && endCoord) addRect(startCoord, endCoord);
+        }
+        if (Number.isInteger(selObj.rowStart) && Number.isInteger(selObj.rowEnd)) {
+          addRowRange(selObj.rowStart, selObj.rowEnd);
+        }
+        if (Number.isInteger(selObj.colStart) && Number.isInteger(selObj.colEnd)) {
+          addColRange(selObj.colStart, selObj.colEnd);
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 2. DOM 已选中的单元格 class 与属性，始终参与合并，不因 tableControl 已返回部分结果而跳过。
+  const selectedCells = Array.from(
+    tableBlock.querySelectorAll(
+      "td.protyle-table-control__select, th.protyle-table-control__select, " +
+      "td.protyle-wysiwyg--select, th.protyle-wysiwyg--select, " +
+      "td.table-control__select, th.table-control__select, " +
+      "td[data-select='true'], th[data-select='true'], td[select='true'], th[select='true'], " +
+      "td[data-select], th[data-select], " +
+      ".at-selected-cell, td.selected, th.selected"
+    )
+  );
+  for (const cell of selectedCells) addCell(cell);
+
+  // 3. window.getSelection() 跨单元格选区，始终参与合并。
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    try {
+      const range = sel.getRangeAt(0);
+      const startCell = getCellFromRange(range, tableBlock);
+      let endCell: HTMLTableCellElement | null = null;
+      let node: Node | null = range.endContainer;
+      while (node && node !== tableBlock) {
+        if (node instanceof HTMLTableCellElement) {
+          endCell = node;
+          break;
+        }
+        node = node.parentNode;
+      }
+
+      if (startCell && endCell) {
+        const startCoord = getCellCoordFromTable(startCell, tableBlock);
+        const endCoord = getCellCoordFromTable(endCell, tableBlock);
+        if (startCoord && endCoord) addRect(startCoord, endCoord);
+      } else if (startCell) {
+        addCell(startCell);
+      }
+    } catch (_) {}
+  }
+
+  if (rowsSet.size === 0 || colsSet.size === 0) {
+    return null;
+  }
+
+  return {
+    rows: Array.from(rowsSet).sort((a, b) => a - b),
+    cols: Array.from(colsSet).sort((a, b) => a - b),
+  };
+}

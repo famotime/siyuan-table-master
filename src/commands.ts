@@ -122,6 +122,8 @@ export async function executeCommand(
     tableBlock: HTMLElement;
     blockId: string;
     coord: CellCoord;
+    selectedRows?: number[];
+    selectedCols?: number[];
   } | null,
   i18n: any = {},
 ): Promise<void> {
@@ -299,6 +301,8 @@ export async function executeCommand(
       blockId,
       fixCJKWidth: settings.fixCJKWidth,
       presetCellCoord,
+      selectedRows: preset?.selectedRows,
+      selectedCols: preset?.selectedCols,
     });
     const te = new TableEditor(ctx, settings, i18n);
 

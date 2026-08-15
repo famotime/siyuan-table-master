@@ -1,7 +1,7 @@
 import { getActiveEditor, showMessage } from "siyuan";
 import { isCursorInTable } from "./siyuan-text-editor";
 import { TABLE_COMMANDS, executeCommand, TableCommand } from "./commands";
-import { rangeToCellCoord, CellCoord, findTableBlock, findHtmlTableBlock } from "./dom-utils";
+import { rangeToCellCoord, CellCoord, findTableBlock, findHtmlTableBlock, getSelectedTableRange } from "./dom-utils";
 import { saveSettings } from "./settings";
 import { HTML_TABLE_COMMANDS, executeHtmlCommand } from "./html-commands";
 
@@ -50,10 +50,33 @@ export const SVG_ICONS: Record<string, string> = {
 // ═══════════════════════════════════════════════════
 
 /** Dock 状态缓存类型 */
-interface ActiveCellState {
+export interface ActiveCellState {
   blockId: string;
   coord: CellCoord;
   tableBlock: HTMLElement;
+  selectedRows?: number[];
+  selectedCols?: number[];
+}
+
+function isMultiCellSelection(cell: ActiveCellState | null | undefined): boolean {
+  return !!cell && (
+    (cell.selectedRows?.length ?? 0) > 1 ||
+    (cell.selectedCols?.length ?? 0) > 1
+  );
+}
+
+let globalLastActiveCell: ActiveCellState | null = null;
+let globalUpdateLastActiveCellHandler: ((cell: ActiveCellState | null) => void) | null = null;
+
+export function updateLastActiveCell(state: ActiveCellState | null): void {
+  globalLastActiveCell = state;
+  if (globalUpdateLastActiveCellHandler) {
+    globalUpdateLastActiveCellHandler(state);
+  }
+}
+
+export function getLastActiveCell(): ActiveCellState | null {
+  return globalLastActiveCell;
 }
 
 /** 命令功能分组描述 */
@@ -224,12 +247,32 @@ function updateDockStatus(
   if (inTable && tableBlock) {
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
-      const coord = rangeToCellCoord(range, tableBlock);
+      let coord = rangeToCellCoord(range, tableBlock);
+      const activeEditor = getActiveEditor();
+      const selRange = getSelectedTableRange(tableBlock, activeEditor?.protyle?.wysiwyg);
+
+      // Alt+拖选等自定义多选区没有原生的 cell class，getSelectedTableRange 可能会
+      // 把焦点落在右下角的单格误判为当前选区。此时保留已有的多选缓存，避免删除行/列时只删最后一行/列。
+      const blockId = tableBlock.dataset.nodeId || "";
+      const previousCell = lastActiveCell;
+      const preserveMulti = previousCell && previousCell.blockId === blockId && isMultiCellSelection(previousCell);
+      const selectedRows = (preserveMulti && previousCell?.selectedRows?.length)
+        ? previousCell?.selectedRows
+        : selRange?.rows;
+      const selectedCols = (preserveMulti && previousCell?.selectedCols?.length)
+        ? previousCell?.selectedCols
+        : selRange?.cols;
+
+      if (selectedRows && selectedRows.length > 0 && selectedCols && selectedCols.length > 0) {
+        coord = { row: selectedRows[0], col: selectedCols[0] };
+      }
       if (coord) {
         updateLastActiveCell({
-          blockId: tableBlock.dataset.nodeId || "",
+          blockId,
           coord,
           tableBlock,
+          selectedRows,
+          selectedCols,
         });
       }
     }
@@ -443,28 +486,58 @@ export function registerDock(plugin: TableMaterPlugin) {
           const activeEditor = getActiveEditor();
           if (!activeEditor?.protyle) return;
           const sel = window.getSelection();
-          if (!sel || sel.rangeCount === 0) return;
-          const range = sel.getRangeAt(0);
-          let node: Node | null = range.startContainer;
           let capturedTableBlock: HTMLElement | null = null;
-          while (node && node !== document.body) {
-            if (node instanceof HTMLElement && node.dataset.type === "NodeTable" && node.dataset.nodeId) {
-              capturedTableBlock = node;
-              break;
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            let node: Node | null = range.startContainer;
+            while (node && node !== document.body) {
+              if (node instanceof HTMLElement && node.dataset.type === "NodeTable" && node.dataset.nodeId) {
+                capturedTableBlock = node;
+                break;
+              }
+              node = node.parentNode;
             }
-            node = node.parentNode;
+          }
+          if (!capturedTableBlock && lastActiveCell) {
+            capturedTableBlock = lastActiveCell.tableBlock;
           }
           if (!capturedTableBlock) return;
-          const coord = rangeToCellCoord(range, capturedTableBlock);
-          if (!coord) return;
+
+          const selRange = getSelectedTableRange(capturedTableBlock, activeEditor.protyle.wysiwyg);
+          let coord = lastActiveCell?.coord;
+          if (sel && sel.rangeCount > 0) {
+            const rangeCoord = rangeToCellCoord(sel.getRangeAt(0), capturedTableBlock);
+            if (rangeCoord) coord = rangeCoord;
+          }
+
+          const blockId = capturedTableBlock.dataset.nodeId || "";
 
           // 连续点击按钮时，如果正在对同一个表格执行 Dock 连续操作，不要用当前未渲染完毕的 DOM 选区覆盖掉已经精确推演出的缓存状态
-          const blockId = capturedTableBlock.dataset.nodeId || "";
           if (lastActiveCell && lastActiveCell.blockId === blockId && dockOperationActive) {
             return;
           }
 
-          lastActiveCell = { blockId, coord, tableBlock: capturedTableBlock };
+          const previousCell = lastActiveCell;
+          const preserveMulti = previousCell && previousCell.blockId === blockId && isMultiCellSelection(previousCell);
+          const selectedRows = (preserveMulti && previousCell?.selectedRows?.length)
+            ? previousCell?.selectedRows
+            : selRange?.rows;
+          const selectedCols = (preserveMulti && previousCell?.selectedCols?.length)
+            ? previousCell?.selectedCols
+            : selRange?.cols;
+
+          if (selectedRows && selectedRows.length > 0 && selectedCols && selectedCols.length > 0) {
+            coord = { row: selectedRows[0], col: selectedCols[0] };
+          }
+          if (!coord) return;
+
+          lastActiveCell = {
+            blockId,
+            coord,
+            tableBlock: capturedTableBlock,
+            selectedRows,
+            selectedCols,
+          };
         });
 
         btn.addEventListener("click", async (e) => {
@@ -474,9 +547,30 @@ export function registerDock(plugin: TableMaterPlugin) {
           dockOperationActive = true;
           if (dockOperationTimeoutId) clearTimeout(dockOperationTimeoutId);
 
+          const activeCell = lastActiveCell || getLastActiveCell();
           let preset = null;
-          if (lastActiveCell) {
-            preset = { tableBlock: lastActiveCell.tableBlock, blockId: lastActiveCell.blockId, coord: { ...lastActiveCell.coord } };
+          if (activeCell) {
+            const activeEditor = getActiveEditor();
+            const currentSelRange = getSelectedTableRange(activeCell.tableBlock, activeEditor?.protyle?.wysiwyg);
+            const selectedRows = (activeCell.selectedRows && activeCell.selectedRows.length > 0)
+              ? activeCell.selectedRows
+              : (currentSelRange?.rows && currentSelRange.rows.length > 0 ? currentSelRange.rows : undefined);
+            const selectedCols = (activeCell.selectedCols && activeCell.selectedCols.length > 0)
+              ? activeCell.selectedCols
+              : (currentSelRange?.cols && currentSelRange.cols.length > 0 ? currentSelRange.cols : undefined);
+
+            let coord = { ...activeCell.coord };
+            if (selectedRows && selectedRows.length > 0 && selectedCols && selectedCols.length > 0) {
+              coord = { row: selectedRows[0], col: selectedCols[0] };
+            }
+
+            preset = {
+              tableBlock: activeCell.tableBlock,
+              blockId: activeCell.blockId,
+              coord,
+              selectedRows,
+              selectedCols,
+            };
           }
 
           // 命令执行期间，阻断悬浮工具栏重绘并立即隐藏
@@ -505,6 +599,12 @@ export function registerDock(plugin: TableMaterPlugin) {
           }
 
           if (lastActiveCell) {
+            // 如果执行了删除操作，清空缓存的多选行列，防止后续操作继续使用旧选区
+            if (cmd.id === "delete-row" || cmd.id === "delete-column") {
+              lastActiveCell.selectedRows = undefined;
+              lastActiveCell.selectedCols = undefined;
+            }
+
             const coord = lastActiveCell.coord;
             if (cmd.id === "move-row-up") coord.row = Math.max(0, coord.row - 1);
             else if (cmd.id === "move-row-down") coord.row = coord.row + 1;
@@ -564,6 +664,10 @@ export function registerDock(plugin: TableMaterPlugin) {
         });
       });
 
+      globalUpdateLastActiveCellHandler = (cell) => {
+        lastActiveCell = cell;
+      };
+
       // 状态更新回调
       const refreshStatus = () => {
         requestAnimationFrame(() => {
@@ -573,7 +677,10 @@ export function registerDock(plugin: TableMaterPlugin) {
             lastActiveCell,
             elements,
             this.element,
-            (cell) => { lastActiveCell = cell; },
+            (cell) => { 
+              lastActiveCell = cell; 
+              globalLastActiveCell = cell;
+            },
           );
         });
       };
@@ -583,6 +690,7 @@ export function registerDock(plugin: TableMaterPlugin) {
       refreshStatus();
     },
     destroy() {
+      globalUpdateLastActiveCellHandler = null;
       if (selectionListener) {
         document.removeEventListener("selectionchange", selectionListener);
         selectionListener = null;
