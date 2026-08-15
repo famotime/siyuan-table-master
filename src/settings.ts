@@ -30,7 +30,7 @@ export const defaultSettings: PluginSettings = {
   showFloatingToolbar: true,
   enableSmartPaste: true,
   enableQuickCalc: true,
-  enableDragReorder: true,
+  enableDragReorder: false,
   enableLog: false,
 };
 

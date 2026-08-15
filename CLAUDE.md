@@ -8,83 +8,102 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pnpm install            # Install dependencies
 npm run build           # Production build → ./dist/ + ./package.zip
 npm run dev             # Watch mode, auto-copies to SiYuan workspace (requires .env)
-npm test                # Run all tests (vitest, 103 tests)
+npm test                # Run all tests (vitest, 183 tests across 14 suites)
 npm run test:watch      # Watch mode for tests
 npm run release         # Interactive version bump + git tag + push
 npm run release:patch   # Auto patch bump
-npx eslint src/         # Lint (ESLint config currently broken due to missing i18n plugin)
 ```
 
-- For dev mode, set `VITE_SIYUAN_WORKSPACE_PATH` in `.env` pointing to your SiYuan workspace
-- After rebuilding, reload the plugin in SiYuan (disable/re-enable or restart)
+- For dev mode, set `VITE_SIYUAN_WORKSPACE_PATH` in `.env` pointing to your SiYuan workspace plugin directory.
+- After rebuilding, reload the plugin inside SiYuan (disable/re-enable or restart).
 
 ## Project Architecture
 
-SiYuan note plugin that enhances NodeTable blocks with advanced editing. Reuses `@tgrosinger/md-advanced-tables` core library (from Obsidian) via a SiYuan adapter.
+SiYuan note plugin (v1.1.5) that provides advanced table capabilities across two tracks:
+1. **Markdown Tables (`NodeTable`)**: Enhances native tables using `@tgrosinger/md-advanced-tables` core via a custom SiYuan `ITextEditor` adapter. Supports cell navigation, formatting, formulas/sum, drag reordering, charting, database conversion, and CSV/XLSX export.
+2. **HTML Complex Tables (`NodeHTMLBlock`)**: Full visual dialog editor supporting merged cells (`rowspan`/`colspan`), typography/borders/colors styling, and converting HTML tables back to native Markdown tables.
 
-### Data Flow (single operation)
-
-```
-Command/Key → commands.ts → SiyuanTextEditor → TableEditor → core library
-                                 (reload)         (flush)
-GET /api/block/getBlockKramdown            POST /api/block/updateBlock(markdown)
-```
-
-### Key Files
-
-| File | Role |
-|---|---|
-| `src/index.ts` | Plugin entry — `TableMaterPlugin extends Plugin`, loads settings, registers commands, keybinds, sub-modules |
-| `src/commands.ts` | 20+ table command definitions + `registerCommands` / `executeCommand` dispatcher |
-| `src/text-to-table.ts` | Text-to-table UI logic — `executeTextToTable` + `showTextToTableDialog` (depends on siyuan runtime) |
-| `src/text-to-table-utils.ts` | Text-to-table pure functions — `parseLines`, `isBoxDrawingTable`, `gridToMarkdown` (unit-testable) |
-| `src/table-editor.ts` | Facade wrapping core library's `TableEditor` + copy/paste/sum operations |
-| `src/siyuan-text-editor.ts` | **Core adapter** — implements `ITextEditor` via in-memory line model, reads kramdown from kernel API, writes back with `updateBlock`. Also exposes `getLineCount/getLineAt/setLineAt/insertLineAt/removeLine/markDirty` for external modules |
-| `src/dom-utils.ts` | DOM helpers: find table block, Range ↔ (row, col) mapping, `highlightActiveRowAndCol`, `escapeHtml`, `getCellCoordFromTable` |
-| `src/table-model.ts` | Pure functions: kramdown ↔ line arrays, CJK display width utilities |
-| `src/keybind.ts` | Capture-phase keydown listener for Tab/Enter interception |
-| `src/settings.ts` | PluginSettings interface, load/save via `plugin.loadData/saveData` |
-| `src/dock.ts` | Side-panel toolbox — status detection, button grid, tooltip bar |
-| `src/floating-toolbar.ts` | Floating toolbar — follows cursor, re-positions on scroll/resize |
-| `src/smart-paste.ts` | Smart paste — HTML/TSV parsing → grid → table fill |
-| `src/quick-calc.ts` | Quick calculation — Alt+drag selection, sum/average/count bar |
-| `src/drag-reorder.ts` | Drag reorder — row/col drag handles + indicator line + cursor tracking |
-| `src/confirm-dialog.ts` | Paste override confirmation dialog |
-| `src/utils/index.ts` | Shared utility re-exports (`escapeHtml`, `getCellCoordFromTable`, `parseLines`, `gridToMarkdown`) |
-
-### Architecture Decisions
-
-- **Write path**: `/api/block/updateBlock` (kernel API with markdown data type) — more reliable than `protyle.updateTransactionElement`. Undo handled at adapter level.
-- **Cursor mapping**: kramdown text offset (approximate), recovery goes to cell start by default.
-- **Asynchrony absorption**: `SiyuanTextEditor` pre-loads all lines into memory on `reload()`, operates synchronously, flushes with one async write.
-- **Keyboard interception**: DOM capture-phase listener catches Tab/Enter before SiYuan's default handlers.
-- **Adapter encapsulation**: External modules (smart-paste, drag-reorder) access the line model through public methods (`getLineCount`, `getLineAt`, `setLineAt`, `insertLineAt`, `removeLine`, `markDirty`) — never via `(ctx as any)._lines`.
-
-### Line Model Mapping
+### Data Flow
 
 ```
-DOM: thead > tr[0] (header) → Core lib: Row 0
-DOM: tbody > tr[0] (data 1) → Core lib: Row 2 (separator at Row 1 skipped)
+[Markdown Operation]
+Command / Key / UI → commands.ts → SiyuanTextEditor → TableEditor → md-advanced-tables core
+                                          ↑ (reload)                         ↓ (flush)
+                                  GET /api/block/getBlockKramdown    POST /api/block/updateBlock
+
+[HTML Table Edit / Conversion]
+HtmlFloatingToolbar / Dock → HtmlDialogEditor → HtmlTableEditor → POST /api/block/updateBlock
+                                      ↳ HtmlToMd → Native NodeTable block
 ```
 
-Kramdown IAL (`{: id="..."}`) is managed separately by the adapter.
+## Key Files & Modules
 
-### Tests
+| Area | File | Role |
+|---|---|---|
+| **Core & Lifecycle** | `src/index.ts` | Plugin entry point, registers commands, dock, toolbars, event listeners, and settings |
+| | `src/siyuan-text-editor.ts` | `ITextEditor` adapter: manages in-memory line model, syncs with kernel API, exposes line manipulation APIs |
+| | `src/table-editor.ts` | Facade wrapping core library's `TableEditor` + calculation, paste, split, and sum operations |
+| | `src/table-model.ts` | Pure functions: Kramdown ↔ 2D row matrix, separator line detection, CJK width calculation |
+| | `src/commands.ts` | Table commands registration and execution dispatch |
+| **Interactive UI** | `src/dock.ts` | Right dock toolbox (actions, alignment, formatting, charts, DB, exports, samples) |
+| | `src/floating-toolbar.ts` | Cursor-following floating toolbar for Markdown tables |
+| | `src/drag-reorder.ts` | Row/column drag-and-drop handles and reorder logic |
+| | `src/quick-calc.ts` | Alt+drag multi-cell selection quick calculation (sum, avg, count; supports commas and percentages) |
+| | `src/smart-paste.ts` | Smart clipboard HTML/TSV parsing and grid pasting |
+| | `src/dom-utils.ts` | DOM helpers: table block lookup, Range ↔ cell coordinate mapping, highlight rows/cols |
+| **HTML Tables** | `src/html-dialog-editor.ts` | Visual dialog for complex HTML tables (cell merging, alignment, borders, padding, styling, undo/redo) |
+| | `src/html-floating-toolbar.ts`| Floating button above HTML tables to trigger visual editor |
+| | `src/html-table-editor.ts` | HTML block DOM/kramdown loader and updater |
+| | `src/html-to-md.ts` | Pure function / DOM converter from HTML table to native Markdown table |
+| | `src/html-commands.ts` | HTML table shortcut commands |
+| **Extensions** | `src/table-to-db-dialog.ts` | Markdown table to SiYuan Database / Attribute View (AV) configuration dialog |
+| | `src/table-to-db-utils.ts` | Pure functions: smart column type inference (text, number, date, select, checkbox, url) |
+| | `src/table-to-chart.ts` | Generates ECharts chart code block from table data |
+| | `src/table-export.ts` | Export table to CSV / XLSX with markdown formatting stripped |
+| | `src/text-to-table.ts` | Text-to-table UI dialog |
+| | `src/text-to-table-utils.ts` | Text-to-table parser (TSV, CSV, box-drawing, space-aligned) |
+| | `src/sample-tables.ts` | Predefined sample Markdown and HTML tables |
+| **Infrastructure** | `src/settings.ts` | `PluginSettings` interface, load/save/clear config |
+| | `src/logger.ts` | Unified logging utility with toggle support |
+| | `src/confirm-dialog.ts` | Generic confirmation dialog modal |
 
-- `__tests__/table-model.test.ts` (29 tests) — pure function unit tests
-- `__tests__/core-library.test.ts` (21 tests) — core lib integration with `InMemoryTextEditor` fixture
-- `__tests__/kramdown-roundtrip.test.ts` (24 tests) — round-trip with SiYuan-style kramdown
-- `__tests__/text-to-table.test.ts` (20 tests) — text-to-table pure functions (parseLines, escapeHtml, gridToMarkdown, isBoxDrawingTable)
-- `__tests__/dom-utils.test.ts` (5 tests) — dom-utils pure functions (escapeHtml, getCellCoordFromTable)
-- `__tests__/helpers/InMemoryTextEditor.ts` — test double for `ITextEditor`
-- **Total: 103 tests**
+## Architecture Decisions & Constraints
 
-### Settings
+- **Write path**: Kernel API `POST /api/block/updateBlock` with markdown data type.
+- **Asynchrony Absorption**: `SiyuanTextEditor` preloads lines in memory via `reload()`, executes table operations synchronously, and flushes with a single write on `flush()`.
+- **Adapter Encapsulation**: External modules access line data through public methods (`getLineCount`, `getLineAt`, `setLineAt`, `insertLineAt`, `removeLine`, `markDirty`) — never access `(ctx as any)._lines`.
+- **Line Model Mapping**:
+  - `_lines[0]` = Header row
+  - `_lines[1]` = Separator row (`| :--- | ---: |`)
+  - `_lines[2+]` = Data rows
+  - Block IAL (`{: id="..."}`) is tracked and preserved separately.
+- **Testability**: Pure transformations are strictly isolated in `*-utils.ts`, `table-model.ts`, `html-to-md.ts`, and `table-export.ts` without browser/SiYuan API dependencies to enable comprehensive Vitest testing.
 
-- `formatType`: `WEAK` (default) / `NORMAL`
-- `showFloatingToolbar`: show floating toolbar when cursor in table (default: true)
-- `enableSmartPaste`: smart clipboard paste (default: true)
-- `enableQuickCalc`: Alt+drag selection calc (default: true)
-- `enableDragReorder`: drag row/col reorder (default: true)
-- `fixCJKWidth`: CJK width correction (default: true)
-- `showTopBarIcon` (default: true)
+## Settings (`PluginSettings`)
+
+- `formatType`: `WEAK` (default, no extra padding) / `NORMAL`
+- `fixCJKWidth`: CJK character display width correction (default: `true`)
+- `showTopBarIcon`: Show settings icon in SiYuan top bar (default: `true`)
+- `showFloatingToolbar`: Show floating toolbar for Markdown tables (default: `true`)
+- `enableSmartPaste`: Smart clipboard paste (default: `true`)
+- `enableQuickCalc`: Alt+drag selection quick calc (default: `true`)
+- `enableDragReorder`: Drag handles for row/col reordering (default: `false`)
+- `enableLog`: Console debugging logs output (default: `false`)
+
+## Tests (184 total across 14 suites)
+
+All unit tests run via `npm test`:
+- `__tests__/table-model.test.ts` (33)
+- `__tests__/kramdown-roundtrip.test.ts` (32)
+- `__tests__/text-to-table.test.ts` (25)
+- `__tests__/core-library.test.ts` (21)
+- `__tests__/html-to-md.test.ts` (13)
+- `__tests__/quick-calc.test.ts` (12)
+- `__tests__/sum-cells.test.ts` (10)
+- `__tests__/table-to-db-utils.test.ts` (9)
+- `__tests__/clipboard-operations.test.ts` (7)
+- `__tests__/table-export.test.ts` (7)
+- `__tests__/split-all-cells.test.ts` (6)
+- `__tests__/dom-utils.test.ts` (5)
+- `__tests__/resize-table.test.ts` (2)
+- `__tests__/settings.test.ts` (2)

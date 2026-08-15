@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { clearSettings } from "../src/settings";
+import { clearSettings, defaultSettings } from "../src/settings";
+
+describe("defaultSettings", () => {
+  it("has enableDragReorder disabled by default", () => {
+    expect(defaultSettings.enableDragReorder).toBe(false);
+  });
+});
 
 describe("clearSettings", () => {
   it("removes the same storage key used for plugin settings", async () => {
@@ -11,3 +17,4 @@ describe("clearSettings", () => {
     expect(removeData).toHaveBeenCalledWith("config");
   });
 });
+
