@@ -37,13 +37,18 @@ function createToggleSetting(
   settings: PluginSettings,
   i18n: Record<string, string>,
   item: ToggleSettingItem,
+  onChange?: (value: boolean) => Promise<void> | void,
 ): void {
   const check = document.createElement("input");
   check.type = "checkbox";
   check.className = "b3-switch fn__flex-center";
   check.checked = settings[item.key] as boolean;
-  check.addEventListener("change", (e) => {
-    (settings as any)[item.key] = (e.target as HTMLInputElement).checked;
+  check.addEventListener("change", async (e) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    (settings as any)[item.key] = checked;
+    if (onChange) {
+      await onChange(checked);
+    }
   });
   setting.addItem({
     title: i18n[item.i18nTitleKey] || item.defaultTitle,
@@ -218,23 +223,7 @@ export default class TableMaterPlugin extends Plugin {
       this.dragReorder.hideHandles();
     }
 
-    const setting = new Setting({
-      confirmCallback: async () => {
-        await saveSettings(this, this.settings);
-        setLogEnabled(this.settings.enableLog);
-        if (this.floatingToolbar) {
-          this.floatingToolbar.update();
-        }
-        if (this.htmlFloatingToolbar) {
-          this.htmlFloatingToolbar.update();
-        }
-        // 同步更新 Dock 侧栏开关状态
-        const dockCheckbox = document.getElementById("at-toggle-floating-toolbar") as HTMLInputElement;
-        if (dockCheckbox) {
-          dockCheckbox.checked = this.settings.showFloatingToolbar;
-        }
-      },
-    });
+    const setting = new Setting({});
 
     const TOGGLES: ToggleSettingItem[] = [
       { key: "showFloatingToolbar", i18nTitleKey: "showFloatingToolbar", defaultTitle: "当光标在表格内时显示浮动工具栏", i18nDescKey: "showFloatingToolbarDesc", defaultDesc: "开启后，光标进入表格时将在光标附近显示浮动的快速操作工具栏" },
@@ -246,7 +235,24 @@ export default class TableMaterPlugin extends Plugin {
     ];
 
     for (const item of TOGGLES) {
-      createToggleSetting(setting, this.settings, this.i18n, item);
+      createToggleSetting(setting, this.settings, this.i18n, item, async () => {
+        await saveSettings(this, this.settings);
+        setLogEnabled(this.settings.enableLog);
+        if (this.floatingToolbar) {
+          this.floatingToolbar.update();
+        }
+        if (this.htmlFloatingToolbar) {
+          this.htmlFloatingToolbar.update();
+        }
+        if (!this.settings.enableDragReorder && this.dragReorder) {
+          this.dragReorder.hideHandles();
+        }
+        // 同步更新 Dock 侧栏开关状态
+        const dockCheckbox = document.getElementById("at-toggle-floating-toolbar") as HTMLInputElement;
+        if (dockCheckbox) {
+          dockCheckbox.checked = this.settings.showFloatingToolbar;
+        }
+      });
     }
 
     setting.open(this.i18n.settingsTitle || "Table Master Settings");

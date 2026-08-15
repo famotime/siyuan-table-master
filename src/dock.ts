@@ -453,6 +453,9 @@ export function registerDock(plugin: TableMaterPlugin) {
           if (plugin.floatingToolbar) {
             plugin.floatingToolbar.update();
           }
+          if (plugin.htmlFloatingToolbar) {
+            plugin.htmlFloatingToolbar.update();
+          }
         });
       }
 
