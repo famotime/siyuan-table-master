@@ -2,7 +2,7 @@
   "name": "siyuan-table-master",
   "author": "Quincy Zou",
   "url": "https://github.com/famotime/siyuan-table-master",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "minAppVersion": "3.5.7",
   "disabledInPublish": true,
   "backends": [
@@ -27,5 +27,5 @@
   "readme": {
     "default": "README.md"
   },
-  "keywords": ["table", "markdown", "formula"]
+  "keywords": ["table", "markdown", "html"]
 }
