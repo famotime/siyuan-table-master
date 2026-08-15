@@ -1,16 +1,8 @@
 import { fetchSyncPost, showMessage } from "siyuan";
+import { escapeHtml } from "./dom-utils";
 import { logger } from "./logger";
 
-/**
- * 转义 HTML 特殊字符
- */
-export function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+export { escapeHtml };
 
 /**
  * 转换 HTML 单元格内联元素为 Markdown 语法
@@ -441,4 +433,130 @@ export function convertHtmlTableToMarkdown(plugin: any, blockId: string): Promis
       showMessage(i18n.errOperationFailed || "转换过程出错", 3000, "error");
     }
   })();
+}
+
+interface ActiveHtmlSpan {
+  remainingRows: number;
+  tagName: string;
+}
+
+function getHtmlSpan(attributes: string, name: "colspan" | "rowspan"): number {
+  const match = attributes.match(new RegExp(`\\b${name}\\s*=\\s*(?:"(\\d+)"|'(\\d+)'|(\\d+))`, "i"));
+  const value = Number(match?.[1] || match?.[2] || match?.[3] || 1);
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+/** 从单元格或行 IAL 中移除合并属性，保留其他单元格属性。 */
+export function removeMergeAttributes(cell: string): string {
+  return cell.replace(/\{:\s*([^}]*)\}/g, (_match, attributes: string) => {
+    const remaining = attributes
+      .replace(/(?:^|\s+)(?:colspan|rowspan)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s}]+)/gi, "")
+      .trim();
+    return remaining ? `{: ${remaining}}` : "";
+  }).trim();
+}
+
+/** 将 HTML 表格转译并解包扩展为思源原生 Markdown 表格行数组与 IAL 行。 */
+export function convertHtmlTableToMarkdownKramdown(kramdown: string): { tableLines: string[]; ialLine: string | null } | null {
+  if (!/^\s*<table\b/i.test(kramdown)) {
+    return null;
+  }
+
+  // 提取块级 IAL 行（在 </table> 后以 {: 开头的行）
+  const lines = kramdown.split("\n");
+  let ialLine: string | null = null;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith("{:")) {
+      ialLine = lines[i];
+      break;
+    }
+  }
+
+  const activeSpans: Array<ActiveHtmlSpan | null> = [];
+  const gridRows: string[][] = [];
+  let knownColumnCount = 0;
+
+  const trMatches = Array.from(kramdown.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi));
+  if (trMatches.length === 0) return null;
+
+  for (const trMatch of trMatches) {
+    const rowHtml = trMatch[2];
+    const sourceCells = Array.from(rowHtml.matchAll(/<(td|th)\b([^>]*)>([\s\S]*?)<\/\1>/gi));
+    const currentCells: string[] = [];
+    let column = 0;
+
+    const appendActiveSpan = () => {
+      const active = activeSpans[column];
+      if (!active) return false;
+      currentCells.push("");
+      active.remainingRows--;
+      if (active.remainingRows === 0) activeSpans[column] = null;
+      column++;
+      return true;
+    };
+
+    for (const match of sourceCells) {
+      while (appendActiveSpan()) {
+        // 占满上一行 rowspan 延续过来的单元格
+      }
+
+      const attributes = match[2];
+      const rawContent = match[3];
+      const cleanedContent = removeMergeAttributes(rawContent)
+        .replace(/[\r\n]+/g, " ")
+        .trim();
+
+      // 转义未转义的管道符 |
+      const cellText = cleanedContent.replace(/(^|[^\\])\|/g, "$1\\|");
+
+      const colSpan = getHtmlSpan(attributes, "colspan");
+      const rowSpan = getHtmlSpan(attributes, "rowspan");
+
+      currentCells.push(cellText);
+      for (let offset = 1; offset < colSpan; offset++) {
+        currentCells.push("");
+      }
+
+      if (rowSpan > 1) {
+        for (let offset = 0; offset < colSpan; offset++) {
+          activeSpans[column + offset] = { remainingRows: rowSpan - 1, tagName: match[1].toLowerCase() };
+        }
+      }
+
+      column += colSpan;
+    }
+
+    const targetColumnCount = Math.max(knownColumnCount, activeSpans.length, column);
+    while (column < targetColumnCount) {
+      if (!appendActiveSpan()) {
+        currentCells.push("");
+        column++;
+      }
+    }
+
+    knownColumnCount = Math.max(knownColumnCount, currentCells.length);
+    gridRows.push(currentCells);
+  }
+
+  if (gridRows.length === 0) return null;
+
+  const tableLines: string[] = [];
+  const colCount = Math.max(knownColumnCount, gridRows[0]?.length || 0);
+
+  // 表头行 (Header)
+  const headerCells = Array.from({ length: colCount }, (_, i) => gridRows[0]?.[i] ?? "");
+  tableLines.push(`| ${headerCells.join(" | ")} |`);
+
+  // 分隔行 (Separator)
+  const separatorCells = Array.from({ length: colCount }, () => "---");
+  tableLines.push(`| ${separatorCells.join(" | ")} |`);
+
+  // 数据行 (Data)
+  for (let r = 1; r < gridRows.length; r++) {
+    const rowCells = Array.from({ length: colCount }, (_, i) => gridRows[r]?.[i] ?? "");
+    tableLines.push(`| ${rowCells.join(" | ")} |`);
+  }
+
+  return { tableLines, ialLine };
 }

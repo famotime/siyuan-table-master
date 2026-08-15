@@ -1,6 +1,7 @@
 import { getActiveEditor } from "siyuan";
 import { findTableBlock, getCellCoordFromTable, highlightActiveRowAndCol } from "./dom-utils";
 import { updateLastActiveCell } from "./dock";
+import { parseNumber, formatResult } from "./utils/number-utils";
 import type TableMaterPlugin from "./index";
 
 export class QuickCalc {
@@ -240,7 +241,7 @@ export class QuickCalc {
       // 去除 IAL {: colspan="1"} 后提取
       const pureText = text.replace(/\{:[^}]+\}/g, "").trim();
       
-      const parsed = this.parseNumber(pureText);
+      const parsed = parseNumber(pureText);
       if (parsed !== null) {
         numCount++;
         sum += parsed.value;
@@ -253,8 +254,8 @@ export class QuickCalc {
     const anyComma = commaCount > 0;
     const average = numCount > 0 ? sum / numCount : 0;
 
-    const sumStr = numCount > 0 ? this.formatResult(sum, allPercent, anyComma) : "-";
-    const avgStr = numCount > 0 ? this.formatResult(average, allPercent, anyComma) : "-";
+    const sumStr = numCount > 0 ? formatResult(sum, allPercent, anyComma) : "-";
+    const avgStr = numCount > 0 ? formatResult(average, allPercent, anyComma) : "-";
 
     this.showCalcBar(count, numCount, sumStr, avgStr);
 
@@ -358,48 +359,6 @@ export class QuickCalc {
         bar.remove();
       }, 200);
     }
-  }
-
-  private parseNumber(text: string): { value: number; hasPercent: boolean; hasComma: boolean } | null {
-    let cleanText = text.trim();
-    if (cleanText === "") return null;
-
-    let hasPercent = false;
-    if (cleanText.endsWith("%")) {
-      hasPercent = true;
-      cleanText = cleanText.slice(0, -1).trim();
-    }
-
-    let hasComma = false;
-    if (cleanText.includes(",")) {
-      hasComma = true;
-      cleanText = cleanText.replace(/,/g, "");
-    }
-
-    const num = Number(cleanText);
-    if (isNaN(num)) return null;
-
-    return {
-      value: hasPercent ? num / 100 : num,
-      hasPercent,
-      hasComma,
-    };
-  }
-
-  private formatResult(value: number, allPercent: boolean, anyComma: boolean): string {
-    if (allPercent) {
-      const valPercent = Number((value * 100).toFixed(4));
-      if (anyComma) {
-        return new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(valPercent) + "%";
-      }
-      return valPercent.toString() + "%";
-    }
-
-    if (anyComma) {
-      return new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(value);
-    }
-
-    return Number(value.toFixed(4)).toString();
   }
 }
 

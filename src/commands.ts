@@ -15,8 +15,8 @@ import { executeTableToChart } from "./table-to-chart";
 import { exportToCSV, exportToXLSX } from "./table-export";
 import { logger } from "./logger";
 import { createSampleMarkdownTable, createSampleHtmlTable } from "./sample-tables";
-
 import { showTableToDbDialog } from "./table-to-db-dialog";
+import { splitTableRow, isSeparatorLine } from "./table-model";
 
 /** 命令定义 */
 export interface TableCommand {
@@ -113,6 +113,35 @@ export function registerCommands(
 }
 
 /**
+ * 解析并获取目标表格块 DOM 节点及 Block ID
+ */
+function resolveTableBlockAndId(
+  protyle: any,
+  preset?: { tableBlock?: HTMLElement; blockId?: string } | null,
+): { tableBlock: HTMLElement; blockId: string } | null {
+  let tableBlock = preset?.tableBlock || null;
+  let blockId = preset?.blockId || null;
+
+  if (blockId) {
+    const latestEl = document.querySelector(`[data-node-id="${blockId}"]`) as HTMLElement;
+    if (latestEl) {
+      tableBlock = latestEl;
+    }
+  }
+
+  if (!tableBlock || !blockId) {
+    const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
+    if (!inTable || !tb || !bid) {
+      return null;
+    }
+    tableBlock = tb;
+    blockId = bid;
+  }
+
+  return { tableBlock, blockId };
+}
+
+/**
  * 执行命令：获取当前编辑器 → 检查光标是否在表格 → 执行操作
  */
 export async function executeCommand(
@@ -154,73 +183,45 @@ export async function executeCommand(
 
     // 特判：宽度调整命令直接设置块属性，不需要加载整个表格的 Markdown
     if (cmd.id === "fit-content-width") {
-      let tableBlock = preset?.tableBlock || null;
-      let blockId = preset?.blockId || null;
-
-      if (blockId) {
-        const latestEl = document.querySelector(`[data-node-id="${blockId}"]`) as HTMLElement;
-        if (latestEl) {
-          tableBlock = latestEl;
-        }
+      const target = resolveTableBlockAndId(protyle, preset);
+      if (!target) {
+        showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
+        return;
       }
 
-      if (!tableBlock || !blockId) {
-        const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
-        if (!inTable || !tb || !bid) {
-          showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
-          return;
-        }
-        tableBlock = tb;
-        blockId = bid;
-      }
-
-      const currentVal = tableBlock.getAttribute("custom-table-width-auto") || "";
+      const currentVal = target.tableBlock.getAttribute("custom-table-width-auto") || "";
       const isAuto = currentVal === "true";
       const newVal = isAuto ? "" : "true";
 
       // 1. 立即更新 DOM (以取得即时无缝响应效果)
       if (newVal) {
-        tableBlock.setAttribute("custom-table-width-auto", newVal);
+        target.tableBlock.setAttribute("custom-table-width-auto", newVal);
       } else {
-        tableBlock.removeAttribute("custom-table-width-auto");
+        target.tableBlock.removeAttribute("custom-table-width-auto");
       }
 
       // 2. 调用 API 持久化
       await fetchSyncPost("/api/attr/setBlockAttrs", {
-        id: blockId,
+        id: target.blockId,
         attrs: {
-          "custom-table-width-auto": newVal
-        }
+          "custom-table-width-auto": newVal,
+        },
       });
       return;
     }
 
     // 特判：导出 CSV / XLSX 命令
     if (cmd.id === "export-csv" || cmd.id === "export-xlsx") {
-      let tableBlock = preset?.tableBlock || null;
-      let blockId = preset?.blockId || null;
-
-      if (blockId) {
-        const latestEl = document.querySelector(`[data-node-id="${blockId}"]`) as HTMLElement;
-        if (latestEl) {
-          tableBlock = latestEl;
-        }
-      }
-
-      if (!tableBlock || !blockId) {
-        const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
-        if (!inTable || !tb || !bid) {
-          showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
-          return;
-        }
-        tableBlock = tb;
-        blockId = bid;
+      const target = resolveTableBlockAndId(protyle, preset);
+      if (!target) {
+        showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
+        return;
       }
 
       const ctx = new SiyuanTextEditor({
         protyle: protyle.protyle,
-        tableBlockEl: tableBlock,
-        blockId,
+        tableBlockEl: target.tableBlock,
+        blockId: target.blockId,
         fixCJKWidth: settings.fixCJKWidth,
       });
       await ctx.reload();
@@ -237,68 +238,39 @@ export async function executeCommand(
 
     // 特判：转数据库 (table-to-db) 命令
     if (cmd.id === "table-to-db") {
-      let tableBlock = preset?.tableBlock || null;
-      let blockId = preset?.blockId || null;
-
-      if (blockId) {
-        const latestEl = document.querySelector(`[data-node-id="${blockId}"]`) as HTMLElement;
-        if (latestEl) {
-          tableBlock = latestEl;
-        }
-      }
-
-      if (!tableBlock || !blockId) {
-        const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
-        if (!inTable || !tb || !bid) {
-          showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
-          return;
-        }
-        tableBlock = tb;
-        blockId = bid;
+      const target = resolveTableBlockAndId(protyle, preset);
+      if (!target) {
+        showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
+        return;
       }
 
       const ctx = new SiyuanTextEditor({
         protyle: protyle.protyle,
-        tableBlockEl: tableBlock,
-        blockId,
+        tableBlockEl: target.tableBlock,
+        blockId: target.blockId,
         fixCJKWidth: settings.fixCJKWidth,
       });
       await ctx.reload();
       const lines = ctx.getTableLines();
 
       const { headers, rows } = parseMarkdownTableLines(lines);
-      showTableToDbDialog(blockId, headers, rows, i18n);
+      showTableToDbDialog(target.blockId, headers, rows, i18n);
       return;
     }
 
-    // 优先使用缓存的表格上下文
-    let tableBlock = preset?.tableBlock || null;
-    let blockId = preset?.blockId || null;
-    let presetCellCoord = preset?.coord || null;
-
-    // 强行纠正：如果使用了预设，必须实时从 document 重新查询该 blockId 对应的最新表格块 DOM，以防连续快速重绘后节点脱离文档树
-    if (blockId) {
-      const latestEl = document.querySelector(`[data-node-id="${blockId}"]`) as HTMLElement;
-      if (latestEl) {
-        tableBlock = latestEl;
-      }
+    // 常规表格命令执行
+    const target = resolveTableBlockAndId(protyle, preset);
+    if (!target) {
+      showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
+      return;
     }
 
-    if (!tableBlock || !blockId) {
-      // 动态从当前 DOM range 抓取选区
-      const { inTable, tableBlock: tb, blockId: bid } = isCursorInTable(protyle);
-      if (!inTable || !tb || !bid) {
-        showMessage(i18n.noActiveTable || "光标不在表格内", 2000, "error");
-        return;
-      }
-      tableBlock = tb;
-      blockId = bid;
-    }
+    const presetCellCoord = preset?.coord || null;
 
     const ctx = new SiyuanTextEditor({
       protyle: protyle.protyle,
-      tableBlockEl: tableBlock,
-      blockId,
+      tableBlockEl: target.tableBlock,
+      blockId: target.blockId,
       fixCJKWidth: settings.fixCJKWidth,
       presetCellCoord,
       selectedRows: preset?.selectedRows,
@@ -314,20 +286,16 @@ export async function executeCommand(
 }
 
 /**
- * 解析 Markdown 表格行数组为表头与数据行数组
+ * 解析 Markdown 表格行数组为表头与数据行数组（使用 splitTableRow 处理转义管道符）
  */
 function parseMarkdownTableLines(lines: string[]): { headers: string[]; rows: string[][] } {
   if (lines.length < 2) return { headers: [], rows: [] };
-  const parseLine = (line: string) => {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) return [];
-    return trimmed.slice(1, -1).split("|").map(cell => cell.trim());
-  };
-  const headers = parseLine(lines[0]);
+  const headers = splitTableRow(lines[0]);
   const rows: string[][] = [];
   for (let i = 2; i < lines.length; i++) {
-    if (lines[i].trim()) {
-      rows.push(parseLine(lines[i]));
+    const line = lines[i]?.trim();
+    if (line && !isSeparatorLine(line)) {
+      rows.push(splitTableRow(line));
     }
   }
   return { headers, rows };

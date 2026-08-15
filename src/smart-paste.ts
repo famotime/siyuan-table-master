@@ -3,6 +3,7 @@ import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
 import { rangeToCellCoord, highlightActiveRowAndCol, getSelectedTableRange } from "./dom-utils";
 import type TableMaterPlugin from "./index";
 import { splitTableRow } from "./table-model";
+import { gridToMarkdown, parseLines } from "./text-to-table-utils";
 import { logger } from "./logger";
 
 export class SmartPaste {
@@ -92,7 +93,7 @@ export class SmartPaste {
         e.stopPropagation();
 
         try {
-          const markdownTable = this.gridToMarkdown(grid);
+          const markdownTable = gridToMarkdown(grid);
           await fetchSyncPost("/api/block/updateBlock", {
             id: emptyParagraphId,
             dataType: "markdown",
@@ -257,34 +258,9 @@ export class SmartPaste {
     // 排除只有单行且没有 tab 的普通粘贴
     if (lines.length === 1 && !text.includes("\t")) return null;
 
-    return lines.map(line => line.split("\t").map(cell => cell.trim()));
+    return parseLines("\t", lines);
   }
 
-  /** 将二维网格转换为 GFM Markdown 格式 of 表格 */
-  private gridToMarkdown(grid: string[][]): string {
-    if (grid.length === 0) return "";
-    const colCount = Math.max(...grid.map(r => r.length));
-
-    const lines: string[] = [];
-    
-    // 1. 表头行
-    const header = grid[0] ?? [];
-    const headerCells = Array.from({ length: colCount }, (_, i) => header[i] ?? "");
-    lines.push(`| ${headerCells.join(" | ")} |`);
-
-    // 2. 对齐分割行
-    const sepCells = Array.from({ length: colCount }, () => "---");
-    lines.push(`| ${sepCells.join(" | ")} |`);
-
-    // 3. 数据行
-    for (let r = 1; r < grid.length; r++) {
-      const row = grid[r] ?? [];
-      const rowCells = Array.from({ length: colCount }, (_, i) => row[i] ?? "");
-      lines.push(`| ${rowCells.join(" | ")} |`);
-    }
-
-    return lines.join("\n");
-  }
 
   /** 获取当前聚焦的空段落块 ID */
   private getEmptyParagraphId(): string | null {
