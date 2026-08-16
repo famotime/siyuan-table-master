@@ -5,6 +5,8 @@
  * 纯同步、无 DOM 交互与思源运行时副作用，便于单元测试。
  */
 
+import { escapeHtml, unescapeHtml } from "./dom-utils";
+
 export interface CellStyle {
   bg?: string;
   color?: string;
@@ -326,7 +328,26 @@ export function markdownToHtmlTable(md: string): string | null {
     );
   while (colCount > 1 && isColEmpty(colCount - 1)) colCount--;
 
-  let html = "<table>";
+  // 提取可能的 IAL 中的 caption 属性
+  let captionHtml = "";
+  const captionMatch = md.match(/\{:[^}]*\bcaption="([^"]+)"[^}]*\}/i);
+  if (captionMatch) {
+    const rawCaption = unescapeHtml(captionMatch[1]);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<table>${rawCaption}</table>`, "text/html");
+    const capEl = doc.querySelector("caption");
+    if (capEl) {
+      const text = (capEl.textContent || "").trim();
+      if (text) {
+        const isBottom = capEl.style.captionSide === "bottom" ||
+          /caption-side\s*:\s*bottom/i.test(capEl.getAttribute("style") || "");
+        const styleAttr = isBottom ? ' style="caption-side: bottom;"' : "";
+        captionHtml = `<caption${styleAttr}>${escapeHtml(text)}</caption>`;
+      }
+    }
+  }
+
+  let html = `<table>${captionHtml}`;
   plan.forEach(({ placed, endC }, r) => {
     let row = "<tr>";
     placed.forEach(({ c, cell }) => {

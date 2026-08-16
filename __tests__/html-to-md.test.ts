@@ -5,6 +5,8 @@ import {
   elementToMarkdown,
   getCellAlignment,
   htmlToNodeTable,
+  convertHtmlTableToMarkdownKramdown,
+  buildSiYuanTableCaption,
 } from "../src/html-to-md";
 
 describe("html-to-md 单元测试", () => {
@@ -93,7 +95,7 @@ describe("html-to-md 单元测试", () => {
       expect(res?.data).toContain("| **开发** | 进行中 | 10,000 |");
     });
 
-    it("含 <caption> 标题的 HTML 表格：标题提取为独立行，表格本身移除 caption 属性及标签", () => {
+    it("含 <caption> 标题的普通 HTML 表格：标题适配为思源 IAL caption 属性，而非独立段落", () => {
       const html = `
         <table>
           <caption style="font-size: 16px">2024年销售数据统计表</caption>
@@ -113,12 +115,32 @@ describe("html-to-md 单元测试", () => {
       `;
       const res = htmlToNodeTable(html);
       expect(res).not.toBeNull();
+      expect(res?.dataType).toBe("markdown");
       expect(res?.captionText).toBe("2024年销售数据统计表");
-      expect(res?.data.startsWith("2024年销售数据统计表")).toBe(true);
-      expect(res?.data).not.toContain("<caption");
+      // 不应包含独立段落块的前置换行文本，而是作为 IAL 属性追加
+      expect(res?.data).toContain("| 项目 | 状态 |");
+      expect(res?.data).toContain('{: caption="&lt;caption contenteditable=&quot;false&quot;&gt;2024年销售数据统计表&lt;/caption&gt;"}');
     });
 
-    it("含 <caption> 且带合并单元格的 HTML 表格：标题作为独立 NodeParagraph 块，表格作为独立 NodeTable 块，且包含 data-node-id、updated、colgroup 属性", () => {
+    it("含 <caption> (caption-side: bottom) 的表格：正确生成包含 style 的 IAL 属性", () => {
+      const html = `
+        <table>
+          <caption style="caption-side: bottom;">底部标题说明</caption>
+          <thead>
+            <tr><th>列1</th><th>列2</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>2</td></tr>
+          </tbody>
+        </table>
+      `;
+      const res = htmlToNodeTable(html);
+      expect(res).not.toBeNull();
+      expect(res?.captionText).toBe("底部标题说明");
+      expect(res?.data).toContain('{: caption="&lt;caption contenteditable=&quot;false&quot; style=&quot;caption-side: bottom;&quot;&gt;底部标题说明&lt;/caption&gt;"}');
+    });
+
+    it("含 <caption> 且带合并单元格的 HTML 表格：生成单一 NodeTable 块，包含 caption 属性与原生 <caption> 元素，无 NodeParagraph 独立块", () => {
       const html = `
         <table>
           <caption>销售月报</caption>
@@ -133,14 +155,14 @@ describe("html-to-md 单元测试", () => {
       expect(res).not.toBeNull();
       expect(res?.dataType).toBe("dom");
       expect(res?.captionText).toBe("销售月报");
-      expect(res?.data).toContain('data-type="NodeParagraph"');
-      expect(res?.data).toContain('销售月报');
+      // 验证没有 NodeParagraph 独立段落块
+      expect(res?.data).not.toContain('data-type="NodeParagraph"');
       expect(res?.data).toContain('data-type="NodeTable"');
-      expect(res?.data).not.toContain("<caption");
+      expect(res?.data).toContain('<caption contenteditable="false">销售月报</caption>');
+      expect(res?.data).toContain('caption="&lt;caption contenteditable=&quot;false&quot;&gt;销售月报&lt;/caption&gt;"');
 
       // 验证包含块属性: data-node-id, updated, colgroup
-      expect(res?.data).toMatch(/<div data-node-id="\d{14}-[a-z0-9]{7}" data-type="NodeParagraph" class="p" updated="\d{14}">/);
-      expect(res?.data).toMatch(/<div data-node-id="\d{14}-[a-z0-9]{7}" data-type="NodeTable" class="table" updated="\d{14}" colgroup="\|">/);
+      expect(res?.data).toMatch(/<div data-node-id="\d{14}-[a-z0-9]{7}" data-type="NodeTable" class="table" updated="\d{14}" colgroup="\|" caption="[^"]+">/);
     });
 
     it("复杂 6 列跨行跨列表格转换为带 colgroup='|||||' 的 NodeTable DOM 块", () => {
@@ -166,6 +188,41 @@ describe("html-to-md 单元测试", () => {
       expect(res?.data).toMatch(/colgroup="\|\|\|\|\|"/);
       expect(res?.data).toMatch(/data-node-id="\d{14}-[a-z0-9]{7}"/);
       expect(res?.data).toMatch(/updated="\d{14}"/);
+    });
+  });
+
+  describe("convertHtmlTableToMarkdownKramdown 提取 HTML 表格与 caption", () => {
+    it("将 HTML 表格转为 Kramdown 并将 <caption> 转化为 IAL caption 属性", () => {
+      const html = `
+        <table>
+          <caption>季度销售清单</caption>
+          <tr><th>品类</th><th>销量</th></tr>
+          <tr><td>数码</td><td>500</td></tr>
+        </table>
+      `;
+      const res = convertHtmlTableToMarkdownKramdown(html);
+      expect(res).not.toBeNull();
+      expect(res?.tableLines).toEqual([
+        "| 品类 | 销量 |",
+        "| --- | --- |",
+        "| 数码 | 500 |",
+      ]);
+      expect(res?.ialLine).toBe('{: caption="&lt;caption contenteditable=&quot;false&quot;&gt;季度销售清单&lt;/caption&gt;"}');
+    });
+
+    it("已有 IAL 行时合并 caption 属性", () => {
+      const html = `
+        <table>
+          <caption style="caption-side: bottom">汇总表</caption>
+          <tr><th>A</th><th>B</th></tr>
+          <tr><td>1</td><td>2</td></tr>
+        </table>
+        {: id="20240101-1234567" updated="20240101120000"}
+      `;
+      const res = convertHtmlTableToMarkdownKramdown(html);
+      expect(res).not.toBeNull();
+      expect(res?.ialLine).toContain('id="20240101-1234567"');
+      expect(res?.ialLine).toContain('caption="&lt;caption contenteditable=&quot;false&quot; style=&quot;caption-side: bottom;&quot;&gt;汇总表&lt;/caption&gt;"');
     });
   });
 });

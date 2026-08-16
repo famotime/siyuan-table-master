@@ -365,6 +365,17 @@ export function escapeHtml(str: string): string {
 }
 
 /**
+ * HTML 实体反转义
+ */
+export function unescapeHtml(str: string): string {
+  return str
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+/**
  * 从表格块中获取单元格的 DOM 坐标 { row, col }。
  * 从 quick-calc.ts / drag-reorder.ts 统一提取。
  *

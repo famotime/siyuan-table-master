@@ -145,22 +145,55 @@ export function tableToGfmMarkdown(table: HTMLTableElement): string {
 }
 
 /**
+ * 构建思源表格标准的 caption DOM 字符串与 IAL / 块属性转义值
+ * @param captionText - 标题文本内容
+ * @param isBottom - 标题是否位于表格底部 (caption-side: bottom)
+ */
+export function buildSiYuanTableCaption(captionText: string, isBottom = false): {
+  captionHtml: string;
+  captionIalAttr: string;
+} {
+  const cleanText = escapeHtml(captionText.trim());
+  const styleAttr = isBottom ? ' style="caption-side: bottom;"' : "";
+  const captionHtml = `<caption contenteditable="false"${styleAttr}>${cleanText}</caption>`;
+  const captionIalAttr = escapeHtml(captionHtml);
+  return { captionHtml, captionIalAttr };
+}
+
+/**
  * 将包含合并单元格的 HTML 表格转换为思源原生表格 (NodeTable) 所需的 Protyle DOM 结构
  * 彻底清洗内联 CSS 样式，并确保创建 <thead> 结构与 <th> 标签，使思源能解析为 NodeTable 块
  */
-export function tableToSiYuanProtyleNodeTableDom(table: HTMLTableElement): string {
+export function tableToSiYuanProtyleNodeTableDom(
+  table: HTMLTableElement,
+  captionInfo?: { captionHtml: string; captionIalAttr: string }
+): string {
   const newTable = table.cloneNode(true) as HTMLTableElement;
 
   // 1. 彻底清除 <table> 上的各种外部 CSS 样式与对齐属性，确保原表格干净
   newTable.removeAttribute("style");
   newTable.removeAttribute("align");
-  newTable.removeAttribute("caption");
   newTable.removeAttribute("border");
   newTable.removeAttribute("cellpadding");
   newTable.removeAttribute("cellspacing");
   newTable.removeAttribute("class");
   newTable.setAttribute("contenteditable", "true");
   newTable.setAttribute("spellcheck", "false");
+
+  // 1.1 处理 caption 标题
+  let finalCaptionInfo = captionInfo;
+  const existingCaption = newTable.querySelector("caption");
+  if (existingCaption) {
+    if (!finalCaptionInfo) {
+      const isBottom = existingCaption.style.captionSide === "bottom" ||
+        /caption-side\s*:\s*bottom/i.test(existingCaption.getAttribute("style") || "");
+      const text = elementToMarkdown(existingCaption).trim();
+      if (text) {
+        finalCaptionInfo = buildSiYuanTableCaption(text, isBottom);
+      }
+    }
+    existingCaption.remove();
+  }
 
   // 2. 确保包含 <thead>，若原 DOM 仅有 <tbody> 则自动提取首行作为 <thead> 且单元格转为 <th>
   let thead = newTable.querySelector("thead");
@@ -270,17 +303,31 @@ export function tableToSiYuanProtyleNodeTableDom(table: HTMLTableElement): strin
     }
   });
 
-  // 5. 重建列定义 colgroup
-  let colgroup = newTable.querySelector("colgroup");
-  if (!colgroup) {
-    colgroup = document.createElement("colgroup");
-    newTable.insertBefore(colgroup, newTable.firstChild);
+  // 5. 重建列定义 colgroup 与 caption
+  const existingColgroup = newTable.querySelector("colgroup");
+  if (existingColgroup) {
+    existingColgroup.remove();
   }
+
+  const colgroup = document.createElement("colgroup");
   colgroup.removeAttribute("style");
   colgroup.innerHTML = "";
   for (let c = 0; c < maxCols; c++) {
     const col = document.createElement("col");
     colgroup.appendChild(col);
+  }
+
+  let captionEl: HTMLElement | null = null;
+  if (finalCaptionInfo?.captionHtml) {
+    const tempDoc = new DOMParser().parseFromString(`<table>${finalCaptionInfo.captionHtml}</table>`, "text/html");
+    captionEl = tempDoc.querySelector("caption");
+  }
+
+  if (captionEl) {
+    newTable.insertBefore(captionEl, newTable.firstChild);
+    newTable.insertBefore(colgroup, captionEl.nextSibling);
+  } else {
+    newTable.insertBefore(colgroup, newTable.firstChild);
   }
 
   // 6. 递归移除 <table> 内部结构元素中纯粹包含空白/换行符的 DOM Text 节点
@@ -289,8 +336,9 @@ export function tableToSiYuanProtyleNodeTableDom(table: HTMLTableElement): strin
   const blockId = generateBlockId();
   const updated = getNowTimestamp();
   const colgroupAttr = maxCols > 1 ? "|".repeat(maxCols - 1) : "";
+  const captionAttr = finalCaptionInfo?.captionIalAttr ? ` caption="${finalCaptionInfo.captionIalAttr}"` : "";
 
-  return `<div data-node-id="${blockId}" data-type="NodeTable" class="table" updated="${updated}" colgroup="${colgroupAttr}"><div contenteditable="false">${newTable.outerHTML}<div class="protyle-action__table"><div class="table__resize"></div><div class="table__select"></div></div></div><div class="protyle-attr" contenteditable="false">​</div></div>`;
+  return `<div data-node-id="${blockId}" data-type="NodeTable" class="table" updated="${updated}" colgroup="${colgroupAttr}"${captionAttr}><div contenteditable="false">${newTable.outerHTML}<div class="protyle-action__table"><div class="table__resize"></div><div class="table__select"></div></div></div><div class="protyle-attr" contenteditable="false">​</div></div>`;
 }
 
 /**
@@ -343,7 +391,7 @@ export interface TableConversionResult {
 
 /**
  * 解析 HTML 文本并转换为思源原生表格 (NodeTable) 转换结果
- * 如果包含 <caption> 标题，提取标题作为独立行文本，并在表格中抹除标题属性
+ * 如果包含 <caption> 标题，将其转换为符合思源表格模型的原生标题（IAL caption 属性与原生 <caption> 节点）
  */
 export function htmlToNodeTable(html: string): TableConversionResult | null {
   if (!html) return null;
@@ -352,30 +400,30 @@ export function htmlToNodeTable(html: string): TableConversionResult | null {
   const table = doc.querySelector("table");
   if (!table) return null;
 
-  // 1. 提取并移除 caption 标题
+  // 1. 提取 caption 标题信息
   let captionText = "";
+  let captionInfo: ReturnType<typeof buildSiYuanTableCaption> | null = null;
   const captionEl = doc.querySelector("caption");
   if (captionEl) {
     captionText = elementToMarkdown(captionEl).trim();
+    if (captionText) {
+      const isBottom = captionEl.style.captionSide === "bottom" ||
+        /caption-side\s*:\s*bottom/i.test(captionEl.getAttribute("style") || "");
+      captionInfo = buildSiYuanTableCaption(captionText, isBottom);
+    }
     captionEl.remove();
   }
 
   // 2. 转换表格主结构
   let result: TableConversionResult;
   if (hasMergedCells(table)) {
-    const domData = tableToSiYuanProtyleNodeTableDom(table);
-    if (captionText) {
-      const captionBlockId = generateBlockId();
-      const updated = getNowTimestamp();
-      const captionDom = `<div data-node-id="${captionBlockId}" data-type="NodeParagraph" class="p" updated="${updated}"><div contenteditable="true" spellcheck="false">${escapeHtml(captionText)}</div><div class="protyle-attr" contenteditable="false">​</div></div>`;
-      result = { dataType: "dom", data: `${captionDom}${domData}`, captionText };
-    } else {
-      result = { dataType: "dom", data: domData };
-    }
+    const domData = tableToSiYuanProtyleNodeTableDom(table, captionInfo || undefined);
+    result = { dataType: "dom", data: domData, captionText };
   } else {
     const gfmData = tableToGfmMarkdown(table);
-    if (captionText) {
-      result = { dataType: "markdown", data: `${captionText}\n\n${gfmData}`, captionText };
+    if (captionInfo) {
+      const ialLine = `{: caption="${captionInfo.captionIalAttr}"}`;
+      result = { dataType: "markdown", data: `${gfmData}\n${ialLine}`, captionText };
     } else {
       result = { dataType: "markdown", data: gfmData, captionText: "" };
     }
@@ -470,6 +518,27 @@ export function convertHtmlTableToMarkdownKramdown(kramdown: string): { tableLin
     if (trimmed.startsWith("{:")) {
       ialLine = lines[i];
       break;
+    }
+  }
+
+  // 提取 <caption> 标题并合并至 IAL 行
+  const captionMatch = kramdown.match(/<caption\b([^>]*)>([\s\S]*?)<\/caption>/i);
+  if (captionMatch) {
+    const captionAttrs = captionMatch[1] || "";
+    const rawCaptionContent = captionMatch[2] || "";
+    const isBottom = /caption-side\s*:\s*bottom/i.test(captionAttrs);
+    const captionText = rawCaptionContent.replace(/<[^>]+>/g, " ").replace(/[\r\n]+/g, " ").trim();
+    if (captionText) {
+      const { captionIalAttr } = buildSiYuanTableCaption(captionText, isBottom);
+      if (ialLine) {
+        if (/caption="[^"]*"/i.test(ialLine)) {
+          ialLine = ialLine.replace(/caption="[^"]*"/i, `caption="${captionIalAttr}"`);
+        } else {
+          ialLine = ialLine.replace(/^(\s*\{:\s*)/, `$1caption="${captionIalAttr}" `);
+        }
+      } else {
+        ialLine = `{: caption="${captionIalAttr}"}`;
+      }
     }
   }
 

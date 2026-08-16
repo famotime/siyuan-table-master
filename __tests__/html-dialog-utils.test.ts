@@ -132,6 +132,32 @@ describe("html-dialog-utils", () => {
       expect(html).toContain("链接");
     });
 
+    it("支持从 IAL caption 属性还原 <caption> 标签", () => {
+      const md = `
+| 标题1 | 标题2 |
+| --- | --- |
+| 1 | 2 |
+{: id="20240101-1234567" caption="&lt;caption contenteditable=&quot;false&quot;&gt;统计报表&lt;/caption&gt;"}
+      `.trim();
+
+      const html = markdownToHtmlTable(md);
+      expect(html).not.toBeNull();
+      expect(html).toContain("<caption>统计报表</caption>");
+    });
+
+    it("支持从带 style 的 IAL caption 属性还原 <caption> 标签", () => {
+      const md = `
+| 标题1 | 标题2 |
+| --- | --- |
+| 1 | 2 |
+{: caption="&lt;caption contenteditable=&quot;false&quot; style=&quot;caption-side: bottom;&quot;&gt;底部标题&lt;/caption&gt;"}
+      `.trim();
+
+      const html = markdownToHtmlTable(md);
+      expect(html).not.toBeNull();
+      expect(html).toContain('<caption style="caption-side: bottom;">底部标题</caption>');
+    });
+
     it("行数不足或缺少分隔行时返回 null", () => {
       expect(markdownToHtmlTable("| 单行 |")).toBeNull();
       expect(markdownToHtmlTable("不是表格内容")).toBeNull();
