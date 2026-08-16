@@ -44,6 +44,68 @@
     box-sizing: border-box;
   }
 
+  /* 通用 Tooltip 提示层 */
+  [data-tooltip] {
+    position: relative;
+
+    &:hover {
+      z-index: 9999 !important;
+    }
+
+    &:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 6px;
+      background: rgba(15, 23, 42, 0.92);
+      color: #ffffff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 100000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      line-height: 1.2;
+      font-weight: normal;
+    }
+
+    &:hover::before {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 0px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: transparent transparent rgba(15, 23, 42, 0.92) transparent;
+      pointer-events: none;
+      z-index: 100000;
+    }
+  }
+
+  /* 底部状态栏等底部组件的 tooltip 向上显示，避免溢出 */
+  .at-status-bar [data-tooltip],
+  [data-tooltip-pos="top"] {
+    &:hover::after {
+      top: auto;
+      bottom: 100%;
+      margin-top: 0;
+      margin-bottom: 6px;
+    }
+
+    &:hover::before {
+      top: auto;
+      bottom: 100%;
+      margin-top: 0;
+      margin-bottom: 0px;
+      border-color: rgba(15, 23, 42, 0.92) transparent transparent transparent;
+    }
+  }
+
   .at-toolbar-label-icon {
     display: inline-flex;
     align-items: center;
@@ -51,10 +113,18 @@
     width: 22px;
     height: 22px;
     padding: 0;
-    cursor: default;
+    cursor: help;
     color: var(--b3-theme-on-surface);
     opacity: 0.75;
     flex-shrink: 0;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+
+    &:hover {
+      opacity: 1;
+      color: var(--b3-theme-primary);
+      background: var(--b3-theme-primary-light);
+    }
 
     svg {
       width: 14px;
@@ -114,44 +184,6 @@
 
     &:hover {
       z-index: 9999 !important;
-    }
-
-    &[data-tooltip] {
-      position: relative;
-
-      &:hover::after {
-        content: attr(data-tooltip);
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        margin-top: 6px;
-        background: rgba(15, 23, 42, 0.92);
-        color: #ffffff;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        white-space: nowrap;
-        pointer-events: none;
-        z-index: 100000;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        line-height: 1.2;
-        font-weight: normal;
-      }
-
-      &:hover::before {
-        content: "";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        margin-top: 0px;
-        border-width: 5px;
-        border-style: solid;
-        border-color: transparent transparent rgba(15, 23, 42, 0.92) transparent;
-        pointer-events: none;
-        z-index: 100000;
-      }
     }
   }
 

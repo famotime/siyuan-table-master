@@ -67,31 +67,31 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         <!-- 全局：表格尺寸参数 -->
         <div class="at-toolbar-section">
           <div style="display: flex; align-items: center; gap: 2px;">
-            <span class="at-toolbar-label-icon" data-tooltip="全局行高">${icons.lineHeight}</span>
+            <span class="at-toolbar-label-icon" data-tooltip="表格行高 (倍数)" title="表格行高 (倍数)">${icons.lineHeight}</span>
             <div class="at-adjust-box">
-              <div class="at-adjust-btn" id="at-lh-minus">${icons.minus}</div>
-              <input type="text" class="at-adjust-input" id="at-lh-val" value="1.4" data-tooltip="编辑全局行高" />
-              <div class="at-adjust-btn" id="at-lh-plus">${icons.plus}</div>
+              <div class="at-adjust-btn" id="at-lh-minus" data-tooltip="减小行高" title="减小行高">${icons.minus}</div>
+              <input type="text" class="at-adjust-input" id="at-lh-val" value="1.4" data-tooltip="输入全局行高" title="输入全局行高" />
+              <div class="at-adjust-btn" id="at-lh-plus" data-tooltip="增大行高" title="增大行高">${icons.plus}</div>
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 2px; margin-left: 4px;">
-            <span class="at-toolbar-label-icon" data-tooltip="全局边框(px)">${icons.border}</span>
+            <span class="at-toolbar-label-icon" data-tooltip="表格边框粗细 (px)" title="表格边框粗细 (px)">${icons.border}</span>
             <div class="at-adjust-box">
-              <div class="at-adjust-btn" id="at-bw-minus">${icons.minus}</div>
-              <input type="text" class="at-adjust-input" id="at-bw-val" value="0.1" data-tooltip="编辑全局边框(px)" />
-              <div class="at-adjust-btn" id="at-bw-plus">${icons.plus}</div>
+              <div class="at-adjust-btn" id="at-bw-minus" data-tooltip="减小边框" title="减小边框">${icons.minus}</div>
+              <input type="text" class="at-adjust-input" id="at-bw-val" value="0.1" data-tooltip="输入全局边框粗细(px)" title="输入全局边框粗细(px)" />
+              <div class="at-adjust-btn" id="at-bw-plus" data-tooltip="增大边框" title="增大边框">${icons.plus}</div>
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 2px; margin-left: 4px;">
-            <span class="at-toolbar-label-icon" data-tooltip="全局内边距(px)">${icons.padding}</span>
+            <span class="at-toolbar-label-icon" data-tooltip="单元格内边距 (px)" title="单元格内边距 (px)">${icons.padding}</span>
             <div class="at-adjust-box">
-              <div class="at-adjust-btn" id="at-pad-minus">${icons.minus}</div>
-              <input type="text" class="at-adjust-input" id="at-pad-val" value="4" data-tooltip="编辑全局内边距(px)" />
-              <div class="at-adjust-btn" id="at-pad-plus">${icons.plus}</div>
+              <div class="at-adjust-btn" id="at-pad-minus" data-tooltip="减小内边距" title="减小内边距">${icons.minus}</div>
+              <input type="text" class="at-adjust-input" id="at-pad-val" value="4" data-tooltip="输入单元格内边距(px)" title="输入单元格内边距(px)" />
+              <div class="at-adjust-btn" id="at-pad-plus" data-tooltip="增大内边距" title="增大内边距">${icons.plus}</div>
             </div>
           </div>
           <div style="width: 1px; height: 14px; background: var(--b3-theme-surface-lighter); margin: 0 4px;"></div>
-          <button class="at-btn" id="at-btn-reset-globals" data-tooltip="重置默认行高(1.4)、边框(0.1px)与内边距(4px)">
+          <button class="at-btn" id="at-btn-reset-globals" data-tooltip="重置默认行高(1.4)、边框(0.1px)与内边距(4px)" title="重置默认行高(1.4)、边框(0.1px)与内边距(4px)">
             ${icons.resetZoom}
             <span style="font-size: 11px;">重置</span>
           </button>
@@ -109,7 +109,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         </div>
 
         <div class="at-side-panel-wrapper">
-          <div class="at-panel-toggle" id="at-panel-toggle" data-tooltip="收缩/展开侧面板">
+          <div class="at-panel-toggle" id="at-panel-toggle" data-tooltip="收缩/展开侧面板" title="收缩/展开侧面板">
             ${icons.chevronRight}
           </div>
 
@@ -167,11 +167,11 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
                 <button class="at-btn" id="at-btn-clear" data-tooltip="清除选中单元格样式格式">${icons.clear}<span class="at-btn-label">清格式</span></button>
               </div>
               <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
-                <span style="font-size: 11px; opacity: 0.7; display: flex; align-items: center; gap: 2px;" data-tooltip="修改选中单元格字号">${icons.fontSize} 字号:</span>
+                <span class="at-toolbar-label-icon" style="font-size: 11px; opacity: 0.8; display: inline-flex; align-items: center; gap: 2px; width: auto; height: 24px; padding: 0 4px;" data-tooltip="修改选中单元格字号" title="修改选中单元格字号">${icons.fontSize} 字号:</span>
                 <div class="at-adjust-box">
-                  <div class="at-adjust-btn" id="at-fs-minus">${icons.minus}</div>
-                  <input type="text" class="at-adjust-input" id="at-fs-val" value="14" data-tooltip="编辑字号(px)" />
-                  <div class="at-adjust-btn" id="at-fs-plus">${icons.plus}</div>
+                  <div class="at-adjust-btn" id="at-fs-minus" data-tooltip="减小字号" title="减小字号">${icons.minus}</div>
+                  <input type="text" class="at-adjust-input" id="at-fs-val" value="14" data-tooltip="输入字号(px)" title="输入字号(px)" />
+                  <div class="at-adjust-btn" id="at-fs-plus" data-tooltip="增大字号" title="增大字号">${icons.plus}</div>
                 </div>
               </div>
             </div>
@@ -188,17 +188,17 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
 
         <div class="at-status-section">
           <div class="at-zoom-ctrl">
-            <button class="at-btn" id="at-btn-zoom-out" data-tooltip="缩小画布 (50%-150%)" style="height: 20px; min-width: 20px; padding: 0;">${icons.zoomOut}</button>
-            <input type="range" id="at-zoom-slider" class="at-zoom-slider" min="50" max="150" value="100" step="5" />
-            <button class="at-btn" id="at-btn-zoom-in" data-tooltip="放大画布 (50%-150%)" style="height: 20px; min-width: 20px; padding: 0;">${icons.zoomIn}</button>
+            <button class="at-btn" id="at-btn-zoom-out" data-tooltip="缩小画布 (50%-150%)" title="缩小画布 (50%-150%)" style="height: 20px; min-width: 20px; padding: 0;">${icons.zoomOut}</button>
+            <input type="range" id="at-zoom-slider" class="at-zoom-slider" min="50" max="150" value="100" step="5" title="缩放画布比例" />
+            <button class="at-btn" id="at-btn-zoom-in" data-tooltip="放大画布 (50%-150%)" title="放大画布 (50%-150%)" style="height: 20px; min-width: 20px; padding: 0;">${icons.zoomIn}</button>
             <span id="at-zoom-val" style="min-width: 36px; text-align: center; font-size: 11px; font-weight: 600;">100%</span>
-            <button class="at-btn" id="at-btn-zoom-reset" data-tooltip="重置缩放与贴合" style="height: 20px; min-width: 20px; padding: 0 4px;">${icons.resetZoom}</button>
+            <button class="at-btn" id="at-btn-zoom-reset" data-tooltip="重置缩放与贴合" title="重置缩放与贴合" style="height: 20px; min-width: 20px; padding: 0 4px;">${icons.resetZoom}</button>
           </div>
         </div>
 
         <div class="at-status-section">
-          <button class="b3-button b3-button--cancel" id="at-btn-dialog-cancel">取消</button>
-          <button class="b3-button b3-button--primary" id="at-btn-dialog-save" style="background-color: var(--b3-theme-primary); color: var(--b3-theme-on-primary);">保存更新</button>
+          <button class="b3-button b3-button--cancel" id="at-btn-dialog-cancel" data-tooltip="取消并关闭编辑器" title="取消并关闭编辑器">取消</button>
+          <button class="b3-button b3-button--primary" id="at-btn-dialog-save" style="background-color: var(--b3-theme-primary); color: var(--b3-theme-on-primary);" data-tooltip="保存修改并更新表格" title="保存修改并更新表格">保存更新</button>
         </div>
       </div>
 
