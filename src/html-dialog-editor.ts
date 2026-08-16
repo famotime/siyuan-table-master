@@ -67,7 +67,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         <!-- 全局：表格尺寸参数 -->
         <div class="at-toolbar-section">
           <div style="display: flex; align-items: center; gap: 2px;">
-            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局行高">${icons.lineHeight}</span>
+            <span class="at-toolbar-label-icon" data-tooltip="全局行高">${icons.lineHeight}</span>
             <div class="at-adjust-box">
               <div class="at-adjust-btn" id="at-lh-minus">${icons.minus}</div>
               <input type="text" class="at-adjust-input" id="at-lh-val" value="1.4" data-tooltip="编辑全局行高" />
@@ -75,7 +75,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 2px; margin-left: 4px;">
-            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局边框(px)">${icons.border}</span>
+            <span class="at-toolbar-label-icon" data-tooltip="全局边框(px)">${icons.border}</span>
             <div class="at-adjust-box">
               <div class="at-adjust-btn" id="at-bw-minus">${icons.minus}</div>
               <input type="text" class="at-adjust-input" id="at-bw-val" value="0.1" data-tooltip="编辑全局边框(px)" />
@@ -83,7 +83,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 2px; margin-left: 4px;">
-            <span class="at-btn" style="padding:0; min-width: 20px; cursor: default" data-tooltip="全局内边距(px)">${icons.padding}</span>
+            <span class="at-toolbar-label-icon" data-tooltip="全局内边距(px)">${icons.padding}</span>
             <div class="at-adjust-box">
               <div class="at-adjust-btn" id="at-pad-minus">${icons.minus}</div>
               <input type="text" class="at-adjust-input" id="at-pad-val" value="4" data-tooltip="编辑全局内边距(px)" />
