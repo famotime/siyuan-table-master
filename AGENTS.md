@@ -48,8 +48,12 @@ HtmlFloatingToolbar / Dock → HtmlDialogEditor ↔ html-dialog-utils.ts → Htm
 - `src/dom-utils.ts` — DOM table lookup, Range ↔ (row, col) coordinate mapping, cell highlighting, `escapeHtml`.
 
 ### HTML Complex Table Editor
-- `src/html-dialog-editor.ts` — Visual dialog editor (merge/split cells, styles, borders, padding, undo/redo).
+- `src/html-dialog-editor.ts` — Visual dialog editor (merge/split cells, styles, borders, padding, drag resize handles, formula dialog, undo/redo).
 - `src/html-dialog-utils.ts` — Pure functions: Markdown ↔ HTML conversion, HTML sanitization, style stripping, span calculation.
+- `src/html-table-transforms.ts` — Pure functions: Transpose matrix, split table, duplicate row/col, distribute dimensions, sort matrix.
+- `src/html-formula-engine.ts` — Pure functions: 9 aggregates, formula expressions, relative/absolute references, smart fill, cycle detection.
+- `src/html-table-styles.ts` — Pure functions: 6 business themes, sticky freeze, format painter state.
+- `src/html-clipboard.ts` — Pure functions: Office MSO tag cleaning, table normalization & XSS sanitization.
 - `src/html-floating-toolbar.ts` — Floating button to trigger HTML dialog editor.
 - `src/html-table-editor.ts` — HTML block reader & updater.
 - `src/html-to-md.ts` — HTML table to SiYuan native Markdown table conversion algorithm.
@@ -81,24 +85,28 @@ HtmlFloatingToolbar / Dock → HtmlDialogEditor ↔ html-dialog-utils.ts → Htm
    - `_lines[1]` = Separator (`| :--- | ---: |`)
    - `_lines[2+]` = Data rows
    - IAL line (`{: id="..."}`) is tracked and preserved separately.
-4. **Pure Function Separation**: Keep all parsing/transformation logic in testable pure utility files (`*-utils.ts`, `table-model.ts`, `html-to-md.ts`, `table-export.ts`, `utils/number-utils.ts`) without DOM or SiYuan API dependencies.
+4. **Pure Function Separation**: Keep all parsing/transformation logic in testable pure utility files (`*-utils.ts`, `table-model.ts`, `html-to-md.ts`, `html-table-transforms.ts`, `html-formula-engine.ts`, `html-table-styles.ts`, `html-clipboard.ts`, `table-export.ts`, `utils/number-utils.ts`) without DOM or SiYuan API dependencies.
 
-## Tests (223 tests across 17 suites)
+## Tests (272 tests across 21 suites)
 
 - `table-model.test.ts` (33) — Kramdown table parsing & row splitting
 - `kramdown-roundtrip.test.ts` (32) — Kramdown formatting & round-trip fidelity
 - `text-to-table.test.ts` (25) — Text to table parsing & box-drawing handling
 - `core-library.test.ts` (21) — Core library integration via `InMemoryTextEditor`
+- `html-table-transforms.test.ts` (17) — Table transpose, split, duplicate row/col, distribute, sort
+- `html-dialog-utils.test.ts` (17) — HTML dialog pure functions & table conversions
 - `delete-multiple.test.ts` (16) — Multi-row / multi-col batch deletion
-- `html-dialog-utils.test.ts` (15) — HTML dialog pure functions & table conversions
-- `html-to-md.test.ts` (13) — HTML table to Markdown converter
+- `html-to-md.test.ts` (16) — HTML table to Markdown converter
+- `html-formula-engine.test.ts` (15) — Formula expressions, 9 aggregates, relative refs, smart fill
 - `quick-calc.test.ts` (12) — Number parsing & formatting (`number-utils`)
 - `sum-cells.test.ts` (10) — Cell sum operations
 - `table-to-db-utils.test.ts` (9) — DB column type inference & payload formatting
 - `table-to-chart-utils.test.ts` (8) — ECharts options & dual Y-axis calculation
 - `clipboard-operations.test.ts` (7) — Copy/paste cell range
 - `table-export.test.ts` (7) — CSV/XLSX text stripping & extraction
+- `html-table-styles.test.ts` (6) — Business table themes & format painter
 - `split-all-cells.test.ts` (6) — Table splitting
 - `dom-utils.test.ts` (5) — Coordinate & escaping utilities
-- `settings.test.ts` (2) — Default settings validation
+- `settings.test.ts` (4) — Default settings validation
+- `html-clipboard.test.ts` (4) — Office MSO tags strip & HTML table normalization
 - `resize-table.test.ts` (2) — Table resizing

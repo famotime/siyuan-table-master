@@ -42,6 +42,7 @@ export interface Snapshot {
   borderWidth: number;
   paddingWidth: number;
   colWidths: string[];
+  rowHeights?: number[];
 }
 
 export const ALLOWED_CONTENT_TAGS = new Set([

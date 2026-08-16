@@ -12,13 +12,32 @@ import {
   createCell,
   positiveSpan,
   parseCssNumber,
-  splitMdRow,
-  isMdSeparatorRow,
-  mdAlignOf,
-  mdInline,
-  parseMdCell,
   markdownToHtmlTable,
 } from "./html-dialog-utils";
+import {
+  transposeMatrix,
+  splitMatrix,
+  duplicateRowAt,
+  duplicateColAt,
+  distributeColWidths,
+  sortMatrixByCol,
+} from "./html-table-transforms";
+import {
+  evaluateFormula,
+  smartFillContent,
+  FormulaAggregates,
+  getCellValueAsNumber,
+  indexToColLetters,
+} from "./html-formula-engine";
+import {
+  TABLE_THEMES,
+  TableThemeKey,
+  applyTableThemeToMatrix,
+  FormatPainter,
+} from "./html-table-styles";
+import {
+  normalizeHtmlTable,
+} from "./html-clipboard";
 
 export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEditor) {
   const tableOriginal = te.getTable();
@@ -43,11 +62,23 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
   let captionStyle = { fontSize: 16, background: "", color: "" };
   let selectedCaption = false;
 
+  const formatPainter = new FormatPainter();
+  let currentTheme: TableThemeKey | "" = "";
+  let isHeaderFrozen = false;
+  let isFirstColFrozen = false;
+  let showCoordinates = false;
+  let colWidths: string[] = [];
+  let rowHeights: number[] = [];
+
   const HISTORY_LIMIT = 20;
   let undoStack: Snapshot[] = [];
   let redoStack: Snapshot[] = [];
 
-  const presetColors = ["#8A170F", "#224429", "#19198F", "#A88100", "#B84D00", "#8A0F8A", "#2c3e50", "#16a085", "#27ae60", "#2980b9", "#8e44ad", "#f39c12", "#d35400", "#c0392b", "#7f8c8d"];
+  const presetColors = [
+    "#8A170F", "#224429", "#19198F", "#A88100", "#B84D00", "#8A0F8A",
+    "#2c3e50", "#16a085", "#27ae60", "#2980b9", "#8e44ad", "#f39c12",
+    "#d35400", "#c0392b", "#7f8c8d",
+  ];
 
   const dialogHtml = `
     <div class="at-dialog-root">
@@ -62,6 +93,24 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
           <div style="width: 1px; height: 14px; background: var(--b3-theme-surface-lighter); margin: 0 4px;"></div>
           <button class="at-btn" id="at-btn-undo" data-tooltip="撤销上一步操作 (Ctrl+Z)">${icons.undo}</button>
           <button class="at-btn" id="at-btn-redo" data-tooltip="重做撤销的操作 (Ctrl+Y)">${icons.redo}</button>
+        </div>
+
+        <!-- 全局：商务主题与变换 -->
+        <div class="at-toolbar-section">
+          <select class="at-select" id="at-select-theme" data-tooltip="选择预设商务表格主题风格" title="选择预设商务表格主题风格">
+            <option value="">预设主题...</option>
+            <option value="business-blue">经典商务蓝</option>
+            <option value="mint-green">优雅薄荷绿</option>
+            <option value="minimal-gray">极简石墨灰</option>
+            <option value="modern-dark">现代暗黑</option>
+            <option value="grid-frame">经典网格线</option>
+            <option value="clean-stripeless">清爽无边框</option>
+          </select>
+          <button class="at-btn" id="at-btn-transpose" data-tooltip="表格转置 (90° 行列互换)">${icons.transpose}<span style="font-size:11px;">转置</span></button>
+          <button class="at-btn" id="at-btn-autofit" data-tooltip="自适应排版：根据单元格内容自动调整各列宽度">${icons.autoFit}<span style="font-size:11px;">自适应</span></button>
+          <button class="at-btn" id="at-btn-distribute-cols" data-tooltip="均分各列宽度">${icons.distributeCols}<span style="font-size:11px;">均分列</span></button>
+          <button class="at-btn" id="at-btn-formula-quick" data-tooltip="插入计算公式 (如 =SUM(A1:A5))">${icons.formula}<span style="font-size:11px;">公式</span></button>
+          <button class="at-btn" id="at-btn-smart-fill" data-tooltip="向下/向右智能填充 (公式偏移/序号递增)">${icons.smartFill}<span style="font-size:11px;">填充</span></button>
         </div>
 
         <!-- 全局：表格尺寸参数 -->
@@ -117,7 +166,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
           <div class="at-side-panel" id="at-side-panel">
             <!-- 行列操作 -->
             <div class="at-panel-section">
-              <div class="at-panel-title">行列操作</div>
+              <div class="at-panel-title">行列与结构</div>
               <div class="at-btn-row">
                 <button class="at-btn" id="at-btn-merge" data-tooltip="合并选中的多格">${icons.merge}<span class="at-btn-label">合并</span></button>
                 <button class="at-btn" id="at-btn-split" data-tooltip="拆分选中的合并单元格">${icons.split}<span class="at-btn-label">拆分</span></button>
@@ -131,8 +180,16 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
               </div>
 
               <div class="at-btn-row">
+                <button class="at-btn" id="at-btn-dup-row" data-tooltip="复制选中行并在下方插入">${icons.duplicateRow}<span class="at-btn-label">复制行</span></button>
+                <button class="at-btn" id="at-btn-dup-col" data-tooltip="复制选中列并在右侧插入">${icons.duplicateCol}<span class="at-btn-label">复制列</span></button>
                 <button class="at-btn" id="at-btn-delete-row" data-tooltip="删除当前行">${icons.deleteRow}<span class="at-btn-label">删行</span></button>
                 <button class="at-btn" id="at-btn-delete-col" data-tooltip="删除当前列">${icons.deleteCol}<span class="at-btn-label">删列</span></button>
+              </div>
+
+              <div class="at-btn-row">
+                <button class="at-btn" id="at-btn-sort-asc" data-tooltip="按当前列升序排序">${icons.sortAsc}<span class="at-btn-label">升序</span></button>
+                <button class="at-btn" id="at-btn-sort-desc" data-tooltip="按当前列降序排序">${icons.sortDesc}<span class="at-btn-label">降序</span></button>
+                <button class="at-btn" id="at-btn-side-autofit" data-tooltip="自适应排版：自动贴合单元格内容宽度">${icons.autoFit}<span class="at-btn-label">自适应</span></button>
               </div>
 
               <div class="at-btn-row">
@@ -160,7 +217,12 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
 
             <!-- 样式与颜色 -->
             <div class="at-panel-section">
-              <div class="at-panel-title">样式与颜色</div>
+              <div class="at-panel-title">样式与主题</div>
+              <div class="at-btn-row">
+                <button class="at-btn" id="at-btn-format-painter" data-tooltip="格式刷：单击采样选中样式，再点击/框选目标单元格">${icons.formatPainter}<span class="at-btn-label">格式刷</span></button>
+                <button class="at-btn" id="at-btn-freeze-header" data-tooltip="冻结表头行 (Sticky)">${icons.freeze}<span class="at-btn-label">冻结表头</span></button>
+                <button class="at-btn" id="at-btn-freeze-col" data-tooltip="冻结首列 (Sticky)">${icons.freeze}<span class="at-btn-label">冻结首列</span></button>
+              </div>
               <div class="at-btn-row">
                 <button class="at-btn" id="at-btn-bg-color" data-tooltip="设置单元格背景颜色">${icons.bgColor}<span class="at-btn-label">背景色</span></button>
                 <button class="at-btn" id="at-btn-text-color" data-tooltip="设置单元格文字颜色">${icons.textColor}<span class="at-btn-label">文字色</span></button>
@@ -210,7 +272,15 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         <div class="at-menu-item" data-action="merge">${icons.merge} 合并单元格</div>
         <div class="at-menu-item" data-action="split">${icons.split} 拆分单元格</div>
         <div class="at-menu-item" data-action="alignCenter">${icons.alignCenter} 水平垂直居中</div>
-        <div class="at-menu-item" data-action="clearStyle">${icons.clear} 清除样式格式</div>
+        <div class="at-menu-item" data-action="autofit">${icons.autoFit} 自适应内容排版</div>
+        <div class="at-menu-item" data-action="formatPainter">${icons.formatPainter} 格式刷取样</div>
+        <div class="at-menu-item" data-action="formula">${icons.formula} 插入计算公式</div>
+        <div class="at-menu-item" data-action="smartFill">${icons.smartFill} 智能填充</div>
+        <div class="at-menu-divider"></div>
+        <div class="at-menu-item" data-action="dupRow">${icons.duplicateRow} 复制当前行</div>
+        <div class="at-menu-item" data-action="dupCol">${icons.duplicateCol} 复制当前列</div>
+        <div class="at-menu-item" data-action="sortAsc">${icons.sortAsc} 按此列升序</div>
+        <div class="at-menu-item" data-action="sortDesc">${icons.sortDesc} 按此列降序</div>
         <div class="at-menu-divider"></div>
         <div class="at-menu-item" data-action="insertColLeft">${icons.insertColLeft} 左侧插入列</div>
         <div class="at-menu-item" data-action="insertColRight">${icons.insertColRight} 右侧插入列</div>
@@ -225,6 +295,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         <div class="at-menu-item" data-action="moveColLeft">${icons.moveColLeft} 列左移</div>
         <div class="at-menu-item" data-action="moveColRight">${icons.moveColRight} 列右移</div>
         <div class="at-menu-divider"></div>
+        <div class="at-menu-item" data-action="clearStyle">${icons.clear} 清除样式格式</div>
         <div class="at-menu-item" data-action="copyCellContent">${icons.copy} 复制单元格文本</div>
       </div>
 
@@ -232,11 +303,78 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       <div id="at-importModal">
         <div class="at-modal-box">
           <div style="font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 6px;">${icons.import} 导入表格代码（支持 HTML / Markdown）</div>
-          <div style="font-size: 12px; opacity: 0.8;">支持导入表格标题 (Caption) 及单元格数据；Markdown 表格会自动转换为 HTML 后导入。</div>
+          <div style="font-size: 12px; opacity: 0.8;">支持导入表格标题 (Caption) 及单元格数据；自动过滤 MSO 垃圾标签与 XSS 风险。</div>
           <textarea id="at-importCode" class="at-modal-textarea" placeholder="粘贴 <table>...</table> 或 | Markdown | 表格 | 代码..."></textarea>
           <div style="display: flex; justify-content: flex-end; gap: 8px;">
             <button class="b3-button b3-button--cancel" id="at-btn-cancel-import">取消</button>
             <button class="b3-button b3-button--text" id="at-btn-confirm-import">导入并替换</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 公式向导弹窗（可拖拽、带问号帮助浮窗与表格坐标系） -->
+      <div id="at-formulaModal">
+        <div class="at-modal-box" id="at-formula-modal-box">
+          <div class="at-modal-header-draggable" id="at-formula-modal-header">
+            <div style="font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 6px;">
+              <span class="at-drag-grip" title="按住拖拽移动窗口">${icons.drag}</span>
+              <span>${icons.formula} 插入表格计算公式</span>
+            </div>
+            <div class="at-help-wrapper">
+              <button class="at-btn at-btn-icon at-help-btn" id="at-formula-help-btn" type="button" data-tooltip="查看公式使用说明与语法帮助" title="查看公式使用说明与语法帮助">
+                ${icons.help}
+              </button>
+              <div class="at-formula-help-popover" id="at-formula-help-popover">
+                <div class="at-help-pop-title">📐 公式语法说明与使用指南</div>
+                <div class="at-help-section">
+                  <div class="at-help-sec-title">1. 基本语法</div>
+                  <div class="at-help-sec-desc">公式必须以 <code>=</code> 等号开头，支持四则运算与括号优先级，如 <code>=A1+B1*1.2</code>。</div>
+                </div>
+                <div class="at-help-section">
+                  <div class="at-help-sec-title">2. 单元格坐标与区域引用</div>
+                  <div class="at-help-sec-desc">
+                    <div>• <b>单个格：</b>列字母+行号（如 <code>A1</code> 为首格，<code>C3</code> 为第3列第3行）。</div>
+                    <div>• <b>连续区域：</b>用冒号 <code>:</code> 连接（如 <code>A1:A5</code> 为纵向区域，<code>A1:D1</code> 为横向区域，<code>A1:C3</code> 为二维矩阵）。</div>
+                    <div>• <b>整列整行：</b>如 <code>A:A</code> 或 <code>2:2</code>。</div>
+                    <div>• <b>绝对引用：</b>使用 <code>$A$1</code> 锁定坐标，智能填充或复制时不会随行列位移而改变。</div>
+                  </div>
+                </div>
+                <div class="at-help-section">
+                  <div class="at-help-sec-title">3. 支持的常用聚合函数</div>
+                  <div class="at-help-fn-table">
+                    <div class="at-help-fn-row"><code>SUM(区域)</code><span>区域所有数值求和</span></div>
+                    <div class="at-help-fn-row"><code>AVERAGE(区域)</code><span>计算算术平均值</span></div>
+                    <div class="at-help-fn-row"><code>COUNT(区域)</code><span>统计有效数值单元格数</span></div>
+                    <div class="at-help-fn-row"><code>MAX(区域)</code><span>获取最大值</span></div>
+                    <div class="at-help-fn-row"><code>MIN(区域)</code><span>获取最小值</span></div>
+                    <div class="at-help-fn-row"><code>MEDIAN(区域)</code><span>计算中位数</span></div>
+                    <div class="at-help-fn-row"><code>PRODUCT(区域)</code><span>所有数值相乘</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size: 12px; opacity: 0.8;">输入等号开头的公式表达式（支持跨行跨列区域与四则运算，如 =SUM(A1:A5) 或 =A1*1.2）：</div>
+          <input type="text" id="at-formula-input" class="b3-text-field" style="width: 100%; box-sizing: border-box; font-family: monospace;" placeholder="=SUM(A1:A5)" />
+          <div>
+            <div style="font-size: 11px; opacity: 0.7; margin-bottom: 4px;">常用函数快捷填入：</div>
+            <div class="at-chip-list" id="at-formula-chips">
+              <span class="at-chip" data-fn="SUM">SUM (求和)</span>
+              <span class="at-chip" data-fn="AVERAGE">AVERAGE (均值)</span>
+              <span class="at-chip" data-fn="COUNT">COUNT (计数)</span>
+              <span class="at-chip" data-fn="MAX">MAX (最大值)</span>
+              <span class="at-chip" data-fn="MIN">MIN (最小值)</span>
+              <span class="at-chip" data-fn="MEDIAN">MEDIAN (中位数)</span>
+              <span class="at-chip" data-fn="PRODUCT">PRODUCT (乘积)</span>
+            </div>
+          </div>
+          <div style="font-size: 12px; background: var(--b3-theme-background); padding: 8px; border-radius: 4px; border: 1px solid var(--b3-theme-surface-lighter);">
+            <span>实时计算预览：</span>
+            <span id="at-formula-preview" style="font-weight: bold; color: var(--b3-theme-primary);">-</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button class="b3-button b3-button--cancel" id="at-btn-cancel-formula">取消</button>
+            <button class="b3-button b3-button--text" id="at-btn-confirm-formula">填入单元格</button>
           </div>
         </div>
       </div>
@@ -246,7 +384,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
   `;
 
   const dialog = new Dialog({
-    title: "高级 HTML 表格编辑器",
+    title: "HTML 表格高级编辑器",
     content: dialogHtml,
     width: "92vw",
   });
@@ -269,7 +407,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
   const tableCenterWrapper = dialogEl.querySelector("#at-tableCenterWrapper") as HTMLElement;
   const panelToggle = dialogEl.querySelector("#at-panel-toggle") as HTMLElement;
   const sidePanel = dialogEl.querySelector("#at-side-panel") as HTMLElement;
-  panelToggle.addEventListener("click", () => {
+  panelToggle?.addEventListener("click", () => {
     sidePanel.classList.toggle("collapsed");
     panelToggle.innerHTML = sidePanel.classList.contains("collapsed") ? icons.chevronLeft : icons.chevronRight;
   });
@@ -295,16 +433,9 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       if (Number.isFinite(val)) updateZoom(val);
     });
   }
-  if (btnZoomOut) {
-    btnZoomOut.addEventListener("click", () => updateZoom(currentZoom - 10));
-  }
-  if (btnZoomIn) {
-    btnZoomIn.addEventListener("click", () => updateZoom(currentZoom + 10));
-  }
-  if (btnZoomReset) {
-    btnZoomReset.addEventListener("click", () => updateZoom(100));
-  }
-
+  if (btnZoomOut) btnZoomOut.addEventListener("click", () => updateZoom(currentZoom - 10));
+  if (btnZoomIn) btnZoomIn.addEventListener("click", () => updateZoom(currentZoom + 10));
+  if (btnZoomReset) btnZoomReset.addEventListener("click", () => updateZoom(100));
 
   function getMatrixColumnCount(): number {
     return matrix.reduce((max, row) => Math.max(max, row.length), 0);
@@ -370,9 +501,8 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       lineHeight,
       borderWidth,
       paddingWidth,
-      colWidths: Array.from(table.querySelectorAll("colgroup > col")).map(
-        (col) => (col as HTMLElement).style.width || ""
-      ),
+      colWidths: [...colWidths],
+      rowHeights: [...rowHeights],
     };
   }
 
@@ -404,16 +534,11 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     lineHeight = s.lineHeight;
     borderWidth = s.borderWidth;
     paddingWidth = s.paddingWidth;
+    colWidths = s.colWidths ? [...s.colWidths] : [];
+    rowHeights = s.rowHeights ? [...s.rowHeights] : [];
 
     resetSelection();
     renderTable();
-
-    const colgroup = table.querySelector("colgroup");
-    if (colgroup) {
-      s.colWidths.slice(0, colgroup.children.length).forEach((w, i) => {
-        (colgroup.children[i] as HTMLElement).style.width = w;
-      });
-    }
 
     const bwValEl = dialogEl.querySelector("#at-bw-val") as HTMLInputElement | null;
     const padValEl = dialogEl.querySelector("#at-pad-val") as HTMLInputElement | null;
@@ -454,36 +579,35 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     };
   }
 
-  function getSelectedMasterCells(bounds = getSelectionBounds()): CellData[] {
-    if (!bounds) return [];
-    const cells: CellData[] = [];
-    const seen = new Set<CellData>();
-    for (let r = bounds.minR; r <= bounds.maxR; r++) {
-      for (let c = bounds.minC; c <= bounds.maxC; c++) {
-        const cell = getMasterCell(r, c);
-        if (cell && !seen.has(cell)) {
-          seen.add(cell);
-          cells.push(cell);
-        }
+  function getSelectedMasterCells(bounds?: { minR: number; maxR: number; minC: number; maxC: number } | null): CellData[] {
+    const b = bounds || getSelectionBounds();
+    if (!b) return [];
+    const masters = new Set<CellData>();
+    for (let r = b.minR; r <= b.maxR; r++) {
+      for (let c = b.minC; c <= b.maxC; c++) {
+        const m = getMasterCell(r, c);
+        if (m) masters.add(m);
       }
     }
-    return cells;
+    return Array.from(masters);
   }
 
   function canMergeSelection(): boolean {
     const bounds = getSelectionBounds();
     if (!bounds) return false;
-    if (bounds.minR === bounds.maxR && bounds.minC === bounds.maxC) return false;
-    const topLeft = matrix[bounds.minR]?.[bounds.minC];
-    if (!topLeft || getMasterCell(bounds.minR, bounds.minC) !== topLeft) return false;
+    const { minR, maxR, minC, maxC } = bounds;
+    if (minR === maxR && minC === maxC) return false;
 
-    return getSelectedMasterCells(bounds).every(
-      (cell) =>
-        cell.r >= bounds.minR &&
-        cell.c >= bounds.minC &&
-        cell.r + cell.rowSpan - 1 <= bounds.maxR &&
-        cell.c + cell.colSpan - 1 <= bounds.maxC
-    );
+    for (let r = minR; r <= maxR; r++) {
+      for (let c = minC; c <= maxC; c++) {
+        const m = getMasterCell(r, c);
+        if (!m) return false;
+        if (m.r < minR || m.r + m.rowSpan - 1 > maxR || m.c < minC || m.c + m.colSpan - 1 > maxC) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   function canMoveRowUp(r: number): boolean {
@@ -542,20 +666,29 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       table.insertBefore(colgroup, table.firstChild);
     }
 
+    colgroup.innerHTML = "";
+    if (showCoordinates) {
+      const guideCol = document.createElement("col");
+      guideCol.style.width = "36px";
+      colgroup.appendChild(guideCol);
+    }
+
     const maxCols = getMatrixColumnCount();
-    while (colgroup.children.length < maxCols) {
+    for (let c = 0; c < maxCols; c++) {
       const col = document.createElement("col");
-      col.dataset.col = String(colgroup.children.length);
+      col.dataset.col = String(c);
+      if (colWidths[c]) {
+        col.style.width = colWidths[c];
+      }
       colgroup.appendChild(col);
     }
-    while (colgroup.children.length > maxCols) colgroup.removeChild(colgroup.lastChild!);
   }
 
   function updateGlobalStyles() {
     table.style.setProperty("--at-bw", borderWidth + "px");
     table.style.setProperty("--at-pad", paddingWidth + "px");
     table.style.border = `${borderWidth}px solid var(--b3-theme-surface-lighter)`;
-    const tds = table.querySelectorAll("td");
+    const tds = table.querySelectorAll("td, th");
     tds.forEach((td) => {
       (td as HTMLElement).style.border = `${borderWidth}px solid var(--b3-theme-surface-lighter)`;
       (td as HTMLElement).style.padding = paddingWidth + "px";
@@ -569,10 +702,6 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     if (lhValEl && document.activeElement !== lhValEl) lhValEl.value = String(lineHeight);
     if (bwValEl && document.activeElement !== bwValEl) bwValEl.value = String(borderWidth);
     if (padValEl && document.activeElement !== padValEl) padValEl.value = String(paddingWidth);
-
-    if (selectedCaption && fsValEl && document.activeElement !== fsValEl) {
-      fsValEl.value = String(captionStyle.fontSize);
-    }
   }
 
   function updateSidebarButtonsState() {
@@ -592,6 +721,11 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     setDisabled("#at-btn-insert-row-above", !hasCell);
     setDisabled("#at-btn-insert-row-below", !hasCell);
 
+    setDisabled("#at-btn-dup-row", !hasCell);
+    setDisabled("#at-btn-dup-col", !hasCell);
+    setDisabled("#at-btn-sort-asc", !hasCell);
+    setDisabled("#at-btn-sort-desc", !hasCell);
+
     setDisabled("#at-btn-delete-row", !hasCell || matrix.length <= 1);
     setDisabled("#at-btn-delete-col", !hasCell || getMatrixColumnCount() <= 1);
 
@@ -603,13 +737,9 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     [
       "#at-btn-h-left", "#at-btn-h-center", "#at-btn-h-right",
       "#at-btn-v-top", "#at-btn-v-middle", "#at-btn-v-bottom",
-      "#at-btn-bg-color", "#at-btn-text-color", "#at-btn-clear"
+      "#at-btn-bg-color", "#at-btn-text-color", "#at-btn-clear",
+      "#at-btn-format-painter", "#at-btn-freeze-header", "#at-btn-freeze-col",
     ].forEach((id) => setDisabled(id, !hasSel));
-
-    const fsMinus = dialogEl.querySelector("#at-fs-minus") as HTMLElement | null;
-    const fsPlus = dialogEl.querySelector("#at-fs-plus") as HTMLElement | null;
-    if (fsMinus) fsMinus.style.opacity = hasSel ? "1" : "0.35";
-    if (fsPlus) fsPlus.style.opacity = hasSel ? "1" : "0.35";
   }
 
   function updateSelectionView() {
@@ -626,8 +756,6 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       captionEl.classList.add("selected-caption");
       if (statusText) statusText.innerText = "已选中标题 (Caption)";
       if (coordsText) coordsText.innerText = "标题";
-      const fsValEl = dialogEl.querySelector("#at-fs-val") as HTMLInputElement | null;
-      if (fsValEl && document.activeElement !== fsValEl) fsValEl.value = String(captionStyle.fontSize);
       updateSidebarButtonsState();
       return;
     }
@@ -654,8 +782,37 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       if (cell.el) cell.el.classList.add("selected-cell");
     });
 
-    if (statusText) statusText.innerText = `选中 ${(maxR - minR + 1) * (maxC - minC + 1)} 个单元格`;
+    const totalCount = (maxR - minR + 1) * (maxC - minC + 1);
+    if (totalCount > 1) {
+      // 实时统计区域数值 (求和与均值)
+      const nums: number[] = [];
+      selectedMasters.forEach((c) => {
+        const val = getCellValueAsNumber(c);
+        if (c.content && c.content.trim() !== "") nums.push(val);
+      });
+      if (nums.length > 0) {
+        const sum = FormulaAggregates.sum(nums);
+        const avg = FormulaAggregates.average(nums);
+        const sumFmt = Math.abs(sum - Math.round(sum)) < 1e-4 ? sum : parseFloat(sum.toFixed(2));
+        const avgFmt = Math.abs(avg - Math.round(avg)) < 1e-4 ? avg : parseFloat(avg.toFixed(2));
+        if (statusText) statusText.innerText = `选中 ${totalCount} 格 · 求和: ${sumFmt} · 均值: ${avgFmt}`;
+      } else {
+        if (statusText) statusText.innerText = `选中 ${totalCount} 个单元格`;
+      }
+    } else {
+      if (statusText) statusText.innerText = `选中 1 个单元格`;
+    }
+
     if (coordsText) coordsText.innerText = `R${minR + 1}-R${maxR + 1}, C${minC + 1}-C${maxC + 1}`;
+
+    if (showCoordinates) {
+      table.querySelectorAll(".at-coord-col").forEach((th, idx) => {
+        th.classList.toggle("at-coord-active", idx >= minC && idx <= maxC);
+      });
+      table.querySelectorAll(".at-coord-row").forEach((th, idx) => {
+        th.classList.toggle("at-coord-active", idx >= minR && idx <= maxR);
+      });
+    }
 
     const master = getMasterCell(minR, minC);
     if (master) {
@@ -666,11 +823,190 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     updateSidebarButtonsState();
   }
 
+  // 拖拽手柄状态
+  let activeColHandle: HTMLElement | null = null;
+  let activeColIdx = -1;
+  let startDragX = 0;
+  let startColWidth = 0;
+  let guideLineV: HTMLElement | null = null;
+
+  let activeRowHandle: HTMLElement | null = null;
+  let activeRowIdx = -1;
+  let startDragY = 0;
+  let startRowHeight = 0;
+  let guideLineH: HTMLElement | null = null;
+
+  let resizeBubble: HTMLElement | null = null;
+
+  function ensureResizeBubble(): HTMLElement {
+    if (!resizeBubble) {
+      resizeBubble = document.createElement("div");
+      resizeBubble.className = "at-resize-bubble";
+      dialogEl.appendChild(resizeBubble);
+    }
+    return resizeBubble;
+  }
+
+  function showResizeBubble(text: string, x: number, y: number) {
+    const b = ensureResizeBubble();
+    b.textContent = text;
+    b.style.left = `${x + 16}px`;
+    b.style.top = `${y - 28}px`;
+    b.style.display = "block";
+  }
+
+  function hideResizeBubble() {
+    if (resizeBubble) {
+      resizeBubble.style.display = "none";
+    }
+  }
+
+  function setupResizeHandles(cellData: CellData, td: HTMLTableCellElement, r: number, c: number) {
+    // 1. 列宽拖拽手柄
+    const colHandle = document.createElement("div");
+    colHandle.className = "at-col-resize-handle";
+    colHandle.title = "拖拽调整列宽";
+    td.appendChild(colHandle);
+
+    colHandle.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      activeColHandle = colHandle;
+      activeColIdx = c;
+      startDragX = e.clientX;
+      startColWidth = td.offsetWidth;
+      colHandle.classList.add("active");
+
+      guideLineV = document.createElement("div");
+      guideLineV.className = "at-resize-guide-line-v";
+      const scrollCont = dialogEl.querySelector("#at-table-scroll-container") as HTMLElement;
+      scrollCont.appendChild(guideLineV);
+      const rect = scrollCont.getBoundingClientRect();
+      guideLineV.style.left = `${e.clientX - rect.left + scrollCont.scrollLeft}px`;
+
+      showResizeBubble(`列宽 ${startColWidth}px · ${Math.round(startColWidth * 0.75)}pt`, e.clientX, e.clientY);
+
+      const onColMouseMove = (me: MouseEvent) => {
+        if (!activeColHandle) return;
+        const dx = me.clientX - startDragX;
+        const newWidth = Math.max(30, startColWidth + dx);
+        if (guideLineV) {
+          guideLineV.style.left = `${me.clientX - rect.left + scrollCont.scrollLeft}px`;
+        }
+        showResizeBubble(`列宽 ${Math.round(newWidth)}px · ${Math.round(newWidth * 0.75)}pt`, me.clientX, me.clientY);
+
+        table.style.tableLayout = "fixed";
+        table.style.width = "100%";
+        const col = table.querySelector(`colgroup > col[data-col="${activeColIdx}"]`) as HTMLElement;
+        if (col) col.style.width = `${newWidth}px`;
+
+        table.querySelectorAll(`tbody tr > td[data-col="${activeColIdx}"], tbody tr > th[data-col="${activeColIdx}"]`).forEach((cell) => {
+          if ((cell as HTMLTableCellElement).colSpan === 1) {
+            (cell as HTMLElement).style.width = `${newWidth}px`;
+          }
+        });
+      };
+
+      const onColMouseUp = (ue: MouseEvent) => {
+        if (activeColHandle) {
+          const dx = ue.clientX - startDragX;
+          const finalWidth = Math.max(30, startColWidth + dx);
+          pushHistory();
+          colWidths[activeColIdx] = `${finalWidth}px`;
+          activeColHandle.classList.remove("active");
+          activeColHandle = null;
+          renderTable();
+        }
+        if (guideLineV && guideLineV.parentNode) {
+          guideLineV.parentNode.removeChild(guideLineV);
+          guideLineV = null;
+        }
+        hideResizeBubble();
+        window.removeEventListener("mousemove", onColMouseMove);
+        window.removeEventListener("mouseup", onColMouseUp);
+      };
+
+      window.addEventListener("mousemove", onColMouseMove);
+      window.addEventListener("mouseup", onColMouseUp);
+    });
+
+    // 2. 行高拖拽手柄
+    const rowHandle = document.createElement("div");
+    rowHandle.className = "at-row-resize-handle";
+    rowHandle.title = "拖拽调整行高";
+    td.appendChild(rowHandle);
+
+    rowHandle.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      activeRowHandle = rowHandle;
+      activeRowIdx = r;
+      startDragY = e.clientY;
+      startRowHeight = td.offsetHeight;
+      rowHandle.classList.add("active");
+
+      guideLineH = document.createElement("div");
+      guideLineH.className = "at-resize-guide-line-h";
+      const scrollCont = dialogEl.querySelector("#at-table-scroll-container") as HTMLElement;
+      scrollCont.appendChild(guideLineH);
+      const rect = scrollCont.getBoundingClientRect();
+      guideLineH.style.top = `${e.clientY - rect.top + scrollCont.scrollTop}px`;
+
+      showResizeBubble(`行高 ${startRowHeight}px · ${Math.round(startRowHeight * 0.75)}pt`, e.clientX, e.clientY);
+
+      const onRowMouseMove = (me: MouseEvent) => {
+        if (!activeRowHandle) return;
+        const dy = me.clientY - startDragY;
+        const newHeight = Math.max(20, startRowHeight + dy);
+        if (guideLineH) {
+          guideLineH.style.top = `${me.clientY - rect.top + scrollCont.scrollTop}px`;
+        }
+        showResizeBubble(`行高 ${Math.round(newHeight)}px · ${Math.round(newHeight * 0.75)}pt`, me.clientX, me.clientY);
+
+        const tr = td.parentElement as HTMLTableRowElement;
+        if (tr) {
+          tr.style.height = `${newHeight}px`;
+          Array.from(tr.children).forEach((cell) => {
+            (cell as HTMLElement).style.height = `${newHeight}px`;
+            const contentEl = cell.querySelector(".cell-content") as HTMLElement | null;
+            if (contentEl) contentEl.style.minHeight = `${Math.max(20, newHeight - paddingWidth * 2)}px`;
+          });
+        }
+      };
+
+      const onRowMouseUp = (ue: MouseEvent) => {
+        if (activeRowHandle) {
+          const dy = ue.clientY - startDragY;
+          const finalHeight = Math.max(20, startRowHeight + dy);
+          pushHistory();
+          rowHeights[activeRowIdx] = finalHeight;
+          activeRowHandle.classList.remove("active");
+          activeRowHandle = null;
+          renderTable();
+        }
+        if (guideLineH && guideLineH.parentNode) {
+          guideLineH.parentNode.removeChild(guideLineH);
+          guideLineH = null;
+        }
+        hideResizeBubble();
+        window.removeEventListener("mousemove", onRowMouseMove);
+        window.removeEventListener("mouseup", onRowMouseUp);
+      };
+
+      window.addEventListener("mousemove", onRowMouseMove);
+      window.addEventListener("mouseup", onRowMouseUp);
+    });
+  }
+
   function renderTable() {
     rebuildGridMap();
     tbody.innerHTML = "";
     matrix.forEach((row) => row.forEach((cell) => { cell.el = null; }));
     updateColGroup();
+
+    const hasCustomWidths = colWidths.some(Boolean);
+    table.style.tableLayout = hasCustomWidths ? "fixed" : "auto";
+    table.style.width = hasCustomWidths ? "100%" : "auto";
 
     let captionEl = table.querySelector("caption");
     if (tableCaption) {
@@ -728,9 +1064,44 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       captionEl.remove();
       selectedCaption = false;
     }
+    if (showCoordinates) {
+      const coordTr = document.createElement("tr");
+      const cornerTh = document.createElement("th");
+      cornerTh.className = "at-coord-corner";
+      cornerTh.innerHTML = "#";
+      coordTr.appendChild(cornerTh);
+
+      const maxCols = getMatrixColumnCount();
+      const bounds = getSelectionBounds();
+
+      for (let c = 0; c < maxCols; c++) {
+        const colTh = document.createElement("th");
+        colTh.className = "at-coord-col";
+        if (bounds && c >= bounds.minC && c <= bounds.maxC) {
+          colTh.classList.add("at-coord-active");
+        }
+        colTh.textContent = indexToColLetters(c);
+        coordTr.appendChild(colTh);
+      }
+      tbody.appendChild(coordTr);
+    }
 
     for (let r = 0; r < matrix.length; r++) {
       const tr = document.createElement("tr");
+      if (rowHeights[r]) {
+        tr.style.height = `${rowHeights[r]}px`;
+      }
+      if (showCoordinates) {
+        const rowTh = document.createElement("th");
+        rowTh.className = "at-coord-row";
+        const bounds = getSelectionBounds();
+        if (bounds && r >= bounds.minR && r <= bounds.maxR) {
+          rowTh.classList.add("at-coord-active");
+        }
+        rowTh.textContent = String(r + 1);
+        tr.appendChild(rowTh);
+      }
+
       for (let c = 0; c < matrix[r].length; c++) {
         const cellData = matrix[r][c];
 
@@ -750,11 +1121,21 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         }
         if (isCovered) continue;
 
-        const td = document.createElement("td");
+        const td = document.createElement(r === 0 && (isHeaderFrozen || cellData.style.bg === TABLE_THEMES["business-blue"]?.headerBg) ? "th" : "td");
         td.dataset.row = String(r);
         td.dataset.col = String(c);
         if (cellData.rowSpan > 1) td.rowSpan = cellData.rowSpan;
         if (cellData.colSpan > 1) td.colSpan = cellData.colSpan;
+
+        if (cellData.colSpan === 1 && colWidths[c]) {
+          td.style.width = colWidths[c];
+        }
+        if (cellData.rowSpan === 1 && rowHeights[r]) {
+          td.style.height = `${rowHeights[r]}px`;
+        }
+
+        if (isHeaderFrozen && r === 0) td.classList.add("at-sticky-th");
+        if (isFirstColFrozen && c === 0) td.classList.add("at-sticky-col");
 
         if (cellData.style.alignH === "align-h-center") td.style.textAlign = "center";
         else if (cellData.style.alignH === "align-h-right") td.style.textAlign = "right";
@@ -766,9 +1147,28 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
 
         const content = document.createElement("div");
         content.className = "cell-content";
-        cellData.content = sanitizeHtml(cellData.content);
-        content.innerHTML = cellData.content || "&nbsp;";
+        if (cellData.rowSpan === 1 && rowHeights[r]) {
+          content.style.minHeight = `${Math.max(20, rowHeights[r] - paddingWidth * 2)}px`;
+        }
 
+        // 公式计算求值
+        let displayContent = cellData.content || "";
+        if (cellData.content && cellData.content.startsWith("=")) {
+          const evalRes = evaluateFormula(cellData.content, matrix);
+          if (evalRes.error) {
+            td.classList.add("at-cell-formula-error");
+            td.title = `公式错误: ${evalRes.error}`;
+            displayContent = `<span style="color: var(--b3-theme-error);">${evalRes.error}</span>`;
+          } else {
+            td.classList.remove("at-cell-formula-error");
+            td.title = `公式: ${cellData.content} -> ${evalRes.value}`;
+            displayContent = String(evalRes.value);
+          }
+        } else {
+          td.classList.remove("at-cell-formula-error");
+        }
+
+        content.innerHTML = sanitizeHtml(displayContent) || "&nbsp;";
         td.appendChild(content);
 
         if (cellData.style.bg) td.style.background = cellData.style.bg;
@@ -782,15 +1182,19 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         content.style.fontSize = fs + "px";
         content.style.lineHeight = String(lh);
 
-        cellData.el = td;
+        cellData.el = td as HTMLTableCellElement;
+
+        // 挂载拖拽调节手柄
+        setupResizeHandles(cellData, td as HTMLTableCellElement, r, c);
 
         td.addEventListener("mousedown", (e) => onCellMouseDown(e, r, c));
-        content.addEventListener("dblclick", () => onCellDblClick(td, content, r, c));
+        content.addEventListener("dblclick", () => onCellDblClick(td as HTMLTableCellElement, content, r, c));
         content.addEventListener("blur", () => {
           const newContent = sanitizeHtml(content.innerHTML);
           if (newContent !== cellData.content) {
             pushHistory();
             cellData.content = newContent;
+            renderTable();
           }
         });
 
@@ -897,26 +1301,42 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     }
 
     matrix = nextMatrix;
+
+    const cols = Array.from(tableEl.querySelectorAll("colgroup > col"));
+    colWidths = cols.length > 0 ? cols.map((col) => (col as HTMLElement).style.width || "") : [];
+    rowHeights = [];
   }
 
   function onCellMouseDown(e: MouseEvent, r: number, c: number) {
     if (e.button !== 0) return;
-    const td = (e.target as HTMLElement).closest("td");
+    const td = (e.target as HTMLElement).closest("td, th");
     if (td && !td.classList.contains("editing")) {
       e.preventDefault();
 
       selectedCaption = false;
       const cell = matrix[r]?.[c];
       if (!cell) return;
+
+      // 格式刷激活态处理
+      if (formatPainter.active()) {
+        pushHistory();
+        formatPainter.applyTo(cell);
+        renderTable();
+        dialogEl.classList.remove("at-cursor-brush");
+        formatPainter.clear();
+        showToast("已应用格式刷样式");
+        return;
+      }
+
       startCell = cell;
       endCell = cell;
       updateSelectionView();
 
       const onMove = (ev: MouseEvent) => {
-        const targetTd = (ev.target as HTMLElement).closest("td");
+        const targetTd = (ev.target as HTMLElement).closest("td, th");
         if (targetTd) {
-          const tr = targetTd.dataset.row ? parseInt(targetTd.dataset.row, 10) : -1;
-          const tc = targetTd.dataset.col ? parseInt(targetTd.dataset.col, 10) : -1;
+          const tr = targetTd.getAttribute("data-row") ? parseInt(targetTd.getAttribute("data-row")!, 10) : -1;
+          const tc = targetTd.getAttribute("data-col") ? parseInt(targetTd.getAttribute("data-col")!, 10) : -1;
           if (tr >= 0 && tc >= 0 && matrix[tr]?.[tc]) {
             if (endCell !== matrix[tr][tc]) {
               endCell = matrix[tr][tc];
@@ -939,6 +1359,10 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
   function onCellDblClick(td: HTMLTableCellElement, content: HTMLDivElement, r: number, c: number) {
     td.classList.add("editing");
     content.contentEditable = "true";
+    // 双击编辑时展示公式源码
+    if (matrix[r]?.[c]?.content) {
+      content.innerHTML = sanitizeHtml(matrix[r][c].content);
+    }
     content.focus();
 
     const range = document.createRange();
@@ -955,6 +1379,7 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         if (newContent !== matrix[r][c].content) {
           pushHistory();
           matrix[r][c].content = newContent;
+          renderTable();
         }
       }
       content.removeEventListener("blur", blurHandler);
@@ -1289,6 +1714,13 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         styles.push(`padding: ${pWidth}px`);
         styles.push(`border: ${bWidth}px solid #888888`);
 
+        if (isHeaderFrozen && r === 0) {
+          styles.push("position: sticky", "top: 0", "z-index: 5");
+        }
+        if (isFirstColFrozen && c === 0) {
+          styles.push("position: sticky", "left: 0", "z-index: 3");
+        }
+
         if (cell.colSpan === 1) {
           const col = table.querySelector(`col[data-col="${c}"]`) as HTMLElement;
           if (col && col.style.width) {
@@ -1298,12 +1730,18 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
 
         attrs.push(`style="${styles.join("; ")}"`);
 
-        let cellContent = sanitizeHtml(cell.content);
+        let cellContent = cell.content;
+        if (cellContent.startsWith("=")) {
+          const res = evaluateFormula(cellContent, matrix);
+          cellContent = res.error ? res.error : String(res.value);
+        }
+        cellContent = sanitizeHtml(cellContent);
         if (cellContent.trim() === "") {
           cellContent = "&nbsp;";
         }
 
-        html += `    <td ${attrs.join(" ")}>${cellContent}</td>\n`;
+        const tag = r === 0 && isHeaderFrozen ? "th" : "td";
+        html += `    <${tag} ${attrs.join(" ")}>${cellContent}</${tag}>\n`;
       }
 
       html += "  </tr>\n";
@@ -1464,27 +1902,16 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
     let nextSelRow = targetRow;
     let nextSelCol = targetCol;
 
-    if (operation === "insertRowAbove") {
-      nextSelRow = targetRow + 1;
-    } else if (operation === "insertRowBelow") {
-      nextSelRow = targetRow;
-    } else if (operation === "insertColLeft") {
-      nextSelCol = targetCol + 1;
-    } else if (operation === "insertColRight") {
-      nextSelCol = targetCol;
-    } else if (operation === "moveRowUp") {
-      nextSelRow = targetRow - 1;
-    } else if (operation === "moveRowDown") {
-      nextSelRow = targetRow + 1;
-    } else if (operation === "moveColLeft") {
-      nextSelCol = targetCol - 1;
-    } else if (operation === "moveColRight") {
-      nextSelCol = targetCol + 1;
-    } else if (operation === "deleteRow") {
-      nextSelRow = Math.min(targetRow, newR - 1);
-    } else if (operation === "deleteCol") {
-      nextSelCol = Math.min(targetCol, newC - 1);
-    }
+    if (operation === "insertRowAbove") nextSelRow = targetRow + 1;
+    else if (operation === "insertRowBelow") nextSelRow = targetRow;
+    else if (operation === "insertColLeft") nextSelCol = targetCol + 1;
+    else if (operation === "insertColRight") nextSelCol = targetCol;
+    else if (operation === "moveRowUp") nextSelRow = targetRow - 1;
+    else if (operation === "moveRowDown") nextSelRow = targetRow + 1;
+    else if (operation === "moveColLeft") nextSelCol = targetCol - 1;
+    else if (operation === "moveColRight") nextSelCol = targetCol + 1;
+    else if (operation === "deleteRow") nextSelRow = Math.min(targetRow, newR - 1);
+    else if (operation === "deleteCol") nextSelCol = Math.min(targetCol, newC - 1);
 
     matrix = newMatrix;
     renderTable();
@@ -1535,6 +1962,289 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         selectedCaption = true;
       }
       renderTable();
+    });
+
+    // 商务主题切换
+    const themeSelect = dialogEl.querySelector("#at-select-theme") as HTMLSelectElement | null;
+    themeSelect?.addEventListener("change", () => {
+      const selected = themeSelect.value as TableThemeKey | "";
+      if (selected && TABLE_THEMES[selected]) {
+        pushHistory();
+        currentTheme = selected;
+        applyTableThemeToMatrix(matrix, selected, true, false);
+        renderTable();
+        showToast(`已套用主题: ${TABLE_THEMES[selected].label}`);
+      }
+    });
+
+    // 表格转置
+    dialogEl.querySelector("#at-btn-transpose")?.addEventListener("click", () => {
+      const res = transposeMatrix(matrix);
+      if (res.success && res.matrix) {
+        pushHistory();
+        matrix = res.matrix;
+        resetSelection();
+        renderTable();
+        showToast("表格已转置 (行列互换)");
+      } else {
+        showToast(res.error || "转置失败");
+      }
+    });
+
+    // 均分列宽
+    dialogEl.querySelector("#at-btn-distribute-cols")?.addEventListener("click", () => {
+      const widths = distributeColWidths(matrix);
+      if (widths.length > 0) {
+        pushHistory();
+        colWidths = [...widths];
+        renderTable();
+        showToast(`已均分 ${widths.length} 列宽度 (各 ${widths[0]})`);
+      }
+    });
+
+    // 均分行高
+    dialogEl.querySelector("#at-btn-distribute-rows")?.addEventListener("click", () => {
+      pushHistory();
+      rowHeights = [];
+      renderTable();
+      showToast("已重置均分行高");
+    });
+
+    // 智能填充
+    dialogEl.querySelector("#at-btn-smart-fill")?.addEventListener("click", () => {
+      const bounds = getSelectionBounds();
+      if (!bounds || !startCell) {
+        showToast("请先选中有内容的起始单元格及填充目标区域");
+        return;
+      }
+      pushHistory();
+      const srcText = startCell.content;
+      const { minR, maxR, minC, maxC } = bounds;
+
+      let step = 1;
+      for (let r = minR; r <= maxR; r++) {
+        for (let c = minC; c <= maxC; c++) {
+          if (r === startCell.r && c === startCell.c) continue;
+          const cell = matrix[r]?.[c];
+          if (cell) {
+            const dRow = r - startCell.r;
+            const dCol = c - startCell.c;
+            cell.content = smartFillContent(srcText, dRow, dCol, step++);
+          }
+        }
+      }
+      renderTable();
+      showToast("智能填充完成");
+    });
+
+    // 复制行 / 复制列
+    dialogEl.querySelector("#at-btn-dup-row")?.addEventListener("click", () => {
+      const t = getTargetRowCol();
+      pushHistory();
+      matrix = duplicateRowAt(matrix, t.r);
+      renderTable();
+      showToast("已复制当前行");
+    });
+
+    dialogEl.querySelector("#at-btn-dup-col")?.addEventListener("click", () => {
+      const t = getTargetRowCol();
+      pushHistory();
+      matrix = duplicateColAt(matrix, t.c);
+      renderTable();
+      showToast("已复制当前列");
+    });
+
+    // 排序
+    dialogEl.querySelector("#at-btn-sort-asc")?.addEventListener("click", () => {
+      const t = getTargetRowCol();
+      pushHistory();
+      matrix = sortMatrixByCol(matrix, t.c, true, true);
+      renderTable();
+      showToast(`已按第 ${t.c + 1} 列升序排序`);
+    });
+
+    dialogEl.querySelector("#at-btn-sort-desc")?.addEventListener("click", () => {
+      const t = getTargetRowCol();
+      pushHistory();
+      matrix = sortMatrixByCol(matrix, t.c, false, true);
+      renderTable();
+      showToast(`已按第 ${t.c + 1} 列降序排序`);
+    });
+
+    // 自适应排版
+    function autoFitTable() {
+      pushHistory();
+      colWidths = [];
+      rowHeights = [];
+      renderTable();
+      showToast("已恢复自适应内容排版");
+    }
+
+    dialogEl.querySelector("#at-btn-autofit")?.addEventListener("click", autoFitTable);
+    dialogEl.querySelector("#at-btn-side-autofit")?.addEventListener("click", autoFitTable);
+
+    // 格式刷
+    dialogEl.querySelector("#at-btn-format-painter")?.addEventListener("click", () => {
+      if (!startCell) {
+        showToast("请先选择要采样的源单元格");
+        return;
+      }
+      formatPainter.sample(startCell.style);
+      dialogEl.classList.add("at-cursor-brush");
+      showToast("格式刷已就绪：请点击目标单元格涂抹样式");
+    });
+
+    // 表头冻结与首列冻结
+    dialogEl.querySelector("#at-btn-freeze-header")?.addEventListener("click", () => {
+      pushHistory();
+      isHeaderFrozen = !isHeaderFrozen;
+      renderTable();
+      showToast(isHeaderFrozen ? "已开启表头冻结 (Sticky)" : "已取消表头冻结");
+    });
+
+    dialogEl.querySelector("#at-btn-freeze-col")?.addEventListener("click", () => {
+      pushHistory();
+      isFirstColFrozen = !isFirstColFrozen;
+      renderTable();
+      showToast(isFirstColFrozen ? "已开启首列冻结 (Sticky)" : "已取消首列冻结");
+    });
+
+    // 初始化公式弹窗可拖拽与帮助浮窗
+    const formulaModal = dialogEl.querySelector("#at-formulaModal") as HTMLElement;
+    const formulaModalBox = dialogEl.querySelector("#at-formula-modal-box") as HTMLElement;
+    const formulaModalHeader = dialogEl.querySelector("#at-formula-modal-header") as HTMLElement;
+    const formulaInput = dialogEl.querySelector("#at-formula-input") as HTMLInputElement;
+    const formulaPreview = dialogEl.querySelector("#at-formula-preview") as HTMLElement;
+    const formulaHelpBtn = dialogEl.querySelector("#at-formula-help-btn") as HTMLElement;
+    const formulaHelpPopover = dialogEl.querySelector("#at-formula-help-popover") as HTMLElement;
+
+    function initDraggableModal(modalBox: HTMLElement, headerEl: HTMLElement, containerEl: HTMLElement) {
+      let isDragging = false;
+      let startX = 0;
+      let startY = 0;
+      let initialLeft = 0;
+      let initialTop = 0;
+
+      headerEl.addEventListener("mousedown", (e) => {
+        if ((e.target as HTMLElement).closest(".at-help-wrapper, button, input")) return;
+        e.preventDefault();
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        const rect = modalBox.getBoundingClientRect();
+        const contRect = containerEl.getBoundingClientRect();
+
+        initialLeft = rect.left - contRect.left;
+        initialTop = rect.top - contRect.top;
+
+        modalBox.style.left = `${initialLeft}px`;
+        modalBox.style.top = `${initialTop}px`;
+        modalBox.style.right = "auto";
+        modalBox.style.bottom = "auto";
+        modalBox.style.margin = "0";
+
+        const onMouseMove = (ev: MouseEvent) => {
+          if (!isDragging) return;
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+
+          let newLeft = initialLeft + dx;
+          let newTop = initialTop + dy;
+
+          newLeft = Math.max(10, Math.min(newLeft, contRect.width - rect.width - 10));
+          newTop = Math.max(10, Math.min(newTop, contRect.height - rect.height - 10));
+
+          modalBox.style.left = `${newLeft}px`;
+          modalBox.style.top = `${newTop}px`;
+        };
+
+        const onMouseUp = () => {
+          isDragging = false;
+          window.removeEventListener("mousemove", onMouseMove);
+          window.removeEventListener("mouseup", onMouseUp);
+        };
+
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mouseup", onMouseUp);
+      });
+    }
+
+    if (formulaModalBox && formulaModalHeader) {
+      initDraggableModal(formulaModalBox, formulaModalHeader, dialogEl.querySelector(".at-dialog-root") as HTMLElement);
+    }
+
+    formulaHelpBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (formulaHelpPopover) {
+        formulaHelpPopover.style.display = formulaHelpPopover.style.display === "block" ? "none" : "block";
+      }
+    });
+
+    function updateFormulaPreview() {
+      const expr = formulaInput.value.trim();
+      if (!expr) {
+        formulaPreview.textContent = "-";
+        return;
+      }
+      const res = evaluateFormula(expr, matrix);
+      formulaPreview.textContent = res.error ? `错误: ${res.error}` : String(res.value);
+    }
+
+    formulaInput?.addEventListener("input", updateFormulaPreview);
+
+    dialogEl.querySelectorAll("#at-formula-chips .at-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const fn = (chip as HTMLElement).dataset.fn;
+        const bounds = getSelectionBounds();
+        let defaultRange = "A1:A5";
+        if (bounds) {
+          const c1 = indexToColLetters(bounds.minC);
+          const c2 = indexToColLetters(bounds.maxC);
+          defaultRange = `${c1}${bounds.minR + 1}:${c2}${bounds.maxR + 1}`;
+        }
+        formulaInput.value = `=${fn}(${defaultRange})`;
+        updateFormulaPreview();
+      });
+    });
+
+    const openFormulaModal = () => {
+      if (!startCell) {
+        showToast("请先选择目标单元格");
+        return;
+      }
+      showCoordinates = true;
+      renderTable();
+
+      if (formulaModalBox) {
+        formulaModalBox.style.top = "60px";
+        formulaModalBox.style.right = "40px";
+        formulaModalBox.style.left = "auto";
+        formulaModalBox.style.bottom = "auto";
+      }
+
+      formulaInput.value = startCell.content.startsWith("=") ? startCell.content : "=SUM(A1:A5)";
+      formulaModal.style.display = "block";
+      updateFormulaPreview();
+      formulaInput.focus();
+    };
+
+    const closeFormulaModal = () => {
+      formulaModal.style.display = "none";
+      if (formulaHelpPopover) formulaHelpPopover.style.display = "";
+      showCoordinates = false;
+      renderTable();
+    };
+
+    dialogEl.querySelector("#at-btn-formula-quick")?.addEventListener("click", openFormulaModal);
+    dialogEl.querySelector("#at-btn-cancel-formula")?.addEventListener("click", closeFormulaModal);
+    dialogEl.querySelector("#at-btn-confirm-formula")?.addEventListener("click", () => {
+      const expr = formulaInput.value.trim();
+      if (!expr || !startCell) return;
+      pushHistory();
+      startCell.content = expr;
+      closeFormulaModal();
+      showToast("公式已插入并实时计算");
     });
 
     dialogEl.querySelector("#at-btn-insert-col-left")?.addEventListener("click", () => {
@@ -1635,21 +2345,21 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         return;
       }
       activeColorBtn = btn;
-      
+
       const rect = btn.getBoundingClientRect();
       const rootEl = dialogEl.querySelector(".at-dialog-root") as HTMLElement;
       const rootRect = rootEl.getBoundingClientRect();
-      
+
       let left = rect.left - rootRect.left;
       if (left + 160 > rootRect.width) {
         left = rootRect.width - 160;
       }
-      
+
       let top = rect.bottom - rootRect.top + 4;
       if (top + 150 > rootRect.height) {
         top = rect.top - rootRect.top - 150 - 4;
       }
-      
+
       pickerEl.style.left = left + "px";
       pickerEl.style.top = top + "px";
       pickerEl.style.display = "block";
@@ -1748,7 +2458,8 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       }
 
       try {
-        const doc = new DOMParser().parseFromString(code, "text/html");
+        const normalized = normalizeHtmlTable(code);
+        const doc = new DOMParser().parseFromString(normalized, "text/html");
         const tableEl = doc.querySelector("table");
         if (!tableEl) {
           alert("未检测到有效的 <table> 标签或 Markdown 表格");
@@ -1773,11 +2484,11 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       e.preventDefault();
       e.stopPropagation();
 
-      const td = (e.target as HTMLElement).closest("td");
+      const td = (e.target as HTMLElement).closest("td, th");
       if (!td) return;
 
-      const r = td.dataset.row ? parseInt(td.dataset.row, 10) : -1;
-      const c = td.dataset.col ? parseInt(td.dataset.col, 10) : -1;
+      const r = td.getAttribute("data-row") ? parseInt(td.getAttribute("data-row")!, 10) : -1;
+      const c = td.getAttribute("data-col") ? parseInt(td.getAttribute("data-col")!, 10) : -1;
       if (r < 0 || c < 0) return;
 
       contextTarget = { r, c };
@@ -1807,9 +2518,8 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       if (itemMoveLeft) itemMoveLeft.classList.toggle("disabled", !canMoveColLeft(c));
       if (itemMoveRight) itemMoveRight.classList.toggle("disabled", !canMoveColRight(c));
 
-      // 限制右键菜单位置不超出屏幕边界
-      const menuWidth = 160;
-      const menuHeight = 360;
+      const menuWidth = 170;
+      const menuHeight = 440;
       let left = e.clientX;
       let top = e.clientY;
       if (left + menuWidth > window.innerWidth) left = window.innerWidth - menuWidth - 8;
@@ -1819,7 +2529,6 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
       contextMenu.style.left = left + "px";
       contextMenu.style.top = top + "px";
     });
-
 
     contextMenu.querySelectorAll(".at-menu-item").forEach((item) => {
       item.addEventListener("click", () => {
@@ -1834,6 +2543,38 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         } else if (action === "alignCenter") {
           applyStyle("alignH", "align-h-center");
           applyStyle("alignV", "align-v-middle");
+        } else if (action === "autofit") {
+          autoFitTable();
+        } else if (action === "formatPainter") {
+          if (startCell) {
+            formatPainter.sample(startCell.style);
+            dialogEl.classList.add("at-cursor-brush");
+            showToast("格式刷已就绪：请点击目标单元格");
+          }
+        } else if (action === "formula") {
+          openFormulaModal();
+        } else if (action === "smartFill") {
+          dialogEl.querySelector("#at-btn-smart-fill")?.dispatchEvent(new MouseEvent("click"));
+        } else if (action === "dupRow" && contextTarget) {
+          pushHistory();
+          matrix = duplicateRowAt(matrix, contextTarget.r);
+          renderTable();
+          showToast("已复制该行");
+        } else if (action === "dupCol" && contextTarget) {
+          pushHistory();
+          matrix = duplicateColAt(matrix, contextTarget.c);
+          renderTable();
+          showToast("已复制该列");
+        } else if (action === "sortAsc" && contextTarget) {
+          pushHistory();
+          matrix = sortMatrixByCol(matrix, contextTarget.c, true, true);
+          renderTable();
+          showToast("已升序排列");
+        } else if (action === "sortDesc" && contextTarget) {
+          pushHistory();
+          matrix = sortMatrixByCol(matrix, contextTarget.c, false, true);
+          renderTable();
+          showToast("已降序排列");
         } else if (action === "clearStyle") {
           const selectedMasters = getSelectedMasterCells();
           if (selectedMasters.length > 0) {
@@ -1876,7 +2617,6 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
         }
       }
     });
-
 
     dialogEl.querySelector("#at-btn-dialog-cancel")?.addEventListener("click", () => {
       dialog.destroy();
