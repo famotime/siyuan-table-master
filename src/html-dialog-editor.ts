@@ -220,8 +220,8 @@ export function openHtmlDialogEditor(_plugin: TableMaterPlugin, te: HtmlTableEdi
               <div class="at-panel-title">样式与主题</div>
               <div class="at-btn-row">
                 <button class="at-btn" id="at-btn-format-painter" data-tooltip="格式刷：单击采样选中样式，再点击/框选目标单元格">${icons.formatPainter}<span class="at-btn-label">格式刷</span></button>
-                <button class="at-btn" id="at-btn-freeze-header" data-tooltip="冻结表头行 (Sticky)">${icons.freeze}<span class="at-btn-label">冻结表头</span></button>
-                <button class="at-btn" id="at-btn-freeze-col" data-tooltip="冻结首列 (Sticky)">${icons.freeze}<span class="at-btn-label">冻结首列</span></button>
+                <button class="at-btn" id="at-btn-freeze-header" data-tooltip="冻结表头行 (Sticky)">${icons.freezeHeader}<span class="at-btn-label">冻结表头</span></button>
+                <button class="at-btn" id="at-btn-freeze-col" data-tooltip="冻结首列 (Sticky)">${icons.freezeCol}<span class="at-btn-label">冻结首列</span></button>
               </div>
               <div class="at-btn-row">
                 <button class="at-btn" id="at-btn-bg-color" data-tooltip="设置单元格背景颜色">${icons.bgColor}<span class="at-btn-label">背景色</span></button>

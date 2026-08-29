@@ -6,6 +6,10 @@ function makeSvg(pathD: string, extraAttrs = ""): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="at-lucide-icon"${extraAttrs}>${pathD}</svg>`;
 }
 
+function makeFillSvg(pathD: string, viewBox = "0 0 32 32", extraAttrs = ""): string {
+  return `<svg class="at-svg-fill" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="${viewBox}"${extraAttrs}><path fill="currentColor" d="${pathD}"/></svg>`;
+}
+
 export const icons = {
   import: makeSvg('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13-3 3 3 3"/><path d="M7 16h10"/>'),
   copy: makeSvg('<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>'),
@@ -51,7 +55,7 @@ export const icons = {
   chevronRight: makeSvg('<path d="m9 18 6-6-6-6"/>'),
   panelRightClose: makeSvg('<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/><path d="m8 9 3 3-3 3"/>'),
   panelRightOpen: makeSvg('<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/><path d="m11 9-3 3 3 3"/>'),
-  transpose: makeSvg('<path d="m16 4 4 4-4 4"/><path d="M20 8H10a4 4 0 0 0-4 4v8"/><path d="m8 20-4-4 4-4"/><path d="M4 16h10a4 4 0 0 0 4-4V4"/>'),
+  transpose: makeFillSvg('M19 26h-5v-2h5a5.006 5.006 0 0 0 5-5v-5h2v5a7.01 7.01 0 0 1-7 7M8 30H4a2 2 0 0 1-2-2V14a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2M4 14v14h4V14zm24-4H14a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2M14 4v4h14V4z'),
   splitTable: makeSvg('<rect width="18" height="8" x="3" y="3" rx="2"/><rect width="18" height="8" x="3" y="13" rx="2"/><line x1="3" x2="21" y1="11" y2="11" stroke-dasharray="2 2"/>'),
   duplicateRow: makeSvg('<rect width="18" height="6" x="3" y="4" rx="1"/><rect width="18" height="6" x="3" y="14" rx="1"/><path d="M12 10v4"/>'),
   duplicateCol: makeSvg('<rect width="6" height="18" x="4" y="3" rx="1"/><rect width="6" height="18" x="14" y="3" rx="1"/><path d="M10 12h4"/>'),
@@ -61,6 +65,8 @@ export const icons = {
   sortDesc: makeSvg('<path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M15 4h9"/><path d="M15 10h7"/><path d="M15 16h5"/>'),
   theme: makeSvg('<circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 0 0 0 14h1a2 2 0 0 1 2 2 2 2 0 0 0 2 2 7 7 0 0 0 0-14z"/><circle cx="7.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="12" cy="7.5" r=".5" fill="currentColor"/><circle cx="16.5" cy="10.5" r=".5" fill="currentColor"/>'),
   freeze: makeSvg('<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 3v18"/><circle cx="6" cy="6" r="1.5" fill="currentColor"/>'),
+  freezeHeader: makeSvg('<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 9v12"/><path d="M15 9v12"/><path d="M3 15h18"/><circle cx="6" cy="6" r="1.5" fill="currentColor"/><circle cx="12" cy="6" r="1.5" fill="currentColor"/><circle cx="18" cy="6" r="1.5" fill="currentColor"/>'),
+  freezeCol: makeSvg('<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M9 9h12"/><path d="M9 15h12"/><path d="M15 3v18"/><circle cx="6" cy="6" r="1.5" fill="currentColor"/><circle cx="6" cy="12" r="1.5" fill="currentColor"/><circle cx="6" cy="18" r="1.5" fill="currentColor"/>'),
   formatPainter: makeSvg('<path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M14 17l4 4 4-4-4-4-4 4z"/>'),
   formula: makeSvg('<path d="M4 4h16l-7 8 7 8H4"/><line x1="4" x2="11" y1="4" y2="4"/><line x1="4" x2="11" y1="20" y2="20"/>'),
   smartFill: makeSvg('<path d="m14 2 8 8-8 8-8-8z"/><path d="M12 12v6"/><path d="m9 15 3 3 3-3"/>'),
