@@ -19,6 +19,7 @@ import { showPasteConfirmDialog } from "./confirm-dialog";
 import type { PluginSettings } from "./settings";
 import { splitTableRow, isSeparatorLine, deleteTableRows, deleteTableColumns } from "./table-model";
 import { convertHtmlTableToMarkdownKramdown, removeMergeAttributes } from "./html-to-md";
+import { fillTable } from "./table-fill-utils";
 
 /** 模块级剪贴板（会话内持久） */
 interface TableClipboard {
@@ -495,6 +496,36 @@ export class TableEditor {
         "info"
       );
     }
+  }
+
+  // ── 智能填充 ──
+
+  async fillDown(): Promise<void> {
+    await this.ctx.reload();
+    const coord = this.ctx.getCursorDomCoord();
+    if (!coord) return;
+
+    const lines = this.ctx.getTableLines();
+    const selectedRows = this.ctx.getSelectedRows();
+    const selectedCols = this.ctx.getSelectedCols();
+
+    const newLines = fillTable(lines, coord, selectedRows, selectedCols, "down");
+    this.ctx.setTableLines(newLines);
+    await this.ctx.flush();
+  }
+
+  async fillRight(): Promise<void> {
+    await this.ctx.reload();
+    const coord = this.ctx.getCursorDomCoord();
+    if (!coord) return;
+
+    const lines = this.ctx.getTableLines();
+    const selectedRows = this.ctx.getSelectedRows();
+    const selectedCols = this.ctx.getSelectedCols();
+
+    const newLines = fillTable(lines, coord, selectedRows, selectedCols, "right");
+    this.ctx.setTableLines(newLines);
+    await this.ctx.flush();
   }
 
   // ── 私有方法 ──

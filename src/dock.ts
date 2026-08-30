@@ -32,6 +32,8 @@ export const SVG_ICONS: Record<string, string> = {
   "paste-column": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z" style="fill:none!important"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" style="fill:none!important"/><path d="M12 10v6" style="fill:none!important"/></svg>`,
   "row-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4v2.5l3.5 4.5-3.5 4.5V19h5" style="fill:none!important"/><path d="M12 12h8" style="fill:none!important"/><path d="M17 9l3 3-3 3" style="fill:none!important"/></svg>`,
   "column-sum": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4v2.5l3.5 4.5-3.5 4.5V19h5" style="fill:none!important"/><path d="M16 5v14" style="fill:none!important"/><path d="M13 16l3 3 3-3" style="fill:none!important"/></svg>`,
+  "fill-down": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13" style="fill:none!important"/><path d="m18 10-6 6-6-6" style="fill:none!important"/><path d="M4 21h16" style="fill:none!important"/></svg>`,
+  "fill-right": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h13" style="fill:none!important"/><path d="m10 6 6 6-6 6" style="fill:none!important"/><path d="M21 4v16" style="fill:none!important"/></svg>`,
   "split-all-cells": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" style="fill:none!important"/><path d="M12 3v18M3 12h18" style="fill:none!important"/><path d="m8 8 2 2m4 4 2 2m0-8-2 2m-4 4-2 2" style="fill:none!important"/></svg>`,
   "table-to-chart": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" style="fill:none!important"/><path d="m19 9-5 5-4-4-3 3" style="fill:none!important"/></svg>`,
   "fit-content-width": `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16" style="fill:none!important"/><path d="m16 8 4 4-4 4" style="fill:none!important"/><path d="m8 8-4 4 4 4" style="fill:none!important"/></svg>`,
@@ -93,7 +95,7 @@ const COMMAND_GROUPS: CommandGroup[] = [
     "move-row-up", "move-row-down", "move-column-left", "move-column-right",
     "cut-row", "cut-column", "paste-row", "paste-column"
   ] },
-  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "split-all-cells", "table-to-chart", "table-to-db"] },
+  { title: "高级操作", commandIds: ["sort-rows-asc", "sort-rows-desc", "transpose", "row-sum", "column-sum", "fill-down", "fill-right", "split-all-cells", "table-to-chart", "table-to-db"] },
 ];
 
 const HTML_COMMAND_GROUP = {

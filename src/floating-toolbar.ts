@@ -307,11 +307,20 @@ export class FloatingToolbar {
         }
       }
 
-      // 额外的求和判断
+      // 填充与求和判断
       if (this.activeCell) {
         const colCount = getTableColCount(this.activeCell.tableBlock);
         const rowCount = getTableRowCount(this.activeCell.tableBlock);
         const { col, row } = this.activeCell.coord;
+
+        // 光标在非表头行且非最末行时，浮动工具栏增加“向下填充”按钮
+        if (row < rowCount - 1) {
+          cmdIds.push("fill-down");
+        }
+        // 光标在非表头行且非最右侧列时，浮动工具栏增加“向右填充”按钮
+        if (col < colCount - 1) {
+          cmdIds.push("fill-right");
+        }
 
         // 光标在非表头行且在最右侧列时，浮动工具栏增加“行求和”按钮
         if (col === colCount - 1) {

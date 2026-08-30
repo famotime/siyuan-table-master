@@ -68,6 +68,8 @@ export const TABLE_COMMANDS: TableCommand[] = [
   // ── 求和计算与转数据库 ──
   { id: "row-sum", nameZh: "行求和", nameEn: "Row sum", action: te => te.rowSum() },
   { id: "column-sum", nameZh: "列求和", nameEn: "Column sum", action: te => te.columnSum() },
+  { id: "fill-down", nameZh: "向下填充", nameEn: "Fill down", action: te => te.fillDown() },
+  { id: "fill-right", nameZh: "向右填充", nameEn: "Fill right", action: te => te.fillRight() },
   { id: "split-all-cells", nameZh: "全拆分", nameEn: "Split all cells", action: te => te.splitAllCells() },
   { id: "table-to-chart", nameZh: "一键数据图表化", nameEn: "Convert table to chart", action: te => executeTableToChart(te) },
   { id: "table-to-db", nameZh: "转数据库", nameEn: "Convert to Database", action: async () => {} },
