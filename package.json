@@ -1,8 +1,8 @@
 {
   "name": "siyuan-table-master",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "type": "module",
-  "description": "Improved table navigation, formatting, and manipulation for SiYuan Note",
+  "description": "Advanced Markdown/HTML table editing in SiYuan Note",
   "author": "Quincy Zou",
   "license": "MIT",
   "homepage": "https://github.com/famotime/siyuan-table-master",
