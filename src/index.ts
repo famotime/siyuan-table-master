@@ -66,6 +66,7 @@ export default class TableMaterPlugin extends Plugin {
   private quickCalc: QuickCalc | null = null;
   private dragReorder: DragReorder | null = null;
   private globalSelectionListener: (() => void) | null = null;
+  private dockRegistered = false;
 
   async onload() {
     // 注册自定义图标，使侧栏和顶栏图标一致
@@ -76,18 +77,14 @@ export default class TableMaterPlugin extends Plugin {
       <path d="M3 15h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>`);
 
-    // 加载设置
+    // 加载设置（内存加载，避免启动时无意义写盘触发文件变更广播）
     this.settings = await loadSettings(this);
-    await saveSettings(this, this.settings);
     setLogEnabled(this.settings.enableLog);
     this.updateStickyHeaderClass();
 
     // 注册命令
     registerCommands(this, this.settings);
     registerHtmlCommands(this);
-
-    // 注册 Dock 栏工具箱
-    registerDock(this);
 
     // 全局高亮光标所在行列
     this.initGlobalHighlight();
@@ -130,7 +127,31 @@ export default class TableMaterPlugin extends Plugin {
 
   }
 
+  /**
+   * 界面布局彻底就绪后的生命周期钩子
+   * 在此阶段注册 Dock 栏，能确保思源的 leftDock/rightDock/bottomDock 均已就绪，
+   * 彻底避免思源 v3.8.3 在启动恢复布局期间因 Dock.add 空指针导致的页面死循环刷新（闪烁）。
+   */
+  onLayoutReady() {
+    if (!this.dockRegistered) {
+      registerDock(this);
+      this.dockRegistered = true;
+    }
+  }
+
+  /**
+   * 思源 v3.8.3 数据变更生命周期方法
+   * 显式实现该方法，避免被思源生命周期管理器误判为未适配插件而触发整插件 reload()
+   */
+  async onDataChanged() {
+    this.settings = await loadSettings(this);
+    setLogEnabled(this.settings.enableLog);
+    this.updateStickyHeaderClass();
+  }
+
   onunload() {
+    this.dockRegistered = false;
+
     // 注销全局高亮监听
     this.destroyGlobalHighlight();
 
