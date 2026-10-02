@@ -11,3 +11,4 @@ tmp
 .env
 /tmp/
 .playwright-cli
+developer_docs/
