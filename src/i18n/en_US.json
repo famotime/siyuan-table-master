@@ -47,6 +47,7 @@
   "table-to-db": "Convert to Database",
   "tableToDbTitle": "Convert Table to Database Configuration",
   "tableToDbSuccess": "Successfully converted table to database!",
+  "errTableToDbPartial": "Columns were created but only {landed}/{total} rows were written. Please reload the document and retry.",
   "text-to-table": "Convert Text to Table",
   "fit-content-width": "Adjust table width",
   "export-csv": "Export CSV",

@@ -249,11 +249,11 @@ async function createAttributeViewDatabase(
       blocksValues.push(rowValues);
     });
 
+    let landedCount = 0;
     if (blocksValues.length > 0) {
-      await fetchSyncPost("/api/av/appendAttributeViewDetachedBlocksWithValues", {
-        avID,
-        blocksValues
-      });
+      landedCount = await appendRowsWithRetry(avID, blockKeyID, blocksValues);
+    } else {
+      landedCount = 0;
     }
 
     // 获取当前表格所在文档的 rootID
@@ -277,11 +277,102 @@ async function createAttributeViewDatabase(
       await fetchSyncPost("/api/ui/reloadAttributeView", { id: avID });
     } catch (_) {}
 
+    // 6. 数据行是否真正落库（append 可能静默失败，需显式校验）
+    if (blocksValues.length > 0 && landedCount < blocksValues.length) {
+      logger.error(
+        `[siyuan-table-master] appendAttributeViewDetachedBlocksWithValues landed ${landedCount}/${blocksValues.length} rows`
+      );
+      const tpl = i18n.errTableToDbPartial || "数据库字段已创建，但仅写入 {landed}/{total} 行数据";
+      showMessage(
+        tpl
+          .replace("{landed}", String(landedCount))
+          .replace("{total}", String(blocksValues.length)),
+        5000,
+        "error"
+      );
+      return;
+    }
+
     showMessage(i18n.tableToDbSuccess || "已成功将 Markdown 表格转换为数据库！", 3000, "info");
   } catch (err) {
     logger.error("[siyuan-table-master] createAttributeViewDatabase failed:", err);
     showMessage(i18n.errOperationFailed || "创建数据库失败", 3000, "error");
   }
+}
+
+/**
+ * 读取当前 AV 中主键列已有的数据行数量
+ */
+async function countAvRows(avID: string, blockKeyID: string): Promise<number> {
+  try {
+    const res = await fetchSyncPost("/api/av/getAttributeView", { id: avID });
+    const keyValues = res?.data?.av?.keyValues;
+    if (!Array.isArray(keyValues)) return -1;
+    const primary = keyValues.find((kv: any) => kv?.key?.id === blockKeyID) || keyValues[0];
+    return Array.isArray(primary?.values) ? primary.values.length : 0;
+  } catch (e) {
+    logger.warn("[siyuan-table-master] countAvRows notice:", e);
+    return -1;
+  }
+}
+
+/**
+ * 强制内核把刚落盘的 AV 定义加载进内存
+ *
+ * 背景：putFile + insertBlock 之后，内核尚未把新的 AV JSON 读入缓存，
+ * 此时直接调用 appendAttributeViewDetachedBlocksWithValues 会返回 code:0
+ * 但一行都不写（表现为"只有表头没有数据"）。先 getAttributeView 一次
+ * 才能让内核真正加载该 AV。
+ */
+async function warmUpAttributeView(avID: string, blockKeyID: string): Promise<void> {
+  const deadline = Date.now() + 5000;
+  let last = -1;
+  while (Date.now() < deadline) {
+    last = await countAvRows(avID, blockKeyID);
+    if (last >= 0) return;
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+  logger.warn(`[siyuan-table-master] warmUpAttributeView: av ${avID} not loaded (countAvRows=${last})`);
+}
+
+/**
+ * 追加数据行，并校验是否真正落库，失败时重试
+ *
+ * 返回最终主键列的数据行数量（-1 表示校验不可用）。
+ */
+async function appendRowsWithRetry(
+  avID: string,
+  blockKeyID: string,
+  blocksValues: any[][],
+): Promise<number> {
+  const expected = blocksValues.length;
+
+  // 必须先让内核加载 AV 定义，否则 append 会静默失败
+  await warmUpAttributeView(avID, blockKeyID);
+
+  let landed = await countAvRows(avID, blockKeyID);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      await fetchSyncPost("/api/av/appendAttributeViewDetachedBlocksWithValues", {
+        avID,
+        blocksValues
+      });
+    } catch (e) {
+      logger.error("[siyuan-table-master] appendAttributeViewDetachedBlocksWithValues failed:", e);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    landed = await countAvRows(avID, blockKeyID);
+    if (landed >= expected) return landed;
+
+    // 仍未落库：刷新一次再重试
+    try {
+      await fetchSyncPost("/api/ui/reloadAttributeView", { id: avID });
+    } catch (_) {}
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  return landed;
 }
 
 /**
