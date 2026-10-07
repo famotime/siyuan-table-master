@@ -1,6 +1,6 @@
 import { Dialog, showMessage, fetchSyncPost } from "siyuan";
 import { TableEditor } from "./table-editor";
-import { isSeparatorLine } from "./table-model";
+import { isSeparatorLine, stripCellIal } from "./table-model";
 import { buildEchartsOption } from "./table-to-chart-utils";
 import { logger } from "./logger";
 
@@ -20,14 +20,16 @@ export async function executeTableToChart(te: TableEditor): Promise<void> {
 
     // 2. 提取 Headers 和真实数据行
     const rawHeaders = te.ctx.getRowCellsAt(0);
+    // 清理单元格 IAL（思源可能输出 `{: colspan="1"}表头`），避免污染图表维度名
+    const cleanHeaders = rawHeaders.map(stripCellIal);
     // 处理空表头，进行默认填充
-    const headers = rawHeaders.map((h, i) => h.trim() || `${te.i18n.column || "列"} ${i + 1}`);
+    const headers = cleanHeaders.map((h, i) => h.trim() || `${te.i18n.column || "列"} ${i + 1}`);
 
     const dataRows: string[][] = [];
     for (let i = 2; i < lineCount; i++) {
       const line = te.ctx.getLineAt(i);
       if (line && !isSeparatorLine(line)) {
-        dataRows.push(te.ctx.getRowCellsAt(i));
+        dataRows.push(te.ctx.getRowCellsAt(i).map(stripCellIal));
       }
     }
 

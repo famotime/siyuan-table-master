@@ -9,7 +9,7 @@
  * 5. 支持单格光标（填充至末尾）与多选区范围（填充至选区边界）
  */
 
-import { splitTableRow, isSeparatorLine, getColumnCount } from "./table-model";
+import { splitTableRow, splitTableRowRaw, isSeparatorLine, getColumnCount } from "./table-model";
 
 /**
  * 智能递增单元格内容纯函数
@@ -112,7 +112,7 @@ export function setCellAt(lines: string[], domRow: number, domCol: number, value
   const lineIdx = domRowToLineIndex(domRow);
   const orig = lines[lineIdx];
   if (orig === undefined) return;
-  const cells = splitTableRow(orig);
+  const cells = splitTableRowRaw(orig);
   if (domCol >= cells.length) {
     // 补齐列
     while (cells.length < domCol) {

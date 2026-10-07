@@ -56,16 +56,17 @@ export function parseTableKramdown(kramdown: string): ParsedTableKramdown {
   // 净化数据行：将仅含占位横杠 "-" 的单元格清空，防止写入思源时保留真实的 "-" 脏数据
   const sanitizedLines = tableLines.map((line, index) => {
     if (index < 2) return line; // 排除表头(0)和分隔行(1)
-    
+
     // 如果不是有效的表格行，保持原样
     if (!line.trim().startsWith("|")) return line;
-    
-    const cells = splitTableRow(line);
-    const hasDashCell = cells.some(cell => cell === "-");
+
+    // 用清理后的文本判断脏数据，用原始文本回写，避免丢掉单元格合并属性
+    const rawCells = splitTableRowRaw(line);
+    const hasDashCell = rawCells.some(cell => stripCellIal(cell) === "-");
     if (!hasDashCell) return line;
-    
+
     // 自动将含有短横杠 "-" 且无其他字符的单元格净化为空
-    const newCells = cells.map(cell => cell === "-" ? "" : cell);
+    const newCells = rawCells.map(cell => stripCellIal(cell) === "-" ? "" : cell);
     return `| ${newCells.join(" | ")} |`;
   });
 
@@ -121,10 +122,12 @@ export function getColumnCount(tableLines: string[]): number {
 }
 
 /**
- * 将表格行按 | 分割为单元格数组
- * 处理转义管道符 \|
+ * 按 | 分割为单元格数组，保留单元格 IAL，处理转义管道符 \|
+ *
+ * 用于所有"分割 → 修改 → 重新拼接"的回写路径：拼接时单元格 IAL
+ * （合并属性 `{: colspan="2"}`）必须原样带回，否则会把 merged cell 拍平。
  */
-export function splitTableRow(line: string): string[] {
+export function splitTableRowRaw(line: string): string[] {
   // 去掉首尾的 |
   const trimmed = line.trim();
   if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) {
@@ -154,6 +157,47 @@ export function splitTableRow(line: string): string[] {
   cells.push(current.trim());
 
   return cells;
+}
+
+/** 单元格级 IAL 前缀，形如 `{: colspan="2"}` */
+const CELL_IAL_LEAD_RE = /^\s*\{:\s*[^}]*\}/;
+/** 单元格级 IAL 后缀，形如 `{: colspan="2" rowspan="3"}` */
+const CELL_IAL_TAIL_RE = /\{\s*:\s*[^}]*\}\s*$/;
+
+/**
+ * 清理单元格文本中的 IAL（内联属性列表）前缀 / 后缀
+ *
+ * 思源 `getBlockKramdown` 会把设置了属性的单元格输出为
+ * `{: colspan="1"}内容` 或 `内容{: colspan="2" rowspan="3"}`，
+ * 不清理就会把这段属性当成单元格正文带入转换数据库、导出、图表化等流程。
+ * 仅含属性而无正文的单元格（被合并覆盖）清空后返回 ""。
+ * 普通花括号内容（如 `价格 {包邮}`）不含 `{:` 起始，不受影响。
+ */
+export function stripCellIal(cell: string): string {
+  let text = cell;
+  let prev: string;
+
+  do {
+    prev = text;
+    text = text
+      .replace(CELL_IAL_TAIL_RE, "")
+      .replace(CELL_IAL_LEAD_RE, "")
+      .trim();
+  } while (text !== prev);
+
+  return text;
+}
+
+/**
+ * 将表格行按 | 分割为单元格数组，并清理单元格 IAL
+ *
+ * 这是读取单元格"内容"的默认入口：转数据库、导出 CSV/XLSX、图表化、填充、
+ * 求和等一切把单元格当数据用的地方都应使用它，避免把 `{: colspan="1"}`
+ * 之类的思源内部属性当成正文。需要原样保留 IAL 的回写场景请用
+ * {@link splitTableRowRaw}。
+ */
+export function splitTableRow(line: string): string[] {
+  return splitTableRowRaw(line).map(stripCellIal);
 }
 
 /**
@@ -259,16 +303,17 @@ export function fixCJKSeparatorWidth(tableLines: string[]): string[] {
   if (!isSeparatorLine(separatorLine)) return tableLines;
 
   // 收集每列所有单元格文本
-  const numCols = splitTableRow(tableLines[0]).length;
+  const numCols = splitTableRowRaw(tableLines[0]).length;
   const colDisplayWidths: number[] = [];
 
   for (let col = 0; col < numCols; col++) {
     let maxDisplayWidth = 3; // 最小宽度
     for (const line of tableLines) {
       if (isSeparatorLine(line)) continue;
-      const cells = splitTableRow(line);
+      const cells = splitTableRowRaw(line);
       if (cells[col] !== undefined) {
-        maxDisplayWidth = Math.max(maxDisplayWidth, displayWidth(cells[col]));
+        // 按清理后的正文计算宽度，IAL 属性串不算入
+        maxDisplayWidth = Math.max(maxDisplayWidth, displayWidth(stripCellIal(cells[col])));
       }
     }
     colDisplayWidths.push(maxDisplayWidth);
@@ -297,13 +342,14 @@ export function fixCJKSeparatorWidth(tableLines: string[]): string[] {
       result.push(`|${sepCells.join("|")}|`);
     } else {
       // 重建数据/表头行：用显示宽度 padding
-      const cells = splitTableRow(line);
-      const paddedCells = cells.map((cell, col) => {
-        const cellDisplayWidth = displayWidth(cell);
+      // 宽度按清理后的正文计算（IAL 不算宽度），回写时保留原始单元格（含 IAL）
+      const cells = splitTableRowRaw(line);
+      const paddedCells = cells.map((rawCell, col) => {
+        const cellDisplayWidth = displayWidth(stripCellIal(rawCell));
         const targetDisplayWidth = colDisplayWidths[col] || 3;
         const paddingNeeded = targetDisplayWidth - cellDisplayWidth;
         // 右侧填充空格
-        return ` ${cell}${" ".repeat(Math.max(0, paddingNeeded))} `;
+        return ` ${rawCell}${" ".repeat(Math.max(0, paddingNeeded))} `;
       });
       result.push(`|${paddedCells.join("|")}|`);
     }
@@ -415,7 +461,8 @@ export function deleteTableColumns(
   let newLines = tableLines.map(line => {
     if (!line.trim().startsWith("|")) return line;
     const isSep = isSeparatorLine(line);
-    const cells = splitTableRow(line);
+    // 用原始单元格过滤，按列删除时保留其余单元格的 IAL 合并属性
+    const cells = splitTableRowRaw(line);
     const filteredCells = cells.filter((_, colIdx) => !validCols.has(colIdx));
     if (isSep) {
       return `|${filteredCells.map(c => ` ${c.trim()} `).join("|")}|`;

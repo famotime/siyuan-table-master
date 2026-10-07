@@ -39,7 +39,7 @@ import {
   domCoordToRowModelIndex,
   getPipePosition,
   fixCJKSeparatorWidth,
-  splitTableRow,
+  splitTableRowRaw,
   isSeparatorLine,
 } from "./table-model";
 
@@ -463,7 +463,7 @@ export class SiyuanTextEditor implements ITextEditor {
    */
   getRowCellsAt(lineIndex: number): string[] {
     const line = this._lines[lineIndex] ?? "";
-    return splitTableRow(line);
+    return splitTableRowRaw(line);
   }
 
   /**
@@ -474,7 +474,7 @@ export class SiyuanTextEditor implements ITextEditor {
   setRowCellsAt(lineIndex: number, cells: string[]): void {
     const orig = this._lines[lineIndex];
     if (orig === undefined) return;
-    const origCells = splitTableRow(orig);
+    const origCells = splitTableRowRaw(orig);
     const numCols = origCells.length;
     // 按目标行列数对齐：多余截断，不足补空字符串
     const newCells = Array.from({ length: numCols }, (_, i) =>
@@ -492,7 +492,7 @@ export class SiyuanTextEditor implements ITextEditor {
     const result: string[] = [];
     for (const line of this._lines) {
       if (isSeparatorLine(line)) continue;
-      const cells = splitTableRow(line);
+      const cells = splitTableRowRaw(line);
       result.push(cells[domCol] ?? "");
     }
     return result;
@@ -507,7 +507,7 @@ export class SiyuanTextEditor implements ITextEditor {
     let cellIdx = 0;
     for (let i = 0; i < this._lines.length && cellIdx < colCells.length; i++) {
       if (isSeparatorLine(this._lines[i])) continue;
-      const cells = splitTableRow(this._lines[i]);
+      const cells = splitTableRowRaw(this._lines[i]);
       if (domCol < cells.length) {
         cells[domCol] = colCells[cellIdx];
         this._lines[i] = `| ${cells.join(" | ")} |`;

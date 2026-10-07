@@ -17,7 +17,7 @@ import { showMessage } from "siyuan";
 import { SiyuanTextEditor } from "./siyuan-text-editor";
 import { showPasteConfirmDialog } from "./confirm-dialog";
 import type { PluginSettings } from "./settings";
-import { splitTableRow, isSeparatorLine, deleteTableRows, deleteTableColumns } from "./table-model";
+import { splitTableRow, splitTableRowRaw, isSeparatorLine, deleteTableRows, deleteTableColumns } from "./table-model";
 import { convertHtmlTableToMarkdownKramdown, removeMergeAttributes } from "./html-to-md";
 import { fillTable } from "./table-fill-utils";
 
@@ -289,7 +289,7 @@ export class TableEditor {
       const colDiff = targetCols - originalColCount;
       for (let i = 0; i < lineCount; i++) {
         const line = this.ctx.getLineAt(i) || "";
-        const cells = splitTableRow(line);
+        const cells = splitTableRowRaw(line);
         if (i === 1) {
           // 分隔行，追加 "---"
           for (let d = 0; d < colDiff; d++) {
@@ -432,11 +432,11 @@ export class TableEditor {
       if (line === undefined) continue;
 
       if (isSeparatorLine(line)) {
-        const cells = splitTableRow(line);
+        const cells = splitTableRowRaw(line);
         cells.splice(colIdx, 0, "---");
         this.ctx.setLineAt(i, `| ${cells.join(" | ")} |`);
       } else {
-        const cells = splitTableRow(line);
+        const cells = splitTableRowRaw(line);
         const cellVal = cellIdx < clipCells.length ? clipCells[cellIdx] : "";
         cells.splice(colIdx, 0, cellVal);
         this.ctx.setLineAt(i, `| ${cells.join(" | ")} |`);

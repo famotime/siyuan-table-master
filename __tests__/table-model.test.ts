@@ -8,10 +8,13 @@ import {
   serializeTableKramdown,
   isSeparatorLine,
   splitTableRow,
+  splitTableRowRaw,
+  stripCellIal,
   getColumnCount,
   getPipePosition,
   displayWidth,
   fixCJKSeparatorWidth,
+  deleteTableColumns,
   domCoordToRowModelIndex,
 } from "../src/table-model";
 
@@ -121,6 +124,31 @@ describe("splitTableRow", () => {
 
   it("处理首尾空格", () => {
     expect(splitTableRow("|  A  |  B  |")).toEqual(["A", "B"]);
+  });
+
+  it("清理单元格 IAL 前缀", () => {
+    expect(splitTableRow('|{: colspan="1"}App|{: colspan="1"}用户名|')).toEqual(["App", "用户名"]);
+  });
+
+  it("清理单元格 IAL 后缀", () => {
+    expect(splitTableRow('|App{: colspan="2" rowspan="3"}|B|')).toEqual(["App", "B"]);
+  });
+
+  it("清理仅含 IAL 的单元格（合并被覆盖的单元格）", () => {
+    expect(splitTableRow('|{: colspan="1"}|B|')).toEqual(["", "B"]);
+    expect(splitTableRow('|{: class="fn__none"}|B|')).toEqual(["", "B"]);
+  });
+
+  it("同时清理前、后缀 IAL", () => {
+    expect(splitTableRow('|{: id="x"}App{: colspan="1"}|B|')).toEqual(["App", "B"]);
+  });
+
+  it("保留单元格内的普通花括号内容", () => {
+    expect(splitTableRow("| 价格 {包邮} |B|")).toEqual(["价格 {包邮}", "B"]);
+  });
+
+  it("IAL 前缀不影响列数统计", () => {
+    expect(getColumnCount(['|{: colspan="1"}A|{: colspan="1"}B|', '|---|---|'])).toBe(2);
   });
 });
 
@@ -293,5 +321,34 @@ describe("domCoordToRowModelIndex", () => {
     const result = domCoordToRowModelIndex(1, 0, tableLines);
     expect(result.row).toBe(2);
     expect(result.approxCol).toBeGreaterThan(0);
+  });
+});
+
+describe("单元格 IAL 回写保留", () => {
+  it("splitTableRowRaw 原样保留 IAL", () => {
+    expect(splitTableRowRaw('|{: colspan="1"}App|B|')).toEqual(['{: colspan="1"}App', "B"]);
+  });
+  it("splitTableRow 清理 IAL", () => {
+    expect(splitTableRow('|{: colspan="1"}App|B|')).toEqual(["App", "B"]);
+  });
+  it("deleteTableColumns 删除列后其余列的 IAL 保留", () => {
+    const src = ['|{: colspan="1"}A|{: colspan="1"}B|{: colspan="1"}C|', '|---|---|---|',
+      '|{: colspan="1"}1|{: colspan="1"}2|{: colspan="1"}3|'];
+    const res = deleteTableColumns(src, [1]);
+    expect(res.lines[2]).toContain('{: colspan="1"}1');
+    expect(res.lines[2]).toContain('{: colspan="1"}3');
+    expect(res.lines[2]).not.toContain('2|{:');
+  });
+  it("fixCJKSeparatorWidth 按正文算宽度但保留 IAL", () => {
+    const src = ['|{: colspan="1"}A|{: colspan="1"}B|', '|---|---|', '|{: colspan="1"}甲|{: colspan="1"}乙|'];
+    const out = fixCJKSeparatorWidth(src);
+    expect(out[0]).toContain('{: colspan="1"}A');
+    // IAL 不应被计入列宽：列宽只需容纳"甲"(2)
+    expect(out[0]).not.toContain('{: colspan="1"}A' + " ".repeat(20));
+  });
+  it("parseTableKramdown 解析后 IAL 仍在原始 tableLines 中", () => {
+    const k = '|App|B|\n|---|---|\n|{: colspan="1"}x|y|\n{: id="1"}';
+    const { tableLines } = parseTableKramdown(k);
+    expect(tableLines[2]).toBe('|{: colspan="1"}x|y|');
   });
 });

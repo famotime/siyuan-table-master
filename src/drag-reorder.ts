@@ -1,7 +1,7 @@
 import { getActiveEditor } from "siyuan";
 import { findTableBlock, getCellFromRange, getCellCoordFromTable } from "./dom-utils";
 import { SiyuanTextEditor } from "./siyuan-text-editor";
-import { splitTableRow } from "./table-model";
+import { splitTableRowRaw } from "./table-model";
 import type TableMaterPlugin from "./index";
 import { logger } from "./logger";
 
@@ -499,7 +499,7 @@ export class DragReorder {
         const line = editorCtx.getLineAt(i) ?? "";
         if (line.trim().startsWith("{:")) continue; // 跳过 IAL
 
-        const cells = splitTableRow(line);
+        const cells = splitTableRowRaw(line);
         if (fromCol < cells.length && toCol <= cells.length) {
           // 移动单元格
           const [movedCell] = cells.splice(fromCol, 1);

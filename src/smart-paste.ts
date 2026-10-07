@@ -2,7 +2,7 @@ import { getActiveEditor, fetchSyncPost, showMessage } from "siyuan";
 import { isCursorInTable, SiyuanTextEditor } from "./siyuan-text-editor";
 import { rangeToCellCoord, highlightActiveRowAndCol, getSelectedTableRange } from "./dom-utils";
 import type TableMaterPlugin from "./index";
-import { splitTableRow } from "./table-model";
+import { splitTableRowRaw } from "./table-model";
 import { gridToMarkdown, parseLines } from "./text-to-table-utils";
 import { logger } from "./logger";
 
@@ -121,7 +121,7 @@ export class SmartPaste {
     if (lineCount === 0) return;
 
     // 1. 计算当前的行列数
-    const firstRowCells = splitTableRow(ctx.getLineAt(0) ?? "");
+    const firstRowCells = splitTableRowRaw(ctx.getLineAt(0) ?? "");
     let currentColCount = firstRowCells.length;
 
     // 计算分隔行中单元格的长度，用于扩充列时填充 "---"
@@ -129,7 +129,7 @@ export class SmartPaste {
     for (let i = 0; i < lineCount; i++) {
       const line = ctx.getLineAt(i) ?? "";
       if (line.includes("|") && line.replace(/[^|]/g, "").length >= 2) {
-        const cells = splitTableRow(line);
+        const cells = splitTableRowRaw(line);
         if (cells.every(c => c.trim().match(/^:?-+:?$/))) {
           sepLineIdx = i;
           break;
